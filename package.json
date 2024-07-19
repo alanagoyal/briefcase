@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build && cp -r public .next/standalone/public && cp -r .next/static .next/standalone/.next/static && node monkey-patch.js && rm -rf .next/standalone/node_modules && rm -rf .freestylebuild && mkdir .freestylebuild && cp -r .next/standalone/* .freestylebuild && cp -r .next/standalone/.next .freestylebuild/",
+    "build": "next build && cp -r public .next/standalone/public && cp -r .next/static .next/standalone/.next/static && node monkey-patch.js && rm -rf .next/standalone/node_modules && rm -rf freestylebuild && mkdir freestylebuild && cp -r .next/standalone/* freestylebuild && cp -r .next/standalone/.next freestylebuild/",
     "start": "next start",
     "lint": "next lint"
   },

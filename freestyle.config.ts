@@ -7,8 +7,9 @@ export default defineConfig({
     proxy: "http://localhost:3000",
   },
   deploy: {
+    
     web: {
-      entryPoint: ".freestylebuild/server.js",
+      entryPoint: "freestylebuild/server.js",
       
     },
   },
