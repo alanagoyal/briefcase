@@ -4,17 +4,18 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build && cp -r public .next/standalone/public && cp -r .next/static .next/standalone/.next/static && node monkey-patch.js && rm -rf .next/standalone/node_modules && rm -rf .freestylebuild && mkdir .freestylebuild && cp -r .next/standalone/* .freestylebuild && cp -r .next/standalone/.next .freestylebuild/",
     "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
-    "freestyle-sh": "^0.2.28",
+    "freestyle-sh": "0.2.29",
     "next": "14.2.3",
     "react": "^18",
     "react-dom": "^18"
   },
   "devDependencies": {
+    "@deno/shim-deno": "^0.19.2",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

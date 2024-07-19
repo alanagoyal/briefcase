@@ -1,0 +1,9 @@
+{
+    "imports": {
+        "react": "npm:react",
+        "next": "npm:next",
+        "path": "node:path",
+        "url": "node:url",
+        "module": "node:module"
+    }
+}
