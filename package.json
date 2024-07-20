@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build && cp -r public .next/standalone/public && cp -r .next/static .next/standalone/.next/static && node monkey-patch.js && rm -rf .next/standalone/node_modules && rm -rf freestylebuild && mkdir freestylebuild && cp -r .next/standalone/* freestylebuild && cp -r .next/standalone/.next freestylebuild/",
+    "build": "next build && sh freestyleify.sh",
     "start": "next start",
     "lint": "next lint"
   },
@@ -19,6 +19,7 @@
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "esbuild": "0.23.0",
     "eslint": "^8",
     "eslint-config-next": "14.2.3",
     "postcss": "^8",

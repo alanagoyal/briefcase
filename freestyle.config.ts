@@ -10,7 +10,6 @@ export default defineConfig({
     
     web: {
       entryPoint: "freestylebuild/server.js",
-      
     },
   },
 });

@@ -1,8 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // transpilePackages: ["react"],
-  // output: "standalone"
-  output: "standalone"
+  output: "standalone",
+  distDir: "freestylenext",
+
+  
   
 };
 

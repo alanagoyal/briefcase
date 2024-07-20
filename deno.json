@@ -1,6 +1,7 @@
 {
     "imports": {
         "react": "npm:react",
+        "react/jsx-runtime": "npm:react/jsx-runtime",
         "next": "npm:next",
         "path": "node:path",
         "url": "node:url",
