@@ -2,7 +2,7 @@ import fs from "fs";
 // prepend to file
 //globalThis.process = { env: {}, chdir: Deno.chdir, exit: Deno.exit };
 const prepend =
-  "/*Injected via Freestyle monkey-patch.ts*/\nimport process from 'node:process';\nconst window = globalThis;\n /* End of Freestyle Injection*/\n";
+  "/*Injected via Freestyle monkey-patch.ts*/\nimport process from 'node:process';\nimport \"npm:react/jsx-runtime\";\nconst window = globalThis;\n /* End of Freestyle Injection*/\n";
 const filePath = "freestylenext/standalone/server.js";
 const file = fs.readFileSync(filePath, "utf8");
 let newFile = prepend + file;
