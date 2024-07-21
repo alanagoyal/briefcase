@@ -6,3 +6,5 @@ rm -rf freestylebuild
 mkdir freestylebuild
 cp -r freestylenext/standalone/* freestylebuild
 cp -r freestylenext/standalone/freestylenext freestylebuild/
+# cp deno.json freestylebuild/deno.json
+rm freestylebuild/package.json
