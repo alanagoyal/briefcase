@@ -32,7 +32,7 @@ export default function Counter(props: { count: number }) {
       <p>Count: {count ?? props.count}</p>
       <button
         onClick={increment}
-        className="mt-4 p-4 rounded-xl bg-gray-700 transition-all hover:bg-gray-800"
+        className="my-4 p-4 rounded-xl bg-gray-700 transition-all hover:bg-gray-800"
       >
         Increment
       </button>
