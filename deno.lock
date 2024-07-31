@@ -3,6 +3,8 @@
   "packages": {
     "specifiers": {
       "npm:@deno/shim-deno@^0.19.2": "npm:@deno/shim-deno@0.19.2",
+      "npm:@nanostores/query@^0.3.3": "npm:@nanostores/query@0.3.3_nanostores@0.10.3",
+      "npm:@nanostores/react@^0.7.2": "npm:@nanostores/react@0.7.2_nanostores@0.10.3_react@18.3.1",
       "npm:@types/node": "npm:@types/node@18.16.19",
       "npm:@types/node@^20": "npm:@types/node@20.14.11",
       "npm:@types/react-dom@^18": "npm:@types/react-dom@18.3.0",
@@ -213,6 +215,20 @@
         "dependencies": {
           "@jridgewell/resolve-uri": "@jridgewell/resolve-uri@3.1.2",
           "@jridgewell/sourcemap-codec": "@jridgewell/sourcemap-codec@1.5.0"
+        }
+      },
+      "@nanostores/query@0.3.3_nanostores@0.10.3": {
+        "integrity": "sha512-xpu8LONbRIcoeJa5lWqhsagk4lLSYqskWVo3RujsxnAxOmLeUx/mZqLwRZtEDEy9FhmacQixaftNyy9k+XeKgg==",
+        "dependencies": {
+          "nanoevents": "nanoevents@9.0.0",
+          "nanostores": "nanostores@0.10.3"
+        }
+      },
+      "@nanostores/react@0.7.2_nanostores@0.10.3_react@18.3.1": {
+        "integrity": "sha512-e3OhHJFv3NMSFYDgREdlAQqkyBTHJM91s31kOZ4OvZwJKdFk5BLk0MLbh51EOGUz9QGX2aCHfy1RvweSi7fgwA==",
+        "dependencies": {
+          "nanostores": "nanostores@0.10.3",
+          "react": "react@18.3.1"
         }
       },
       "@next/env@14.2.5": {
@@ -1841,8 +1857,16 @@
           "thenify-all": "thenify-all@1.6.0"
         }
       },
+      "nanoevents@9.0.0": {
+        "integrity": "sha512-X8pU7IOpgKXVLPxYUI55ymXc8XuBE+uypfEyEFBtHkD1EX9KavYTVc+vXZHFyHKzA1TaZoVDqklLdQBBrxIuAw==",
+        "dependencies": {}
+      },
       "nanoid@3.3.7": {
         "integrity": "sha512-eSRppjcPIatRIMC1U6UngP8XFcz8MQWGQdt1MTBQ7NaAmvXDfvNxbvWV3x2y6CdEUciCSsDHDQZbhYaB8QEo2g==",
+        "dependencies": {}
+      },
+      "nanostores@0.10.3": {
+        "integrity": "sha512-Nii8O1XqmawqSCf9o2aWqVxhKRN01+iue9/VEd1TiJCr9VT5XxgPFbF1Edl1XN6pwJcZRsl8Ki+z01yb/T/C2g==",
         "dependencies": {}
       },
       "natural-compare@1.4.0": {
@@ -2703,6 +2727,8 @@
     "packageJson": {
       "dependencies": [
         "npm:@deno/shim-deno@^0.19.2",
+        "npm:@nanostores/query@^0.3.3",
+        "npm:@nanostores/react@^0.7.2",
         "npm:@types/node@^20",
         "npm:@types/react-dom@^18",
         "npm:@types/react@^18",

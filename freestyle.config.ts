@@ -9,7 +9,7 @@ export default defineConfig({
   deploy: {
     
     web: {
-      entryPoint: "freestylebuild/server.js",
+      entryPoint: ".next/standalone/entry.js",
     },
   },
 });
