@@ -8,7 +8,6 @@ import { fileURLToPath } from 'node:url';
 const nextConfig = {
   output: "standalone",
   cleanDistDir: true,
-  outputFileTracingRoot: path.join(fileURLToPath(import.meta.url), './'),
   cacheMaxMemorySize: 0, // disable default in-memory caching
   
 };

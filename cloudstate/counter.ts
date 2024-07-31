@@ -11,11 +11,12 @@ export class CounterCS {
 
   increment() {
     this.count++;
-    // eslint-disable-next-line react-hooks/rules-of-hooks
     invalidate(useCloud<typeof CounterCS>("counter").getCount)
   }
 
   decrement() {
     this.count--;
+
+    invalidate(useCloud<typeof CounterCS>("counter").getCount)
   }
 }
