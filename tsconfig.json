@@ -36,6 +36,7 @@
   ],
   "exclude": [
     "node_modules",
-    "monkey-patch.js",    
+    "freestyle/monkey-patch.js",    
+    "freestyle/entry.js",
   ]
 }

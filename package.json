@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build && sh freestyleify.sh",
+    "build": "next build && sh freestyle/freestyleify.sh",
     "start": "next start",
     "lint": "next lint"
   },
