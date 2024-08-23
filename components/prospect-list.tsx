@@ -1,9 +1,12 @@
-import { RefreshCwIcon } from "lucide-react";
+"use client"
+
+import { RefreshCwIcon, LinkedinIcon } from "lucide-react";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { useState } from "react";
 
 const prospects = [
-    { name: "Acme Corp", industry: "Technology", size: "Enterprise", match: "95% Match" },
+    { name: "Adam McQuilkin", industry: "Technology", size: "Enterprise", match: "95% Match" },
     { name: "Global Innovations", industry: "Manufacturing", size: "Mid-size", match: "88% Match" },
     { name: "EcoSolutions", industry: "Green Energy", size: "Startup", match: "82% Match" },
     { name: "DataDrive Analytics", industry: "Data Science", size: "Small", match: "79% Match" },
@@ -11,6 +14,33 @@ const prospects = [
   ]
 
 export default function ProspectList() {
+    const [isLoading, setIsLoading] = useState<string | null>(null);
+
+    const handleRequestConnection = async (name: string) => {
+        setIsLoading(name);
+        try {
+            const response = await fetch('/linkedin', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ to: name }),
+            });
+            const data = await response.json();
+            if (data.success) {
+                // Handle success (e.g., show a toast notification)
+                console.log('Connection request sent successfully');
+            } else {
+                // Handle error
+                console.error('Failed to send connection request');
+            }
+        } catch (error) {
+            console.error('Error sending connection request:', error);
+        } finally {
+            setIsLoading(null);
+        }
+    };
+
     return (
         <Card>
         <CardHeader>
@@ -26,6 +56,7 @@ export default function ProspectList() {
                   <th className="text-left p-2">Industry</th>
                   <th className="text-left p-2">Size</th>
                   <th className="text-left p-2">Match</th>
+                  <th className="text-left p-2">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -45,6 +76,17 @@ export default function ProspectList() {
                       }`}>
                         {prospect.match}
                       </span>
+                    </td>
+                    <td className="p-2">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleRequestConnection(prospect.name)}
+                        disabled={isLoading === prospect.name}
+                      >
+                        <LinkedinIcon className="mr-2 h-4 w-4" />
+                        {isLoading === prospect.name ? 'Sending...' : 'Request Connection'}
+                      </Button>
                     </td>
                   </tr>
                 ))}
