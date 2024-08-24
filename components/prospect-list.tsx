@@ -5,15 +5,18 @@ import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { useState } from "react";
 
-const prospects = [
-    { name: "Adam McQuilkin", industry: "Technology", size: "Enterprise", match: "95% Match" },
-    { name: "Global Innovations", industry: "Manufacturing", size: "Mid-size", match: "88% Match" },
-    { name: "EcoSolutions", industry: "Green Energy", size: "Startup", match: "82% Match" },
-    { name: "DataDrive Analytics", industry: "Data Science", size: "Small", match: "79% Match" },
-    { name: "MegaRetail", industry: "E-commerce", size: "Enterprise", match: "75% Match" },
-  ]
+interface Prospect {
+  name: string;
+  industry: string;
+  size: string;
+  confidence: string;
+}
 
-export default function ProspectList() {
+interface ProspectListProps {
+  prospects: Prospect[];
+}
+
+export default function ProspectList({ prospects }: ProspectListProps) {
     const [isLoading, setIsLoading] = useState<string | null>(null);
 
     const handleRequestConnection = async (name: string) => {
@@ -70,11 +73,11 @@ export default function ProspectList() {
                     <td className="p-2">{prospect.size}</td>
                     <td className="p-2">
                       <span className={`px-2 py-1 rounded-full text-xs ${
-                        prospect.match.startsWith('9') ? 'bg-green-100 text-green-800' :
-                        prospect.match.startsWith('8') ? 'bg-blue-100 text-blue-800' :
+                        prospect.confidence.startsWith('9') ? 'bg-green-100 text-green-800' :
+                        prospect.confidence.startsWith('8') ? 'bg-blue-100 text-blue-800' :
                         'bg-gray-100 text-gray-800'
                       }`}>
-                        {prospect.match}
+                        {prospect.confidence}
                       </span>
                     </td>
                     <td className="p-2">

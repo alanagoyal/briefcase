@@ -4,15 +4,33 @@ import axios from "axios";
 import * as cheerio from "cheerio";
 
 initLogger({
-  projectName: "eventbase",
+  projectName: "ycs24",
   apiKey: process.env.BRAINTRUST_API_KEY,
   asyncFlush: true,
 });
 
+function normalizeUrl(url: string): string {
+  if (!url.startsWith("http://") && !url.startsWith("https://")) {
+    url = "https://" + url;
+  }
+  if (!url.includes("www.")) {
+    const urlObj = new URL(url);
+    url =
+      urlObj.protocol +
+      "//www." +
+      urlObj.hostname +
+      urlObj.pathname +
+      urlObj.search +
+      urlObj.hash;
+  }
+  return url;
+}
+
 async function scrapeWebsiteHeaderInfo(
   url: string
-): Promise<{ header: string; subtitle: string }> {
+): Promise<{ header: string; subtitle: string; siteContent: string }> {
   try {
+    url = normalizeUrl(url); // Normalize the URL
     const response = await axios.get(url);
     const $ = cheerio.load(response.data);
 
@@ -31,7 +49,10 @@ async function scrapeWebsiteHeaderInfo(
       $("p").first().text().trim() ||
       "";
 
-    return { header, subtitle };
+    // Get the entire site content
+    const siteContent = $.html();
+
+    return { header, subtitle, siteContent };
   } catch (error) {
     console.error("Error scraping website:", error);
     throw new Error("Failed to scrape website");
@@ -42,25 +63,24 @@ export async function POST(req: Request) {
   const { website } = await req.json();
   console.log("Website:", website);
 
-  const { header, subtitle } = await scrapeWebsiteHeaderInfo(website);
+  const { header, subtitle, siteContent } = await scrapeWebsiteHeaderInfo(
+    website
+  );
 
   console.log("Header:", header);
   console.log("Subtitle:", subtitle);
+  console.log("Site Content:", siteContent);
 
-  const description = await handleRequest(header, subtitle);
+  const description = await handleRequest(siteContent);
   return BraintrustAdapter.toAIStreamResponse(description);
 }
 
-const handleRequest = wrapTraced(async function handleRequest(
-  header,
-  subtitle
-) {
+const handleRequest = wrapTraced(async function handleRequest(siteContent) {
   return await invoke({
     projectName: "ycs24",
     slug: "generate-description-e9e1",
     input: {
-      header,
-      subtitle,
+      siteContent,
     },
     stream: true,
   });
