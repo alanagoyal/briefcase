@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { ScrollArea } from "@radix-ui/react-scroll-area";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Textarea } from "./ui/textarea";
+import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { Loader2, Send } from "lucide-react";
 import { toast } from "./ui/use-toast";
@@ -46,6 +46,8 @@ export default function Chat({ content }: { content: string }) {
         const decoder = new TextDecoder();
         let aiResponse = "";
 
+        setChatMessages((prev) => [...prev, { role: "assistant", content: "" }]);
+
         while (true) {
           const { done, value } = await reader!.read();
           if (done) break;
@@ -69,6 +71,13 @@ export default function Chat({ content }: { content: string }) {
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -78,7 +87,7 @@ export default function Chat({ content }: { content: string }) {
         <p className="text-sm text-gray-500 mb-4">
           Ask questions about the legal document
         </p>
-        <ScrollArea className="h-64 border rounded-md p-4 mb-4">
+        <ScrollArea className="h-[400px] border rounded-md p-4 mb-4">
           {chatMessages.map((message, index) => (
             <div
               key={index}
@@ -99,9 +108,10 @@ export default function Chat({ content }: { content: string }) {
           ))}
         </ScrollArea>
         <div className="flex space-x-2">
-          <Textarea
+          <Input
             value={userMessage}
             onChange={(e) => setUserMessage(e.target.value)}
+            onKeyDown={handleKeyDown}
             placeholder="Type your question here..."
             className="flex-grow"
             disabled={isLoading || !content}

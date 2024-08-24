@@ -86,7 +86,7 @@ export default function DocumentSummarizer() {
           </div>
         </CardContent>
       </Card>
-      <Card>
+      <Card className="mb-6">
         <CardHeader>
           <CardTitle>Document Summary</CardTitle>
         </CardHeader>
