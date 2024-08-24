@@ -12,10 +12,12 @@ import { CardContent } from "@/components/ui/card";
 import { CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useCompletion } from "ai/react";
+import Chat from "@/components/chat";
 
 export default function DocumentSummarizer() {
   const [summary, setSummary] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [documentContent, setDocumentContent] = useState<string>("");
 
   const { complete } = useCompletion({
     api: "/generate-summary",
@@ -30,6 +32,7 @@ export default function DocumentSummarizer() {
 
     try {
       const text = await extractTextFromFile(file);
+      setDocumentContent(text);
       console.log("Generating summary");
       const result = await complete("", {
         body: { content: text },
@@ -102,6 +105,7 @@ export default function DocumentSummarizer() {
           </ScrollArea>
         </CardContent>
       </Card>
+      {documentContent && <Chat content={documentContent} />}
     </div>
   );
 }
