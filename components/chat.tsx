@@ -26,6 +26,7 @@ import {
 } from "./ui/dialog";
 import FeeCalculator from "./fee-calculator";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { ThemeToggle } from "./theme-toggle";
 
 export default function Chat() {
   const [storedMessages, setStoredMessages] = useState<Message[]>([]);
@@ -80,7 +81,7 @@ export default function Chat() {
       const userMessage = { content: input, role: "user" as const };
       const updatedMessages = [...messages, userMessage];
 
-      await handleSubmit(e, {
+      handleSubmit(e, {
         options: {
           body: {
             content,
@@ -193,10 +194,11 @@ export default function Chat() {
       <Sidebar documents={documents} />
       <div className="flex-1 flex flex-col">
         <div className="p-4 bg-background flex justify-end items-center space-x-2">
+          <ThemeToggle />
           <Button
             type="button"
             size="sm"
-            variant="outline"
+            variant="ghost"
             onClick={clearChatHistory}
             className="h-10 w-10 p-2"
           >

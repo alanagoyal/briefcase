@@ -10,7 +10,7 @@ export default function Sidebar({ documents }: SidebarProps) {
   return (
     <div className="w-64 bg-muted p-4 flex flex-col">
       <div className="flex items-center mb-8">
-        <span className="ml-2 text-xl font-bold">LegalAI</span>
+        <span className="ml-2 text-xl font-bold">Briefcase</span>
       </div>
 
       {/* Documents Section */}
