@@ -1,6 +1,5 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Textarea } from "./ui/textarea";
 import { useState } from "react";
 import { Clock, DollarSign } from "lucide-react";
@@ -12,14 +11,18 @@ interface FeeCalculationResponse {
   rationale: string;
 }
 
+interface FeeCalculatorProps {
+  summary: string;
+  content: string;
+  initialQuestion: string;
+}
+
 export default function FeeCalculator({
   summary,
   content,
-}: {
-  summary: string;
-  content: string;
-}) {
-  const [lawyerQuestion, setLawyerQuestion] = useState("");
+  initialQuestion,
+}: FeeCalculatorProps) {
+  const [lawyerQuestion, setLawyerQuestion] = useState(initialQuestion);
   const [estimatedTime, setEstimatedTime] = useState(0);
   const [estimatedFee, setEstimatedFee] = useState(0);
   const [rationale, setRationale] = useState("");
@@ -78,7 +81,7 @@ export default function FeeCalculator({
   return (
     <div>
       <Textarea
-        value={lawyerQuestion}
+        value={initialQuestion || lawyerQuestion}
         onChange={(e) => {
           setLawyerQuestion(e.target.value);
         }}

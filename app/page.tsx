@@ -1,8 +1,7 @@
-import Component from "@/components/legal-assistant";
-import Sidebar from "@/components/sidebar";
+import Chat from "@/components/chat";
 
 export default function Home() {
   return (
-    <Component />
+    <Chat />
   );
 }

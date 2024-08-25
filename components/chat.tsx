@@ -1,134 +1,340 @@
-import { useState } from "react";
+"use client";
+
+import { useState, useRef, useEffect } from "react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Input } from "./ui/input";
-import { Button } from "./ui/button";
-import { Loader2, Send } from "lucide-react";
+import {
+  Paperclip,
+  Send,
+  Loader2,
+  Copy,
+  RefreshCw,
+  ThumbsUp,
+  ThumbsDown,
+  Trash2,
+} from "lucide-react";
+import { useChat, Message } from "ai/react";
+import Sidebar from "./sidebar";
 import { toast } from "./ui/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "./ui/dialog";
+import FeeCalculator from "./fee-calculator";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 
-export default function Chat({ content }: { content: string }) {
-  const [chatMessages, setChatMessages] = useState<
-    { role: "user" | "assistant"; content: string }[]
-  >([]);
-  const [userMessage, setUserMessage] = useState<string>("");
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  
-  const handleSendMessage = async () => {
-    if (userMessage.trim() && !isLoading) {
-      const newMessage = { role: "user" as const, content: userMessage };
-      setChatMessages((prev) => [...prev, newMessage]);
-      setUserMessage("");
-      setIsLoading(true);
+export default function Chat() {
+  const [storedMessages, setStoredMessages] = useState<Message[]>([]);
 
-      try {
-        const response = await fetch('/chat', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
+  useEffect(() => {
+    const savedMessages = localStorage.getItem("chatHistory");
+    if (savedMessages) {
+      setStoredMessages(JSON.parse(savedMessages));
+    }
+  }, []);
+
+  const {
+    messages,
+    input,
+    handleInputChange,
+    handleSubmit,
+    isLoading,
+    reload,
+    setMessages,
+  } = useChat({
+    api: "/api/chat",
+    initialMessages: storedMessages,
+  });
+  const [file, setFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [documents, setDocuments] = useState<File[]>([]);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [fileContent, setFileContent] = useState<string | null>(null);
+  const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
+  const [quoteQuestion, setQuoteQuestion] = useState<string>("");
+
+  const handleSend = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!input.trim() && !file) return;
+
+    let content = input;
+    let newFileContent: string | null = null;
+    if (file) {
+      console.log(
+        `Handling file: ${file.name}, type: ${file.type}, size: ${file.size} bytes`
+      );
+      newFileContent = await readFileContent(file);
+      setFileContent(newFileContent);
+      content += `\n\nFile content:\n${newFileContent}`;
+      console.log(
+        `File content added to message. Total content length: ${content.length}`
+      );
+    }
+
+    console.log("Submitting message to API");
+    try {
+      const userMessage = { content: input, role: "user" as const };
+      const updatedMessages = [...messages, userMessage];
+
+      await handleSubmit(e, {
+        options: {
+          body: {
+            content,
+            fileContent: fileContent || newFileContent || null,
           },
-          body: JSON.stringify({
-            messages: [
-              {
-                role: "system",
-                content: "You are a legal document assistant. Answer questions based on the following document content:" + content,
-              },
-              ...chatMessages,
-              newMessage,
-            ],
-          }),
-        });
+        },
+      });
 
-        if (!response.ok) {
-          throw new Error('Failed to get response from API');
+      // Save the entire conversation to local storage after receiving the response
+      const latestMessages = [
+        ...updatedMessages,
+        messages[messages.length - 1],
+      ];
+      localStorage.setItem("chatHistory", JSON.stringify(latestMessages));
+    } catch (error) {
+      console.error("Error submitting message:", error);
+    }
+    setFile(null);
+  };
+
+  const readFileContent = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        console.log(
+          `File read successfully. Result length: ${
+            (event.target?.result as string).length
+          }`
+        );
+        resolve(event.target?.result as string);
+      };
+      reader.onerror = (error) => {
+        console.error("Error reading file:", error);
+        reject(error);
+      };
+
+      console.log("Reading file as text");
+      reader.readAsText(file);
+    });
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      console.log(
+        `File selected: ${file.name}, type: ${file.type}, size: ${file.size} bytes`
+      );
+      setFile(file);
+      setDocuments((prevDocs) => {
+        // Only add the file if it's not already in the list
+        if (
+          !prevDocs.some(
+            (doc) => doc.name === file.name && doc.size === file.size
+          )
+        ) {
+          return [...prevDocs, file];
         }
+        return prevDocs;
+      });
+      inputRef.current?.focus();
 
-        const reader = response.body?.getReader();
-        const decoder = new TextDecoder();
-        let aiResponse = "";
-
-        setChatMessages((prev) => [...prev, { role: "assistant", content: "" }]);
-
-        while (true) {
-          const { done, value } = await reader!.read();
-          if (done) break;
-          const chunk = decoder.decode(value);
-          aiResponse += chunk;
-          setChatMessages((prev) => [
-            ...prev.slice(0, -1),
-            { role: "assistant", content: aiResponse },
-          ]);
-        }
-      } catch (error) {
-        console.error("Error sending message:", error);
-        toast({
-          title: "Error",
-          description: error instanceof Error ? error.message : "Failed to send message. Please try again.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
+      // Clear the file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
       }
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleSendMessage();
+  const handleGetQuote = (index: number) => {
+    // Find the user message that prompted this assistant message
+    if (index > 0 && messages[index - 1].role === 'user') {
+      const question = messages[index - 1].content;
+      console.log("Setting quote question:", question); // Debug log
+      setQuoteQuestion(question);
+    } else {
+      console.log("No user message found before assistant message at index:", index); // Debug log
     }
+    setIsQuoteDialogOpen(true);
+  };
+
+  const handleCopy = (content: string) => {
+    navigator.clipboard.writeText(content);
+    toast({
+      description: "Message copied to clipboard",
+    });
+  };
+
+  const handleRetry = () => {
+    reload();
+    toast({
+      description: "Regenerating response...",
+    });
+  };
+
+  const handleFeedback = (isPositive: boolean) => {
+    console.log(`User gave ${isPositive ? "positive" : "negative"} feedback`);
+    toast({
+      description: `${isPositive ? "Positive" : "Negative"} feedback submitted`,
+    });
+  };
+
+  const clearChatHistory = () => {
+    localStorage.removeItem("chatHistory");
+    setMessages([]);
+    setStoredMessages([]);
   };
 
   return (
-    <Card className="mb-6">
-      <CardHeader>
-        <CardTitle>Chat with AI</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="text-sm text-gray-500 mb-4">
-          Ask questions about the legal document
-        </p>
-        <ScrollArea className="h-[400px] border rounded-md p-4 mb-4">
-          {chatMessages.map((message, index) => (
-            <div
-              key={index}
-              className={`mb-4 ${
-                message.role === "user" ? "text-right" : "text-left"
-              }`}
-            >
-              <div
-                className={`inline-block p-2 rounded-lg ${
-                  message.role === "user"
-                    ? "bg-blue-500 text-white"
-                    : "bg-gray-200"
-                }`}
-              >
-                {message.content}
+    <div className="flex h-screen bg-background">
+      <Sidebar documents={documents} />
+      <div className="flex-1 flex flex-col">
+        <div className="p-4 bg-background flex justify-end items-center space-x-2">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={clearChatHistory}
+            className="h-10 w-10 p-2"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+          <Avatar
+            className="h-10 w-10"
+            style={{
+              background: "linear-gradient(48deg, #74EBD5 0%, #9FACE6 100%)",
+            }}
+          ></Avatar>
+        </div>
+        <ScrollArea className="flex-1 flex flex-col">
+          {messages.length === 0 ? (
+            <div className="flex-1 flex items-center justify-center p-20 pt-32">
+              <div className="text-center max-w-md mx-auto">
+                <h2 className="text-2xl font-semibold mb-2">
+                  Welcome to the Legal Assistant
+                </h2>
+                <p className="text-muted-foreground mb-4">
+                  Start a conversation or upload a document to get legal advice
+                </p>
               </div>
             </div>
-          ))}
+          ) : (
+            <div className="flex-1 p-4">
+              {messages.map((message, index) => (
+                <div
+                  key={index}
+                  className={`mb-4 ${
+                    message.role === "user" ? "text-right" : "text-left"
+                  }`}
+                >
+                  <div
+                    className={`inline-block p-2 rounded-lg ${
+                      message.role === "user"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-secondary-foreground"
+                    }`}
+                  >
+                    <p>{message.content}</p>
+                  </div>
+                  {message.role === "assistant" && (
+                    <div className="mt-2 flex items-center space-x-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleCopy(message.content)}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={handleRetry}>
+                        <RefreshCw className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleFeedback(true)}
+                      >
+                        <ThumbsUp className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleFeedback(false)}
+                      >
+                        <ThumbsDown className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleGetQuote(index)}
+                      >
+                        Get Quote
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          {isLoading && (
+            <div className="flex justify-center p-4">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          )}
         </ScrollArea>
-        <div className="flex space-x-2">
-          <Input
-            value={userMessage}
-            onChange={(e) => setUserMessage(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Type your question here..."
-            className="flex-grow"
-            disabled={isLoading || !content}
-          />
-          <Button
-            onClick={handleSendMessage}
-            disabled={isLoading || !content}
-            className="bg-orange-500 hover:bg-orange-600"
-          >
-            {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
+
+        <div className="p-4 border-t bg-background">
+          <form onSubmit={handleSend} className="flex flex-col space-y-2">
+            <div className="flex items-center space-x-2">
+              <Input
+                placeholder="Type your message..."
+                value={input}
+                onChange={handleInputChange}
+                className="flex-1"
+                ref={inputRef}
+                autoFocus
+              />
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                onChange={handleFileUpload}
+              />
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Paperclip className="h-4 w-4" />
+              </Button>
+              <Button type="submit" size="icon">
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
+            {file && (
+              <p className="text-sm text-muted-foreground">
+                File selected: {file.name}
+              </p>
             )}
-          </Button>
+          </form>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+      <Dialog open={isQuoteDialogOpen} onOpenChange={setIsQuoteDialogOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Fee Calculator</DialogTitle>
+            <DialogDescription>Ask a question to get a quote</DialogDescription>
+          </DialogHeader>
+          <FeeCalculator
+            summary={messages[messages.length - 1]?.content || ""}
+            content={messages.map((m) => m.content).join("\n")}
+            initialQuestion={quoteQuestion}
+          />
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }

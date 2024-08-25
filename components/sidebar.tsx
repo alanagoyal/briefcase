@@ -10,25 +10,11 @@ export default function Sidebar({ documents }: SidebarProps) {
   return (
     <div className="w-64 bg-muted p-4 flex flex-col">
       <div className="flex items-center mb-8">
-        <svg
-          className="h-8 w-8 text-primary"
-          fill="none"
-          height="24"
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="2"
-          viewBox="0 0 24 24"
-          width="24"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
-        </svg>
         <span className="ml-2 text-xl font-bold">LegalAI</span>
       </div>
 
       {/* Documents Section */}
-      <div className="mb-4">
+      <div className="mb-4 ml-2">
         <h2 className="font-semibold mb-2">Documents</h2>
         <ScrollArea className="h-48 w-full rounded-md">
           {documents.length > 0 ? (
