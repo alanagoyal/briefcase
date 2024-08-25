@@ -1,6 +1,5 @@
 "use client";
 
-import { useCompletion } from "ai/react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Textarea } from "./ui/textarea";
 import { useState } from "react";
@@ -8,46 +7,64 @@ import { Clock, DollarSign } from "lucide-react";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 
+// Define the interface for the API response
+interface FeeCalculationResponse {
+  hours: number;
+  rationale: string;
+}
+
 export default function FeeCalculator({ summary, content }: { summary: string; content: string }) {
   const [lawyerQuestion, setLawyerQuestion] = useState("");
   const [estimatedTime, setEstimatedTime] = useState(0);
   const [estimatedFee, setEstimatedFee] = useState(0);
-  const { complete, isLoading } = useCompletion({
-    api: "/calculate-fees",
-  });
+  const [rationale, setRationale] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [responseMessage, setResponseMessage] = useState("");
 
   async function handleCalculateFee() {
-    console.log("Calculating fee...");
-    console.log("Lawyer question:", lawyerQuestion);
-    console.log("Content length:", content.length);
-
     if (lawyerQuestion && content) {
+      setIsLoading(true);
       try {
-        const result = await complete("", {
-          body: { context: content, question: lawyerQuestion },
+        const response = await fetch("/calculate-fees", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ context: content, question: lawyerQuestion }),
         });
-        console.log("API response:", result);
 
-        if (result) {
-          setResponseMessage(result);
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("API Error:", errorText);
+          throw new Error(`Failed to calculate fees: ${response.status} ${errorText}`);
+        }
+
+        const result: FeeCalculationResponse = await response.json();
+
+        if (result && typeof result === 'object' && 'hours' in result) {
+          const { hours, rationale } = result;
+          setEstimatedTime(hours);
+          setEstimatedFee(hours * 500);
+          setRationale(rationale || "No rationale provided");
           setIsDialogOpen(true);
         } else {
-          console.warn("API returned empty result");
+          console.error("Invalid API response:", result);
+          setIsDialogOpen(true);
         }
       } catch (error) {
         console.error("Error calculating fee:", error);
+        setIsDialogOpen(true);
+      } finally {
+        setIsLoading(false);
       }
     } else {
-      console.warn("Cannot calculate fee: missing question or content");
+      console.error("Cannot calculate fee: missing question or content");
+      setIsDialogOpen(true);
     }
   }
 
   async function handleSendToLawyer() {
-    console.log("Sending to lawyer...");
     await handleCalculateFee();
-    console.log("Fee calculation complete");
     // Add logic to send to lawyer here
   }
 
@@ -108,7 +125,14 @@ export default function FeeCalculator({ summary, content }: { summary: string; c
           <DialogHeader>
             <DialogTitle>Fee Estimation</DialogTitle>
           </DialogHeader>
-          <p className="whitespace-pre-wrap">{responseMessage}</p>
+          <div className="space-y-4">
+            <p>Estimated consultation time: {estimatedTime.toFixed(2)} hours</p>
+            <p>Estimated fee: ${estimatedFee.toFixed(2)}</p>
+            <div>
+              <h4 className="font-semibold">Rationale:</h4>
+              <p>{rationale}</p>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </>

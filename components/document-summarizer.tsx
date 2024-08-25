@@ -74,7 +74,7 @@ export default function DocumentSummarizer() {
           </p>
           <div
             {...getRootProps()}
-            className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer"
+            className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center text-muted-foreground cursor-pointer"
           >
             <input {...getInputProps()} />
             {isLoading ? (
@@ -82,7 +82,7 @@ export default function DocumentSummarizer() {
             ) : isDragActive ? (
               <p>Drop the files here ...</p>
             ) : (
-              <p>Drag and drop a document here to upload and summarize</p>
+              <p>Upload a file</p>
             )}
           </div>
         </CardContent>
