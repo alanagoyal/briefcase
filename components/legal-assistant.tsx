@@ -17,6 +17,8 @@ import {
 import { useChat, Message } from "ai/react";
 import Sidebar from "./sidebar";
 import { toast } from "./ui/use-toast";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
+import FeeCalculator from "./fee-calculator";
 
 export default function Component() {
   const [storedMessages, setStoredMessages] = useState<Message[]>([]);
@@ -45,6 +47,7 @@ export default function Component() {
   const [documents, setDocuments] = useState<File[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const [fileContent, setFileContent] = useState<string | null>(null);
+  const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
 
   const handleSend = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -132,20 +135,7 @@ export default function Component() {
   };
 
   const handleGetQuote = () => {
-    handleSubmit(undefined, {
-      options: {
-        body: {
-          messages: [
-            ...messages,
-            {
-              content:
-                "Please provide a quote for legal services based on the previous conversation.",
-              role: "user",
-            },
-          ],
-        },
-      },
-    });
+    setIsQuoteDialogOpen(true);
   };
 
   const handleCopy = (content: string) => {
@@ -287,6 +277,15 @@ export default function Component() {
           </form>
         </div>
       </div>
+      <Dialog open={isQuoteDialogOpen} onOpenChange={setIsQuoteDialogOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Fee Calculator</DialogTitle>
+            <DialogDescription>Ask a question to get a quote</DialogDescription>
+          </DialogHeader>
+          <FeeCalculator summary={messages[messages.length - 1]?.content || ""} content={messages.map(m => m.content).join("\n")} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
