@@ -6,6 +6,9 @@ import { fileURLToPath } from 'node:url';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    runtime: "edge",
+  },
   output: "standalone",
   cleanDistDir: true,
   cacheMaxMemorySize: 0, // disable default in-memory caching
