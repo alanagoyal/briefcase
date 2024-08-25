@@ -13,6 +13,7 @@ import { CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useCompletion } from "ai/react";
 import Chat from "@/components/chat";
+import FeeCalculator from "@/components/fee-calculator";
 
 export default function DocumentSummarizer() {
   const [summary, setSummary] = useState<string>("");
@@ -105,7 +106,12 @@ export default function DocumentSummarizer() {
           </ScrollArea>
         </CardContent>
       </Card>
-      {documentContent && <Chat content={documentContent} />}
+      {documentContent && (
+        <>
+          <Chat content={documentContent} />
+          <FeeCalculator summary={summary} content={documentContent} />
+        </>
+      )}
     </div>
   );
 }

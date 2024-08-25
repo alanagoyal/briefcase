@@ -13,6 +13,7 @@
     "@braintrust/vercel-ai-sdk": "^0.0.4",
     "@nanostores/query": "^0.3.3",
     "@nanostores/react": "^0.7.2",
+    "@radix-ui/react-dialog": "^1.1.1",
     "@radix-ui/react-scroll-area": "^1.1.0",
     "@radix-ui/react-slot": "^1.1.0",
     "@radix-ui/react-toast": "^1.2.1",

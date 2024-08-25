@@ -79,7 +79,7 @@ export default function Chat({ content }: { content: string }) {
   };
 
   return (
-    <Card>
+    <Card className="mb-6">
       <CardHeader>
         <CardTitle>Chat with AI</CardTitle>
       </CardHeader>
