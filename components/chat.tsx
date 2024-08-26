@@ -30,24 +30,9 @@ import { ThemeToggle } from "./theme-toggle";
 import { v4 as uuidv4 } from "uuid";
 
 export default function Chat() {
-  const [conversations, setConversations] = useState<{ id: string; title: string }[]>([]);
+  const [conversations, setConversations] = useState<{ id: string; title: string; messages: Message[] }[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
-  const [storedMessages, setStoredMessages] = useState<Message[]>([]);
-
-  useEffect(() => {
-    const savedConversations = localStorage.getItem("conversations");
-    if (savedConversations) {
-      setConversations(JSON.parse(savedConversations));
-    }
-    const currentId = localStorage.getItem("currentConversationId");
-    if (currentId) {
-      setCurrentConversationId(currentId);
-      const savedMessages = localStorage.getItem(`chatHistory_${currentId}`);
-      if (savedMessages) {
-        setStoredMessages(JSON.parse(savedMessages));
-      }
-    }
-  }, []);
+  const [documents, setDocuments] = useState<{ name: string; type: string; size: number }[]>([]);
 
   const {
     messages,
@@ -59,14 +44,12 @@ export default function Chat() {
     setMessages,
   } = useChat({
     api: "/api/chat",
-    initialMessages: storedMessages,
     id: currentConversationId || undefined,
   });
+
   const [file, setFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [documents, setDocuments] = useState<File[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [fileContent, setFileContent] = useState<string | null>(null);
   const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
   const [quoteQuestion, setQuoteQuestion] = useState<string>("");
 
@@ -74,78 +57,34 @@ export default function Chat() {
     const newId = uuidv4();
     const newTitle = "New Chat";
     setCurrentConversationId(newId);
-    setConversations(prev => [...prev, { id: newId, title: newTitle }]);
-    localStorage.setItem("currentConversationId", newId);
-    localStorage.setItem("conversations", JSON.stringify([...conversations, { id: newId, title: newTitle }]));
+    setConversations(prev => [...prev, { id: newId, title: newTitle, messages: [] }]);
     setMessages([]);
-    setStoredMessages([]);
-  };
-
-  const updateConversationTitle = (id: string, newTitle: string) => {
-    setConversations(prev => prev.map(conv => 
-      conv.id === id ? { ...conv, title: newTitle } : conv
-    ));
-    localStorage.setItem("conversations", JSON.stringify(
-      conversations.map(conv => conv.id === id ? { ...conv, title: newTitle } : conv)
-    ));
   };
 
   const handleSend = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!input.trim() && !file) return;
 
-    let currentId = currentConversationId;
-    if (!currentId) {
-      startNewChat();
-      currentId = currentConversationId!;
-    }
+    let currentId = currentConversationId || uuidv4();
+    const newTitle = input.trim().slice(0, 30) + (input.length > 30 ? '...' : '');
 
-    // Update the title if this is the first message in a chat
-    if (messages.length === 0) {
-      const newTitle = input.trim().slice(0, 30) + (input.length > 30 ? '...' : '');
-      updateConversationTitle(currentId, newTitle);
+    if (!currentConversationId) {
+      setCurrentConversationId(currentId);
+      setConversations(prev => [...prev, { id: currentId, title: newTitle, messages: [] }]);
     }
 
     let content = input;
-    let newFileContent: string | null = null;
     if (file) {
-      console.log(
-        `Handling file: ${file.name}, type: ${file.type}, size: ${file.size} bytes`
-      );
-      newFileContent = await readFileContent(file);
-      setFileContent(newFileContent);
-      content += `\n\nFile content:\n${newFileContent}`;
-      console.log(
-        `File content added to message. Total content length: ${content.length}`
-      );
+      const fileContent = await readFileContent(file);
+      content += `\n\nFile content:\n${fileContent}`;
     }
 
-    console.log("Submitting message to API");
-    try {
-      const userMessage = { content: input, role: "user" as const };
-      const updatedMessages = [...messages, userMessage];
+    handleSubmit(e, {
+      options: {
+        body: { content },
+      },
+    });
 
-      handleSubmit(e, {
-        options: {
-          body: {
-            content,
-            fileContent: fileContent || newFileContent || null,
-          },
-        },
-      });
-
-      // Save the entire conversation to local storage after receiving the response
-      const latestMessages = [
-        ...updatedMessages,
-        messages[messages.length - 1],
-      ];
-      localStorage.setItem(
-        `chatHistory_${currentId}`,
-        JSON.stringify(latestMessages)
-      );
-    } catch (error) {
-      console.error("Error submitting message:", error);
-    }
     setFile(null);
   };
 
@@ -153,19 +92,12 @@ export default function Chat() {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (event) => {
-        console.log(
-          `File read successfully. Result length: ${
-            (event.target?.result as string).length
-          }`
-        );
         resolve(event.target?.result as string);
       };
       reader.onerror = (error) => {
-        console.error("Error reading file:", error);
         reject(error);
       };
 
-      console.log("Reading file as text");
       reader.readAsText(file);
     });
   };
@@ -173,24 +105,13 @@ export default function Chat() {
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      console.log(
-        `File selected: ${file.name}, type: ${file.type}, size: ${file.size} bytes`
-      );
       setFile(file);
       setDocuments((prevDocs) => {
-        // Only add the file if it's not already in the list
-        if (
-          !prevDocs.some(
-            (doc) => doc.name === file.name && doc.size === file.size
-          )
-        ) {
-          return [...prevDocs, file];
-        }
-        return prevDocs;
+        const newDoc = { name: file.name, type: file.type, size: file.size };
+        return [...prevDocs, newDoc];
       });
       inputRef.current?.focus();
 
-      // Clear the file input
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -198,16 +119,9 @@ export default function Chat() {
   };
 
   const handleGetQuote = (index: number) => {
-    // Find the user message that prompted this assistant message
     if (index > 0 && messages[index - 1].role === "user") {
       const question = messages[index - 1].content;
-      console.log("Setting quote question:", question); // Debug log
       setQuoteQuestion(question);
-    } else {
-      console.log(
-        "No user message found before assistant message at index:",
-        index
-      ); // Debug log
     }
     setIsQuoteDialogOpen(true);
   };
@@ -227,7 +141,6 @@ export default function Chat() {
   };
 
   const handleFeedback = (isPositive: boolean) => {
-    console.log(`User gave ${isPositive ? "positive" : "negative"} feedback`);
     toast({
       description: `${isPositive ? "Positive" : "Negative"} feedback submitted`,
     });
@@ -235,14 +148,34 @@ export default function Chat() {
 
   const clearChatHistory = () => {
     if (currentConversationId) {
-      localStorage.removeItem(`chatHistory_${currentConversationId}`);
       setMessages([]);
-      setStoredMessages([]);
       setConversations(prev => prev.filter(conv => conv.id !== currentConversationId));
-      localStorage.setItem("conversations", JSON.stringify(conversations.filter(conv => conv.id !== currentConversationId)));
       setCurrentConversationId(null);
-      localStorage.removeItem("currentConversationId");
     }
+  };
+
+  const deleteConversation = (id: string) => {
+    setConversations(prev => prev.filter(conv => conv.id !== id));
+    if (currentConversationId === id) {
+      setCurrentConversationId(null);
+      setMessages([]);
+    }
+  };
+
+  const deleteDocument = (index: number) => {
+    setDocuments(prev => prev.filter((_, i) => i !== index));
+  };
+
+  useEffect(() => {
+    if (currentConversationId) {
+      updateConversationMessages(messages);
+    }
+  }, [messages, currentConversationId]);
+
+  const updateConversationMessages = (newMessages: Message[]) => {
+    setConversations(prev => prev.map(conv => 
+      conv.id === currentConversationId ? { ...conv, messages: newMessages } : conv
+    ));
   };
 
   return (
@@ -253,15 +186,15 @@ export default function Chat() {
         currentConversationId={currentConversationId}
         onConversationSelect={(id) => {
           setCurrentConversationId(id);
-          localStorage.setItem("currentConversationId", id);
-          const savedMessages = localStorage.getItem(`chatHistory_${id}`);
-          if (savedMessages) {
-            setMessages(JSON.parse(savedMessages));
+          const conversation = conversations.find(conv => conv.id === id);
+          if (conversation) {
+            setMessages(conversation.messages);
           } else {
             setMessages([]);
           }
         }}
-        onConversationDelete={clearChatHistory}
+        onConversationDelete={deleteConversation}
+        onDocumentDelete={deleteDocument}
         onNewChat={startNewChat}
       />
       <div className="flex-1 flex flex-col">
