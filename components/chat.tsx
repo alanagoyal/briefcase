@@ -25,16 +25,27 @@ import {
   DialogTitle,
 } from "./ui/dialog";
 import FeeCalculator from "./fee-calculator";
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { Avatar } from "./ui/avatar";
 import { ThemeToggle } from "./theme-toggle";
+import { v4 as uuidv4 } from "uuid";
 
 export default function Chat() {
+  const [conversations, setConversations] = useState<{ id: string; title: string }[]>([]);
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [storedMessages, setStoredMessages] = useState<Message[]>([]);
 
   useEffect(() => {
-    const savedMessages = localStorage.getItem("chatHistory");
-    if (savedMessages) {
-      setStoredMessages(JSON.parse(savedMessages));
+    const savedConversations = localStorage.getItem("conversations");
+    if (savedConversations) {
+      setConversations(JSON.parse(savedConversations));
+    }
+    const currentId = localStorage.getItem("currentConversationId");
+    if (currentId) {
+      setCurrentConversationId(currentId);
+      const savedMessages = localStorage.getItem(`chatHistory_${currentId}`);
+      if (savedMessages) {
+        setStoredMessages(JSON.parse(savedMessages));
+      }
     }
   }, []);
 
@@ -49,6 +60,7 @@ export default function Chat() {
   } = useChat({
     api: "/api/chat",
     initialMessages: storedMessages,
+    id: currentConversationId || undefined,
   });
   const [file, setFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -58,9 +70,41 @@ export default function Chat() {
   const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
   const [quoteQuestion, setQuoteQuestion] = useState<string>("");
 
+  const startNewChat = () => {
+    const newId = uuidv4();
+    const newTitle = "New Chat";
+    setCurrentConversationId(newId);
+    setConversations(prev => [...prev, { id: newId, title: newTitle }]);
+    localStorage.setItem("currentConversationId", newId);
+    localStorage.setItem("conversations", JSON.stringify([...conversations, { id: newId, title: newTitle }]));
+    setMessages([]);
+    setStoredMessages([]);
+  };
+
+  const updateConversationTitle = (id: string, newTitle: string) => {
+    setConversations(prev => prev.map(conv => 
+      conv.id === id ? { ...conv, title: newTitle } : conv
+    ));
+    localStorage.setItem("conversations", JSON.stringify(
+      conversations.map(conv => conv.id === id ? { ...conv, title: newTitle } : conv)
+    ));
+  };
+
   const handleSend = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!input.trim() && !file) return;
+
+    let currentId = currentConversationId;
+    if (!currentId) {
+      startNewChat();
+      currentId = currentConversationId!;
+    }
+
+    // Update the title if this is the first message in a chat
+    if (messages.length === 0) {
+      const newTitle = input.trim().slice(0, 30) + (input.length > 30 ? '...' : '');
+      updateConversationTitle(currentId, newTitle);
+    }
 
     let content = input;
     let newFileContent: string | null = null;
@@ -95,7 +139,10 @@ export default function Chat() {
         ...updatedMessages,
         messages[messages.length - 1],
       ];
-      localStorage.setItem("chatHistory", JSON.stringify(latestMessages));
+      localStorage.setItem(
+        `chatHistory_${currentId}`,
+        JSON.stringify(latestMessages)
+      );
     } catch (error) {
       console.error("Error submitting message:", error);
     }
@@ -152,12 +199,15 @@ export default function Chat() {
 
   const handleGetQuote = (index: number) => {
     // Find the user message that prompted this assistant message
-    if (index > 0 && messages[index - 1].role === 'user') {
+    if (index > 0 && messages[index - 1].role === "user") {
       const question = messages[index - 1].content;
       console.log("Setting quote question:", question); // Debug log
       setQuoteQuestion(question);
     } else {
-      console.log("No user message found before assistant message at index:", index); // Debug log
+      console.log(
+        "No user message found before assistant message at index:",
+        index
+      ); // Debug log
     }
     setIsQuoteDialogOpen(true);
   };
@@ -184,14 +234,36 @@ export default function Chat() {
   };
 
   const clearChatHistory = () => {
-    localStorage.removeItem("chatHistory");
-    setMessages([]);
-    setStoredMessages([]);
+    if (currentConversationId) {
+      localStorage.removeItem(`chatHistory_${currentConversationId}`);
+      setMessages([]);
+      setStoredMessages([]);
+      setConversations(prev => prev.filter(conv => conv.id !== currentConversationId));
+      localStorage.setItem("conversations", JSON.stringify(conversations.filter(conv => conv.id !== currentConversationId)));
+      setCurrentConversationId(null);
+      localStorage.removeItem("currentConversationId");
+    }
   };
 
   return (
     <div className="flex h-screen bg-background">
-      <Sidebar documents={documents} />
+      <Sidebar
+        documents={documents}
+        conversations={conversations}
+        currentConversationId={currentConversationId}
+        onConversationSelect={(id) => {
+          setCurrentConversationId(id);
+          localStorage.setItem("currentConversationId", id);
+          const savedMessages = localStorage.getItem(`chatHistory_${id}`);
+          if (savedMessages) {
+            setMessages(JSON.parse(savedMessages));
+          } else {
+            setMessages([]);
+          }
+        }}
+        onConversationDelete={clearChatHistory}
+        onNewChat={startNewChat}
+      />
       <div className="flex-1 flex flex-col">
         <div className="p-4 bg-background flex justify-end items-center space-x-2">
           <ThemeToggle />
@@ -226,57 +298,59 @@ export default function Chat() {
           ) : (
             <div className="flex-1 p-4">
               {messages.map((message, index) => (
-                <div
-                  key={index}
-                  className={`mb-4 ${
-                    message.role === "user" ? "text-right" : "text-left"
-                  }`}
-                >
+                message && (
                   <div
-                    className={`inline-block p-2 rounded-lg ${
-                      message.role === "user"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-secondary text-secondary-foreground"
+                    key={index}
+                    className={`mb-4 ${
+                      message.role === "user" ? "text-right" : "text-left"
                     }`}
                   >
-                    <p>{message.content}</p>
-                  </div>
-                  {message.role === "assistant" && (
-                    <div className="mt-2 flex items-center space-x-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleCopy(message.content)}
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={handleRetry}>
-                        <RefreshCw className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleFeedback(true)}
-                      >
-                        <ThumbsUp className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleFeedback(false)}
-                      >
-                        <ThumbsDown className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleGetQuote(index)}
-                      >
-                        Get Quote
-                      </Button>
+                    <div
+                      className={`inline-block p-2 rounded-lg ${
+                        message.role === "user"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-secondary text-secondary-foreground"
+                      }`}
+                    >
+                      <p>{message.content}</p>
                     </div>
-                  )}
-                </div>
+                    {message.role === "assistant" && (
+                      <div className="mt-2 flex items-center space-x-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleCopy(message.content)}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={handleRetry}>
+                          <RefreshCw className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleFeedback(true)}
+                        >
+                          <ThumbsUp className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleFeedback(false)}
+                        >
+                          <ThumbsDown className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleGetQuote(index)}
+                        >
+                          Get Quote
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )
               ))}
             </div>
           )}
@@ -332,7 +406,7 @@ export default function Chat() {
           </DialogHeader>
           <FeeCalculator
             summary={messages[messages.length - 1]?.content || ""}
-            content={messages.map((m) => m.content).join("\n")}
+            content={messages.filter(m => m && m.content).map(m => m.content).join("\n")}
             initialQuestion={quoteQuestion}
           />
         </DialogContent>
