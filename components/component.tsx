@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -18,18 +18,12 @@ import {
   UploadCloud,
 } from "lucide-react";
 import { ChangeEvent, KeyboardEvent } from "react";
-
+import { useChat } from "ai/react";
 export default function Component() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [conversationsOpen, setConversationsOpen] = useState(true);
   const [documentsOpen, setDocumentsOpen] = useState(true);
-  const [messages, setMessages] = useState<
-    Array<{ text: string; sender: "user" | "ai" }>
-  >([]);
-  const [input, setInput] = useState("");
-  const [conversations, setConversations] = useState<
-    Array<{ id: number; name: string }>
-  >([
+  const [conversations, setConversations] = useState<Array<{ id: number; name: string }>>([
     {
       id: 1,
       name: "What are the legal implications of pro rata rights in fundraising?",
@@ -49,13 +43,19 @@ export default function Component() {
     },
     { id: 6, name: "Securities laws applicable to different funding rounds" },
   ]);
-  const [documents, setDocuments] = useState<
-    Array<{ id: number; name: string }>
-  >([
+  const [documents, setDocuments] = useState<Array<{ id: number; name: string }>>([
     { id: 1, name: "TechNova Ventures Funding Proposal.pdf" },
     { id: 2, name: "GreenSpark Solutions Series A Term Sheet.docx" },
     { id: 3, name: "Quantum Dynamics Seed Round Pitch Deck.txt" },
   ]);
+
+  const { messages, input, handleInputChange, handleSubmit } = useChat();
+
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   const toggleConversations = () => {
     setConversationsOpen(!conversationsOpen);
@@ -64,32 +64,6 @@ export default function Component() {
   const toggleDocuments = () => {
     setDocumentsOpen(!documentsOpen);
   };
-
-  const handleSend = () => {
-    if (input.trim()) {
-      setMessages([...messages, { text: input, sender: "user" }]);
-      setInput("");
-      // Simulate AI response
-      setTimeout(() => {
-        setMessages((msgs) => [
-          ...msgs,
-          { text: "This is a sample AI response.", sender: "ai" },
-        ]);
-      }, 1000);
-    }
-  };
-
-  const handleFileUpload = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setDocuments([...documents, { id: Date.now(), name: file.name }]);
-    }
-  };
-
-  useEffect(() => {
-    console.log("Rendering Conversations chevron:", conversationsOpen ? "Down" : "Right");
-    console.log("Rendering Documents chevron:", documentsOpen ? "Down" : "Right");
-  }, [conversationsOpen, documentsOpen]);
 
   return (
     <div className="flex h-screen bg-background">
@@ -200,55 +174,46 @@ export default function Component() {
         {/* Chat Area */}
         <div className="flex-1 overflow-auto p-4">
           <ScrollArea className="h-full">
-            {messages.map((msg, index) => (
+            {messages.map((message: any) => (
               <div
-                key={index}
+                key={message.id}
                 className={`mb-4 flex ${
-                  msg.sender === "user" ? "justify-end" : "justify-start"
+                  message.role === "user" ? "justify-end" : "justify-start"
                 }`}
               >
                 <div
                   className={`p-2 rounded-lg ${
-                    msg.sender === "user"
+                    message.role === "user"
                       ? "bg-primary text-primary-foreground"
                       : "bg-muted"
                   }`}
                   style={{ maxWidth: "80%" }}
                 >
-                  {msg.text}
+                  {message.content}
                 </div>
               </div>
             ))}
+            <div ref={messagesEndRef} />
           </ScrollArea>
         </div>
 
         {/* Input Area */}
-        <div className="p-4 bg-background border-t">
+        <form onSubmit={handleSubmit} className="p-4 bg-background border-t">
           <div className="flex items-center max-w-3xl mx-auto">
             <Input
-              placeholder="Message Briefcase..."
+              placeholder="Ask a legal question..."
               value={input}
-              onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                setInput(e.target.value)
-              }
-              onKeyDown={(e: KeyboardEvent<HTMLInputElement>) =>
-                e.key === "Enter" && handleSend()
-              }
+              onChange={handleInputChange}
               className="flex-1"
             />
-            <Button
-              onClick={handleSend}
-              className="ml-2"
-              aria-label="Send message"
-            >
+            <Button type="submit" className="ml-2" aria-label="Send message">
               <Send className="h-4 w-4" />
             </Button>
           </div>
           <p className="text-xs text-center mt-2 text-muted-foreground">
-            Briefcase can make mistakes. Consider checking important
-            information.
+            This AI legal assistant provides general information. Always consult with a qualified attorney for specific legal advice.
           </p>
-        </div>
+        </form>
       </div>
     </div>
   );
