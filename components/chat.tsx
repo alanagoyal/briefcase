@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { Columns2, Menu, PenSquare } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -33,6 +34,7 @@ export default function Chat() {
   const [conversations, setConversations] = useState<{ id: string; title: string; messages: Message[] }[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [documents, setDocuments] = useState<{ name: string; type: string; size: number }[]>([]);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   const {
     messages,
@@ -178,43 +180,56 @@ export default function Chat() {
     ));
   };
 
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
   return (
     <div className="flex h-screen bg-background">
-      <Sidebar
-        documents={documents}
-        conversations={conversations}
-        currentConversationId={currentConversationId}
-        onConversationSelect={(id) => {
-          setCurrentConversationId(id);
-          const conversation = conversations.find(conv => conv.id === id);
-          if (conversation) {
-            setMessages(conversation.messages);
-          } else {
-            setMessages([]);
-          }
-        }}
-        onConversationDelete={deleteConversation}
-        onDocumentDelete={deleteDocument}
-        onNewChat={startNewChat}
-      />
+      {isSidebarOpen ? (
+        <Sidebar
+          documents={documents}
+          conversations={conversations}
+          currentConversationId={currentConversationId}
+          onConversationSelect={(id) => {
+            setCurrentConversationId(id);
+            const conversation = conversations.find(conv => conv.id === id);
+            if (conversation) {
+              setMessages(conversation.messages);
+            } else {
+              setMessages([]);
+            }
+          }}
+          onConversationDelete={deleteConversation}
+          onDocumentDelete={deleteDocument}
+          onNewChat={startNewChat}
+          onToggleSidebar={toggleSidebar}
+        />
+      ) : null}
       <div className="flex-1 flex flex-col">
-        <div className="p-4 bg-background flex justify-end items-center space-x-2">
+        <div className="p-4 bg-background flex items-center space-x-2">
+          {!isSidebarOpen && (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleSidebar}
+                aria-label="Open sidebar"
+              >
+                <Columns2 className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={startNewChat}
+                aria-label="New chat"
+              >
+                <PenSquare className="h-5 w-5" />
+              </Button>
+            </>
+          )}
+          <div className="flex-grow"></div>
           <ThemeToggle />
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            onClick={clearChatHistory}
-            className="h-10 w-10 p-2"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-          <Avatar
-            className="h-10 w-10"
-            style={{
-              background: "linear-gradient(48deg, #74EBD5 0%, #9FACE6 100%)",
-            }}
-          ></Avatar>
         </div>
         <ScrollArea className="flex-1 flex flex-col">
           {messages.length === 0 ? (

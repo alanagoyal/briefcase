@@ -7,35 +7,12 @@ import {
   Trash2,
   ChevronDown,
   ChevronRight,
+  Menu,
+  PenSquare,
+  Columns2,
 } from "lucide-react";
 import { Button } from "./ui/button";
-import { ScrollArea } from "./ui/scroll-area";
 import { useState } from "react";
-
-// Add this placeholder data at the top of the file, outside the component
-const placeholderConversations = [
-  { id: "1", title: "Quick chat about project deadlines" },
-  { id: "2", title: "AI ethics discussion" },
-  { id: "3", title: "Brainstorming session for new features" },
-  { id: "4", title: "Code review" },
-  {
-    id: "5",
-    title:
-      "Long conversation about the future of technology and its impact on society",
-  },
-];
-
-const placeholderDocuments = [
-  { name: "Project_proposal.docx", type: "document", size: 1024 },
-  { name: "Budget_2023.xlsx", type: "spreadsheet", size: 2048 },
-  { name: "Meeting_notes.txt", type: "text", size: 512 },
-  { name: "Presentation_for_investors.pptx", type: "presentation", size: 4096 },
-  {
-    name: "Very_long_filename_with_detailed_description_of_contents.pdf",
-    type: "document",
-    size: 8192,
-  },
-];
 
 interface SidebarProps {
   documents?: { name: string; type: string; size: number }[];
@@ -45,33 +22,43 @@ interface SidebarProps {
   onConversationDelete?: (id: string) => void;
   onDocumentDelete?: (index: number) => void;
   onNewChat?: () => void;
+  onToggleSidebar?: () => void;
 }
 
 export default function Sidebar({
+  documents = [],
+  conversations = [],
   currentConversationId = null,
   onConversationSelect = () => {},
   onConversationDelete = () => {},
   onDocumentDelete = () => {},
   onNewChat = () => {},
+  onToggleSidebar = () => {},
 }: SidebarProps) {
   const [conversationsOpen, setConversationsOpen] = useState(true);
   const [documentsOpen, setDocumentsOpen] = useState(true);
 
   return (
-    <div className="w-64 bg-muted p-4 flex flex-col h-full">
-      <div className="flex items-center mb-4">
-        <span className="ml-2 text-xl font-bold">Briefcase</span>
+    <div className="w-64 bg-muted flex flex-col h-full">
+      <div className="p-4 flex justify-between items-center">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onToggleSidebar}
+          aria-label="Close sidebar"
+        >
+          <Columns2 className="h-5 w-5" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onNewChat}
+          aria-label="New chat"
+        >
+          <PenSquare className="h-5 w-5" />
+        </Button>
       </div>
-
-      <Button
-        variant="outline"
-        className="mb-4 justify-start"
-        onClick={onNewChat}
-      >
-        <Plus className="mr-2 h-4 w-4" /> New Chat
-      </Button>
-
-      <div className="flex-grow overflow-y-auto">
+      <div className="p-4 flex-grow overflow-y-auto">
         <div className="pr-3">
           <div className="mb-2">
             <Button
@@ -88,7 +75,7 @@ export default function Sidebar({
             </Button>
             {conversationsOpen && (
               <div className="mb-2 ml-2">
-                {placeholderConversations.map((conv) => (
+                {conversations.map((conv) => (
                   <div
                     key={conv.id}
                     className={`flex items-center p-2 hover:bg-muted-foreground/10 cursor-pointer ${
@@ -134,7 +121,7 @@ export default function Sidebar({
             </Button>
             {documentsOpen && (
               <div className="mb-2 ml-2">
-                {placeholderDocuments.map((file, index) => (
+                {documents.map((file, index) => (
                   <div
                     key={index}
                     className="flex items-center p-2 hover:bg-muted-foreground/10"

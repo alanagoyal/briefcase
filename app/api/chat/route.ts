@@ -9,10 +9,7 @@ const openai = new OpenAIApi(config)
 export const runtime = 'edge'
 
 export async function POST(req: Request) {
-  console.log('Received POST request to /api/chat')
   const { messages, content } = await req.json()
-  console.log(`Received ${messages.length} messages`)
-  console.log(`Content length: ${content.length}`)
 
   // Extract file content if present
   const fileContentMatch = content.match(/File content:\n([\s\S]*)/i)
@@ -33,7 +30,6 @@ export async function POST(req: Request) {
       content: content
     }
   ]
-  console.log(`Sending ${apiMessages.length} messages to OpenAI API`)
 
   try {
     const response = await openai.createChatCompletion({
@@ -41,10 +37,8 @@ export async function POST(req: Request) {
       stream: true,
       messages: apiMessages
     })
-    console.log('Received response from OpenAI API')
 
     const stream = OpenAIStream(response)
-    console.log('Created OpenAIStream')
     return new StreamingTextResponse(stream)
   } catch (error) {
     console.error('Error calling OpenAI API:', error)
