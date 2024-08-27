@@ -9,34 +9,41 @@ const openai = new OpenAIApi(config)
 export const runtime = 'edge'
 
 export async function POST(req: Request) {
-  const { messages, content } = await req.json()
-
-  // Extract file content if present
-  const fileContentMatch = content.match(/File content:\n([\s\S]*)/i)
-  const fileContent = fileContentMatch ? fileContentMatch[1].trim() : ''
-  console.log(`File content ${fileContent ? 'found' : 'not found'} in the message`)
-  if (fileContent) {
-    console.log(`File content length: ${fileContent.length}`)
-  }
+  const { messages, experimental_attachments } = await req.json()
 
   const apiMessages = [
     {
       role: 'system',
       content: 'You are a helpful AI assistant specializing in legal advice for founders. Provide clear, concise answers to legal questions, and when appropriate, suggest getting professional legal counsel.'
     },
-    ...messages,
-    {
-      role: 'user',
-      content: content
-    }
+    ...messages
   ]
 
+  // Handle attachments
+  if (experimental_attachments && experimental_attachments.length > 0) {
+    const attachmentContents = experimental_attachments
+      .filter((attachment: any) => attachment.contentType.startsWith('text/'))
+      .map((attachment: any) => `File: ${attachment.name}\nContent: ${attachment.content}`)
+      .join('\n\n')
+
+    if (attachmentContents) {
+      apiMessages.push({
+        role: 'system',
+        content: `Context from attached files:\n${attachmentContents}`
+      })
+    }
+  }
+
+  console.log('API Messages:', JSON.stringify(apiMessages, null, 2))
+
   try {
+    console.log('Calling OpenAI API')
     const response = await openai.createChatCompletion({
       model: 'gpt-4o',
       stream: true,
       messages: apiMessages
     })
+    console.log('Received response from OpenAI API')
 
     const stream = OpenAIStream(response)
     return new StreamingTextResponse(stream)

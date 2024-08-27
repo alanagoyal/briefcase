@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Columns2, Menu, PenSquare } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -26,15 +27,31 @@ import {
   DialogTitle,
 } from "./ui/dialog";
 import FeeCalculator from "./fee-calculator";
-import { Avatar } from "./ui/avatar";
 import { ThemeToggle } from "./theme-toggle";
 import { v4 as uuidv4 } from "uuid";
 
+interface Conversation {
+  id: string;
+  title: string;
+  messages: Message[];
+}
+
+interface Document {
+  id: string;
+  name: string;
+  type: string;
+  size: number;
+}
+
 export default function Chat() {
-  const [conversations, setConversations] = useState<{ id: string; title: string; messages: Message[] }[]>([]);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const conversationId = searchParams.get('id');
+
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [documents, setDocuments] = useState<Document[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
-  const [documents, setDocuments] = useState<{ name: string; type: string; size: number }[]>([]);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [files, setFiles] = useState<FileList | undefined>(undefined);
 
   const {
     messages,
@@ -47,77 +64,146 @@ export default function Chat() {
   } = useChat({
     api: "/api/chat",
     id: currentConversationId || undefined,
+    initialMessages: conversations.find(c => c.id === currentConversationId)?.messages || [],
+    onFinish: (message) => {
+      if (currentConversationId) {
+        updateConversation(currentConversationId, message);
+      }
+    },
   });
 
-  const [file, setFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
   const [quoteQuestion, setQuoteQuestion] = useState<string>("");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  useEffect(() => {
+    const storedConversations = JSON.parse(localStorage.getItem('conversations') || '[]');
+    const storedDocuments = JSON.parse(localStorage.getItem('documents') || '[]');
+    setConversations(storedConversations);
+    setDocuments(storedDocuments);
+
+    if (conversationId) {
+      const conversation = storedConversations.find((conv: Conversation) => conv.id === conversationId);
+      if (conversation) {
+        setCurrentConversationId(conversationId);
+        setMessages(conversation.messages);
+      }
+    }
+  }, [conversationId]);
+
+  useEffect(() => {
+    if (conversations.length > 0) {
+      localStorage.setItem('conversations', JSON.stringify(conversations));
+    }
+  }, [conversations]);
+
+  useEffect(() => {
+    if (documents.length > 0) {
+      localStorage.setItem('documents', JSON.stringify(documents));
+    }
+  }, [documents]);
 
   const startNewChat = () => {
     const newId = uuidv4();
-    const newTitle = "New Chat";
+    const newConversation: Conversation = { id: newId, title: "New Chat", messages: [] };
+    setConversations(prev => [...prev, newConversation]);
     setCurrentConversationId(newId);
-    setConversations(prev => [...prev, { id: newId, title: newTitle, messages: [] }]);
     setMessages([]);
+    router.push(`/?id=${newId}`);
+    
+    // Focus on the input after a short delay to ensure the component has updated
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 0);
   };
 
   const handleSend = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!input.trim() && !file) return;
+    if (!input.trim() && !files) return;
 
     let currentId = currentConversationId || uuidv4();
-    const newTitle = input.trim().slice(0, 30) + (input.length > 30 ? '...' : '');
+
+    const userMessage: Message = { id: uuidv4(), role: 'user', content: input.trim() };
 
     if (!currentConversationId) {
+      const newConversation: Conversation = { 
+        id: currentId, 
+        title: input.trim().slice(0, 30) + (input.trim().length > 30 ? '...' : ''),
+        messages: [userMessage],
+      };
+      setConversations(prev => [...prev, newConversation]);
       setCurrentConversationId(currentId);
-      setConversations(prev => [...prev, { id: currentId, title: newTitle, messages: [] }]);
-    }
-
-    let content = input;
-    if (file) {
-      const fileContent = await readFileContent(file);
-      content += `\n\nFile content:\n${fileContent}`;
+      router.push(`/?id=${currentId}`);
+    } else {
+      updateConversation(currentId, userMessage);
     }
 
     handleSubmit(e, {
-      options: {
-        body: { content },
-      },
+      experimental_attachments: files,
     });
 
-    setFile(null);
+    setFiles(undefined);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
-  const readFileContent = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        resolve(event.target?.result as string);
-      };
-      reader.onerror = (error) => {
-        reject(error);
-      };
+  const updateConversation = (id: string, message: Message) => {
+    setConversations(prev => prev.map(conv => 
+      conv.id === id
+        ? { 
+            ...conv, 
+            messages: [...conv.messages, message], 
+            title: conv.messages.length === 0 ? message.content.slice(0, 30) : conv.title,
+          }
+        : conv
+    ));
+  };
 
-      reader.readAsText(file);
+  const deleteConversation = (id: string) => {
+    setConversations(prev => {
+      const updatedConversations = prev.filter(conv => conv.id !== id);
+      localStorage.setItem('conversations', JSON.stringify(updatedConversations));
+      
+      if (currentConversationId === id) {
+        const index = prev.findIndex(conv => conv.id === id);
+        if (updatedConversations.length > 0) {
+          const newConversationId = index > 0 ? updatedConversations[index - 1].id : updatedConversations[0].id;
+          setCurrentConversationId(newConversationId);
+          setMessages(updatedConversations.find(conv => conv.id === newConversationId)?.messages || []);
+        } else {
+          setCurrentConversationId(null);
+          setMessages([]);
+        }
+      }
+      
+      return updatedConversations;
     });
   };
+
+  // Add this useEffect hook
+  useEffect(() => {
+    if (currentConversationId) {
+      router.push(`/?id=${currentConversationId}`);
+    } else {
+      router.push('/');
+    }
+  }, [currentConversationId, router]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setFile(file);
-      setDocuments((prevDocs) => {
-        const newDoc = { name: file.name, type: file.type, size: file.size };
-        return [...prevDocs, newDoc];
-      });
-      inputRef.current?.focus();
-
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
+    if (e.target.files) {
+      setFiles(e.target.files);
     }
+  };
+
+  const deleteDocument = (id: string) => {
+    setDocuments(prev => {
+      const updatedDocuments = prev.filter(doc => doc.id !== id);
+      localStorage.setItem('documents', JSON.stringify(updatedDocuments));
+      return updatedDocuments;
+    });
   };
 
   const handleGetQuote = (index: number) => {
@@ -156,37 +242,13 @@ export default function Chat() {
     }
   };
 
-  const deleteConversation = (id: string) => {
-    setConversations(prev => prev.filter(conv => conv.id !== id));
-    if (currentConversationId === id) {
-      setCurrentConversationId(null);
-      setMessages([]);
-    }
-  };
-
-  const deleteDocument = (index: number) => {
-    setDocuments(prev => prev.filter((_, i) => i !== index));
-  };
-
-  useEffect(() => {
-    if (currentConversationId) {
-      updateConversationMessages(messages);
-    }
-  }, [messages, currentConversationId]);
-
-  const updateConversationMessages = (newMessages: Message[]) => {
-    setConversations(prev => prev.map(conv => 
-      conv.id === currentConversationId ? { ...conv, messages: newMessages } : conv
-    ));
-  };
-
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
   return (
     <div className="flex h-screen bg-background">
-      {isSidebarOpen ? (
+      {isSidebarOpen && (
         <Sidebar
           documents={documents}
           conversations={conversations}
@@ -196,8 +258,7 @@ export default function Chat() {
             const conversation = conversations.find(conv => conv.id === id);
             if (conversation) {
               setMessages(conversation.messages);
-            } else {
-              setMessages([]);
+              router.push(`/?id=${id}`);
             }
           }}
           onConversationDelete={deleteConversation}
@@ -205,7 +266,7 @@ export default function Chat() {
           onNewChat={startNewChat}
           onToggleSidebar={toggleSidebar}
         />
-      ) : null}
+      )}
       <div className="flex-1 flex flex-col">
         <div className="p-4 bg-background flex items-center space-x-2">
           {!isSidebarOpen && (
@@ -325,6 +386,7 @@ export default function Chat() {
                 ref={fileInputRef}
                 className="hidden"
                 onChange={handleFileUpload}
+                multiple
               />
               <Button
                 type="button"
@@ -338,9 +400,9 @@ export default function Chat() {
                 <Send className="h-4 w-4" />
               </Button>
             </div>
-            {file && (
+            {files && (
               <p className="text-sm text-muted-foreground">
-                File selected: {file.name}
+                Files selected: {Array.from(files).map(f => f.name).join(', ')}
               </p>
             )}
           </form>

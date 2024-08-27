@@ -1,39 +1,50 @@
 import {
-  Plus,
   History,
   Settings,
   LogOut,
-  File,
   Trash2,
   ChevronDown,
   ChevronRight,
-  Menu,
   PenSquare,
   Columns2,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { useState } from "react";
+import { Message } from "ai/react";
+
+interface Conversation {
+  id: string;
+  title: string;
+  messages: Message[];
+}
+
+interface Document {
+  id: string;
+  name: string;
+  type: string;
+  size: number;
+}
 
 interface SidebarProps {
-  documents?: { name: string; type: string; size: number }[];
-  conversations?: { id: string; title: string }[];
-  currentConversationId?: string | null;
-  onConversationSelect?: (id: string) => void;
-  onConversationDelete?: (id: string) => void;
-  onDocumentDelete?: (index: number) => void;
-  onNewChat?: () => void;
-  onToggleSidebar?: () => void;
+  documents: Document[];
+  conversations: Conversation[];
+  currentConversationId: string | null;
+  onConversationSelect: (id: string) => void;
+  onConversationDelete: (id: string) => void;
+  onDocumentDelete: (id: string) => void;
+  onNewChat: () => void;
+  onToggleSidebar: () => void;
 }
 
 export default function Sidebar({
-  documents = [],
-  conversations = [],
-  currentConversationId = null,
-  onConversationSelect = () => {},
-  onConversationDelete = () => {},
-  onDocumentDelete = () => {},
-  onNewChat = () => {},
-  onToggleSidebar = () => {},
+  documents,
+  conversations,
+  currentConversationId,
+  onConversationSelect,
+  onConversationDelete,
+  onDocumentDelete,
+  onNewChat,
+  onToggleSidebar
 }: SidebarProps) {
   const [conversationsOpen, setConversationsOpen] = useState(true);
   const [documentsOpen, setDocumentsOpen] = useState(true);
@@ -121,20 +132,19 @@ export default function Sidebar({
             </Button>
             {documentsOpen && (
               <div className="mb-2 ml-2">
-                {documents.map((file, index) => (
+                {documents.map((doc) => (
                   <div
-                    key={index}
+                    key={doc.id}
                     className="flex items-center p-2 hover:bg-muted-foreground/10"
                   >
-                    <File className="h-4 w-4 min-w-[16px] mr-2" />
                     <span className="text-sm truncate flex-grow mr-2">
-                      {file.name}
+                      {doc.name}
                     </span>
                     <Button
                       variant="ghost"
                       size="icon"
                       className="h-6 w-6 flex-shrink-0"
-                      onClick={() => onDocumentDelete(index)}
+                      onClick={() => onDocumentDelete(doc.id)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
