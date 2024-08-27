@@ -13,14 +13,33 @@ interface SidebarProps {
 }
 
 export default function Sidebar({
-  documents,
-  conversations,
-  currentConversationId,
   onConversationSelect,
   onConversationDelete,
   onDocumentDelete,
   onNewChat
 }: SidebarProps) {
+  // Dummy data for conversations
+  const conversations = [
+    { id: "1", title: "Quick chat about project timeline" },
+    { id: "2", title: "Brainstorming session" },
+    { id: "3", title: "Weekly team sync" },
+    { id: "4", title: "A very long conversation title that should be truncated" },
+    { id: "5", title: "Short" },
+    { id: "6", title: "Client meeting notes and action items for follow-up" },
+  ];
+
+  // Dummy data for documents
+  const documents = [
+    { name: "Project_proposal.docx", type: "docx", size: 1024 },
+    { name: "Budget_2023.xlsx", type: "xlsx", size: 2048 },
+    { name: "Meeting_minutes.pdf", type: "pdf", size: 512 },
+    { name: "Very_long_filename_that_needs_truncation.txt", type: "txt", size: 128 },
+    { name: "Short.jpg", type: "jpg", size: 4096 },
+    { name: "Presentation_for_board_meeting.pptx", type: "pptx", size: 8192 },
+  ];
+
+  const currentConversationId = "2"; // Set a dummy current conversation
+
   return (
     <div className="w-64 bg-muted p-4 flex flex-col">
       <div className="flex items-center mb-8">
@@ -42,8 +61,12 @@ export default function Sidebar({
               }`}
               onClick={() => onConversationSelect(conv.id)}
             >
-              <History className="h-4 w-4 mr-2" />
-              <span className="text-sm truncate flex-grow">{conv.title}</span>
+              <History className="h-4 w-4 mr-2 flex-shrink-0" />
+              <div className="flex-grow min-w-0">
+                <span className="text-sm block truncate">
+                  {conv.title}
+                </span>
+              </div>
               <Button
                 variant="ghost"
                 size="sm"
@@ -51,6 +74,7 @@ export default function Sidebar({
                   e.stopPropagation();
                   onConversationDelete(conv.id);
                 }}
+                className="flex-shrink-0 ml-2"
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
@@ -67,12 +91,17 @@ export default function Sidebar({
               key={index}
               className="flex items-center p-2 hover:bg-muted-foreground/10"
             >
-              <File className="h-4 w-4 mr-2" />
-              <span className="text-sm truncate flex-grow">{file.name}</span>
+              <File className="h-4 w-4 mr-2 flex-shrink-0" />
+              <div className="flex-grow min-w-0">
+                <span className="text-sm block truncate">
+                  {file.name}
+                </span>
+              </div>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => onDocumentDelete(index)}
+                className="flex-shrink-0 ml-2"
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
