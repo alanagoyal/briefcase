@@ -5,3 +5,6 @@ export default function Home() {
     <Chat />
   );
 }
+
+// Remove or modify this if you don't need edge runtime
+export const runtime = 'edge';
