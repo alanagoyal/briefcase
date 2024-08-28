@@ -11,19 +11,19 @@ export const runtime = 'edge'
 export async function POST(req: Request) {
   console.log('Received POST request to /api/chat')
   
-  const { messages, documentContext } = await req.json()
+  const { messages, documentContexts } = await req.json()
   console.log('Received messages:', messages)
-  console.log('Document context:', documentContext ? 'Present' : 'Not provided')
+  console.log('Document contexts:', documentContexts ? 'Present' : 'Not provided')
 
   const apiMessages = [
     {
       role: 'system',
       content: 'You are a helpful AI assistant specializing in legal advice for founders. Provide clear, concise answers to legal questions, and when appropriate, suggest getting professional legal counsel. Use markdown formatting for your responses, including code blocks with language specification when appropriate.'
     },
-    // Add document context if available
-    ...(documentContext ? [{
+    // Add document contexts if available
+    ...(documentContexts ? [{
       role: 'system',
-      content: `Context from uploaded document:\n${documentContext}\n\nPlease consider this context for all future responses in this conversation.`
+      content: `Context from uploaded documents:\n${documentContexts}\n\nPlease consider this context for all future responses in this conversation.`
     }] : []),
     ...messages
   ]

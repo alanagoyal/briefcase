@@ -62,7 +62,7 @@ export default function Chat() {
   const [currentConversationId, setCurrentConversationId] = useState<
     string | null
   >(null);
-  const [documentContext, setDocumentContext] = useState<string>("");
+  const [documentContexts, setDocumentContexts] = useState<{ [id: string]: string }>({});
   const [pinnedDocuments, setPinnedDocuments] = useState<Document[]>([]);
 
   const {
@@ -84,7 +84,7 @@ export default function Chat() {
       }
     },
     body: {
-      documentContext,
+      documentContexts: currentConversationId ? documentContexts[currentConversationId] || "" : "",
     },
   });
 
@@ -276,7 +276,11 @@ export default function Chat() {
       const file = e.target.files[0];
       try {
         const text = await readFileAsText(file);
-        setDocumentContext(text);
+        
+        setDocumentContexts(prev => ({
+          ...prev,
+          [currentConversationId]: (prev[currentConversationId] || "") + "\n\n" + text
+        }));
 
         const newDocument: Document = {
           id: uuidv4(),
