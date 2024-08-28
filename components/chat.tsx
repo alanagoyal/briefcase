@@ -62,7 +62,9 @@ export default function Chat() {
   const [currentConversationId, setCurrentConversationId] = useState<
     string | null
   >(null);
-  const [documentContexts, setDocumentContexts] = useState<{ [id: string]: string }>({});
+  const [documentContexts, setDocumentContexts] = useState<{
+    [id: string]: string;
+  }>({});
   const [pinnedDocuments, setPinnedDocuments] = useState<Document[]>([]);
 
   const {
@@ -84,7 +86,9 @@ export default function Chat() {
       }
     },
     body: {
-      documentContexts: currentConversationId ? documentContexts[currentConversationId] || "" : "",
+      documentContexts: currentConversationId
+        ? documentContexts[currentConversationId] || ""
+        : "",
     },
   });
 
@@ -203,7 +207,8 @@ export default function Chat() {
     if (!currentConversationId) {
       const newConversation: Conversation = {
         id: currentId,
-        title: input.trim().slice(0, 30) + (input.trim().length > 30 ? "..." : ""),
+        title:
+          input.trim().slice(0, 30) + (input.trim().length > 30 ? "..." : ""),
         messages: [],
         createdAt: new Date(),
       };
@@ -212,7 +217,7 @@ export default function Chat() {
       router.push(`/?id=${currentId}`);
     }
 
-    const userMessage: Message = { id: uuidv4(), role: 'user', content: input };
+    const userMessage: Message = { id: uuidv4(), role: "user", content: input };
     updateConversation(currentId, userMessage);
     handleSubmit(e);
   };
@@ -224,9 +229,11 @@ export default function Chat() {
           ? {
               ...conv,
               messages: [...conv.messages, message],
-              title: conv.messages.length === 0 && message.role === 'user'
-                ? message.content.slice(0, 30) + (message.content.length > 30 ? "..." : "")
-                : conv.title,
+              title:
+                conv.messages.length === 0 && message.role === "user"
+                  ? message.content.slice(0, 30) +
+                    (message.content.length > 30 ? "..." : "")
+                  : conv.title,
             }
           : conv
       )
@@ -276,10 +283,11 @@ export default function Chat() {
       const file = e.target.files[0];
       try {
         const text = await readFileAsText(file);
-        
-        setDocumentContexts(prev => ({
+
+        setDocumentContexts((prev) => ({
           ...prev,
-          [currentConversationId]: (prev[currentConversationId] || "") + "\n\n" + text
+          [currentConversationId]:
+            (prev[currentConversationId] || "") + "\n\n" + text,
         }));
 
         const newDocument: Document = {
@@ -368,7 +376,9 @@ export default function Chat() {
 
   useEffect(() => {
     if (currentConversationId) {
-      const currentConversation = conversations.find(conv => conv.id === currentConversationId);
+      const currentConversation = conversations.find(
+        (conv) => conv.id === currentConversationId
+      );
       if (currentConversation) {
         setMessages(currentConversation.messages);
       }
@@ -395,7 +405,7 @@ export default function Chat() {
         />
       )}
       <div className="flex-1 flex flex-col">
-        <div className="p-4 bg-background flex items-center space-x-2">
+        <div className="p-2 bg-background flex items-center space-x-2">
           {!isSidebarOpen && (
             <>
               <Button
@@ -416,12 +426,11 @@ export default function Chat() {
               </Button>
             </>
           )}
-          <div className="flex-grow"></div>
-          <ThemeToggle />
         </div>
+
         <div className="flex-1 flex flex-col overflow-hidden">
           {pinnedDocuments.length > 0 && (
-            <div className="bg-muted-foreground/20 p-2 m-2 flex flex-col space-y-2 rounded-md sticky top-0 z-10 border border-border">
+            <div className="bg-muted p-2 m-2 flex flex-col space-y-2 rounded-md sticky top-0 z-10">
               <div className="flex items-center text-center space-x-2">
                 <span className="text-sm font-medium">Pinned Documents</span>
               </div>
@@ -465,9 +474,9 @@ export default function Chat() {
                         }`}
                       >
                         <div
-                          className={`inline-block p-2 rounded-lg ${
+                          className={`inline-block p-2 rounded-lg  ${
                             message.role === "user"
-                              ? "bg-muted-foreground/20"
+                              ? "bg-muted"
                               : ""
                           }`}
                         >
@@ -564,11 +573,19 @@ export default function Chat() {
               >
                 <Paperclip className="h-4 w-4" />
               </Button>
-              <Button type="submit" size="icon">
-                <Send className="h-4 w-4" />
+              <Button
+                type="submit"
+                size="icon"
+                className="bg-[#3675F1] hover:bg-[#2556E4]"
+              >
+                <Send className="h-4 w-4 text-white" />
               </Button>
             </div>
           </form>
+          {/* Add the disclaimer below the input */}
+          <div className="mt-2 text-xs text-muted-foreground text-center">
+            Briefcase can make mistakes. Please check important info with a lawyer.
+          </div>
         </div>
       </div>
       <Dialog open={isQuoteDialogOpen} onOpenChange={setIsQuoteDialogOpen}>

@@ -21,15 +21,15 @@ export function ThemeToggle() {
   return (
     <Button
       variant="ghost"
-      size="sm"
+      className="justify-start"
       onClick={() => setTheme(theme === "light" ? "dark" : "light")}
     >
       {theme === "dark" ? (
-        <Sun className="h-5 w-5 rotate-0 scale-100 transition-all" />
+        <Sun className="mr-2 h-5 w-5 rotate-0 scale-100 transition-all" />
       ) : (
-        <Moon className="h-5 w-5 rotate-0 scale-100 transition-all" />
+        <Moon className="mr-2 h-5 w-5 rotate-0 scale-100 transition-all" />
       )}
-      <span className="sr-only">Toggle theme</span>
+      Theme
     </Button>
   )
 }

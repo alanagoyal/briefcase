@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { Message } from "ai/react";
 import { isToday, isYesterday, isThisWeek, isThisMonth } from "date-fns";
+import { ThemeToggle } from "./theme-toggle";
 
 interface Conversation {
   id: string;
@@ -97,6 +98,7 @@ export default function Sidebar({
         </Button>
       </div>
       <div className="p-2 flex-grow overflow-y-auto">
+        <h1 className="text-2xl font-bold ml-2 mb-4 text-[#3675F1]">Briefcase</h1>
         <div className="mb-2 ml-2">
           {groupedConversations.map((group, groupIndex) => (
             <div key={groupIndex} className="mb-4">
@@ -104,9 +106,9 @@ export default function Sidebar({
               {group.conversations.map((conv) => (
                 <div
                   key={conv.id}
-                  className={`flex items-center p-2 hover:bg-muted-foreground/20 cursor-pointer rounded-md ${
+                  className={`flex items-center p-2 cursor-pointer rounded-md ${
                     conv.id === currentConversationId
-                      ? "bg-muted-foreground/20"
+                      ? "bg-[#3675F1] text-white"
                       : ""
                   }`}
                   onClick={() => onConversationSelect(conv.id)}
@@ -117,7 +119,9 @@ export default function Sidebar({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-6 w-6 flex-shrink-0 opacity-0 hover:opacity-100 transition-opacity"
+                    className={`h-6 w-6 flex-shrink-0 ${
+                      conv.id === currentConversationId ? "opacity-100" : "opacity-0 hover:opacity-100"
+                    } transition-opacity`}
                     onClick={(e) => {
                       e.stopPropagation();
                       onConversationDelete(conv.id);
@@ -131,12 +135,10 @@ export default function Sidebar({
           ))}
         </div>
       </div>
-      <div className="p-4 flex flex-col space-y-2">
+      <div className="p-4 flex flex-col space-y-1">
+        <ThemeToggle />
         <Button variant="ghost" className="justify-start">
-          <Settings className="mr-2 h-4 w-4" /> Settings
-        </Button>
-        <Button variant="ghost" className="justify-start text-red-500">
-          <LogOut className="mr-2 h-4 w-4" /> Log Out
+          <Settings className="mr-2 h-5 w-5" /> Settings
         </Button>
       </div>
     </div>

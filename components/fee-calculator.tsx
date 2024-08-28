@@ -91,7 +91,7 @@ export default function FeeCalculator({
       />
       <Button
         onClick={handleCalculateFee}
-        className="w-full mb-4"
+        className="w-full mb-4 bg-[#3675F1] hover:bg-[#2556E4] text-white"
         disabled={!summary || !lawyerQuestion || isLoading}
       >
         {isLoading ? "Calculating..." : "Calculate Fee"}
