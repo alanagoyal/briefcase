@@ -40,6 +40,7 @@ interface Conversation {
   id: string;
   title: string;
   messages: Message[];
+  createdAt: Date;
 }
 
 interface Document {
@@ -91,22 +92,60 @@ export default function Chat() {
 
   useEffect(() => {
     const storedConversations = JSON.parse(localStorage.getItem('conversations') || '[]');
+    const parsedConversations = storedConversations.map((conv: any) => ({
+      ...conv,
+      createdAt: new Date(conv.createdAt),
+      messages: conv.messages.map((msg: any) => ({
+        ...msg,
+        createdAt: msg.createdAt ? new Date(msg.createdAt) : undefined,
+      }))
+    }));
+    setConversations(parsedConversations);
+
     const storedDocuments = JSON.parse(localStorage.getItem('documents') || '[]');
-    setConversations(storedConversations);
     setDocuments(storedDocuments);
 
     if (conversationId) {
-      const conversation = storedConversations.find((conv: Conversation) => conv.id === conversationId);
+      const conversation = parsedConversations.find((conv: Conversation) => conv.id === conversationId);
       if (conversation) {
         setCurrentConversationId(conversationId);
         setMessages(conversation.messages);
       }
     }
-  }, [conversationId]);
+  }, [conversationId, setMessages]);
 
   useEffect(() => {
     if (conversations.length > 0) {
-      localStorage.setItem('conversations', JSON.stringify(conversations));
+      const serializedConversations = conversations.map(conv => {
+        let createdAtString;
+        try {
+          createdAtString = conv.createdAt instanceof Date ? conv.createdAt.toISOString() : new Date(conv.createdAt).toISOString();
+        } catch (error) {
+          console.error(`Invalid date for conversation ${conv.id}:`, error);
+          createdAtString = new Date().toISOString(); // Fallback to current date
+        }
+
+        return {
+          ...conv,
+          createdAt: createdAtString,
+          messages: conv.messages.map(msg => {
+            let msgCreatedAtString;
+            try {
+              msgCreatedAtString = msg.createdAt ? new Date(msg.createdAt).toISOString() : undefined;
+            } catch (error) {
+              console.error(`Invalid date for message in conversation ${conv.id}:`, error);
+              msgCreatedAtString = undefined; // Fallback to undefined for message date
+            }
+
+            return {
+              ...msg,
+              createdAt: msgCreatedAtString,
+            };
+          }),
+        };
+      });
+
+      localStorage.setItem('conversations', JSON.stringify(serializedConversations));
     }
   }, [conversations]);
 
@@ -118,37 +157,38 @@ export default function Chat() {
 
   const startNewChat = () => {
     const newId = uuidv4();
-    const newConversation: Conversation = { id: newId, title: "New Chat", messages: [] };
+    const newConversation: Conversation = {
+      id: newId,
+      title: "New Chat",
+      messages: [],
+      createdAt: new Date(),
+    };
     setConversations(prev => [...prev, newConversation]);
     setCurrentConversationId(newId);
     setMessages([]);
     router.push(`/?id=${newId}`);
     
-    // Focus on the input after a short delay to ensure the component has updated
     setTimeout(() => {
       inputRef.current?.focus();
     }, 0);
   };
 
-  const handleSend = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSend = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!input.trim()) return;
 
     let currentId = currentConversationId || uuidv4();
 
-    const userMessage: Message = { id: uuidv4(), role: 'user', content: input.trim() };
-
     if (!currentConversationId) {
       const newConversation: Conversation = { 
         id: currentId, 
         title: input.trim().slice(0, 30) + (input.trim().length > 30 ? '...' : ''),
-        messages: [userMessage],
+        messages: [],
+        createdAt: new Date(),
       };
       setConversations(prev => [...prev, newConversation]);
       setCurrentConversationId(currentId);
       router.push(`/?id=${currentId}`);
-    } else {
-      updateConversation(currentId, userMessage);
     }
 
     handleSubmit(e);
@@ -187,7 +227,6 @@ export default function Chat() {
     });
   };
 
-  // Add this useEffect hook
   useEffect(() => {
     if (currentConversationId) {
       router.push(`/?id=${currentConversationId}`);
