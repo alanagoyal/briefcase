@@ -1,0 +1,118 @@
+/* Markdown content styles */
+.markdown-content {
+  line-height: 1.6;
+  color: var(--foreground);
+}
+
+/* Headings */
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 {
+  margin-top: 1.5em;
+  margin-bottom: 0.75em;
+  font-weight: 600;
+}
+
+.markdown-content h1 { font-size: 2em; }
+.markdown-content h2 { font-size: 1.5em; }
+.markdown-content h3 { font-size: 1.25em; }
+.markdown-content h4 { font-size: 1em; }
+.markdown-content h5 { font-size: 0.875em; }
+.markdown-content h6 { font-size: 0.85em; }
+
+/* Paragraphs and lists */
+.markdown-content p,
+.markdown-content ul,
+.markdown-content ol {
+  margin-bottom: 1em;
+}
+
+/* Lists */
+.markdown-content ul,
+.markdown-content ol {
+  padding-left: 2em;
+}
+
+.markdown-content li {
+  margin-bottom: 0.5em;
+}
+
+/* Blockquotes */
+.markdown-content blockquote {
+  border-left: 4px solid var(--border);
+  padding-left: 1em;
+  margin-left: 0;
+  margin-bottom: 1em;
+  font-style: italic;
+  color: var(--muted-foreground);
+}
+
+/* Code blocks */
+.markdown-content pre {
+  background-color: var(--muted);
+  padding: 1em;
+  border-radius: 4px;
+  overflow-x: auto;
+  margin-bottom: 1em;
+}
+
+.markdown-content code {
+  font-family: monospace;
+  font-size: 0.9em;
+  background-color: var(--muted);
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+}
+
+/* Inline code */
+.markdown-content p code,
+.markdown-content li code {
+  background-color: var(--muted);
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+}
+
+/* Horizontal rule */
+.markdown-content hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 2em 0;
+}
+
+/* Links */
+.markdown-content a {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+.markdown-content a:hover {
+  text-decoration: none;
+}
+
+/* Images */
+.markdown-content img {
+  max-width: 100%;
+  height: auto;
+  margin-bottom: 1em;
+}
+
+/* Tables */
+.markdown-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-bottom: 1em;
+}
+
+.markdown-content th,
+.markdown-content td {
+  border: 1px solid var(--border);
+  padding: 0.5em;
+}
+
+.markdown-content th {
+  background-color: var(--muted);
+  font-weight: bold;
+}

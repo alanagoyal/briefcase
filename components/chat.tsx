@@ -35,6 +35,7 @@ import rehypeRaw from 'rehype-raw'
 import rehypeSanitize from 'rehype-sanitize'
 import rehypeHighlight from 'rehype-highlight'
 import 'highlight.js/styles/github-dark.css'
+import '@/styles/markdown.css';
 
 interface Conversation {
   id: string;
@@ -407,8 +408,8 @@ export default function Chat() {
                       <div
                         className={`inline-block p-2 rounded-lg ${
                           message.role === "user"
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-secondary text-secondary-foreground"
+                            ? "bg-muted-foreground/20"
+                            : "" // Removed background for assistant messages
                         }`}
                       >
                         {message.role === "user" ? (
