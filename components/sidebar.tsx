@@ -1,9 +1,7 @@
 import { useState, useMemo } from "react";
 import { Button } from "./ui/button";
 import {
-  History,
   Settings,
-  LogOut,
   Trash2,
   PenSquare,
   Columns2,

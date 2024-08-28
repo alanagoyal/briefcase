@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Columns2, Menu, PenSquare, FileIcon, FileText } from "lucide-react";
+import { Columns2, PenSquare, FileText } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -14,7 +14,6 @@ import {
   RefreshCw,
   ThumbsUp,
   ThumbsDown,
-  Trash2,
 } from "lucide-react";
 import { useChat, Message } from "ai/react";
 import Sidebar from "./sidebar";
@@ -27,7 +26,6 @@ import {
   DialogTitle,
 } from "./ui/dialog";
 import FeeCalculator from "./fee-calculator";
-import { ThemeToggle } from "./theme-toggle";
 import { v4 as uuidv4 } from "uuid";
 import { readFileAsText } from "@/lib/fileUtils";
 import ReactMarkdown from "react-markdown";
