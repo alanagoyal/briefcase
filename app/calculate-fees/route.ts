@@ -12,7 +12,6 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { context, question } = body;
     const data = await handleRequest(context, question);
-    console.log("API response data:", data);  // Add this line
     return NextResponse.json(data);
 
   } catch (error) {
@@ -32,7 +31,6 @@ const handleRequest = wrapTraced(async function handleRequest(context: string, q
       },
       stream: false,
     });
-    console.log("Raw invoke result:", result);  // Add this line
     return result;
   } catch (error) {
     console.error("Error in handleRequest:", error);

@@ -24,16 +24,12 @@ export async function POST(req: Request) {
     ...messages
   ]
 
-  console.log('API Messages:', JSON.stringify(apiMessages, null, 2))
-
   try {
-    console.log('Calling OpenAI API')
     const response = await openai.createChatCompletion({
-      model: 'gpt-4o',
+      model: 'gpt-4o-mini',
       stream: true,
       messages: apiMessages
     })
-    console.log('Received response from OpenAI API')
 
     const stream = OpenAIStream(response)
     return new StreamingTextResponse(stream)
