@@ -18,36 +18,24 @@ interface Conversation {
   messages: Message[];
 }
 
-interface Document {
-  id: string;
-  name: string;
-  type: string;
-  size: number;
-}
-
 interface SidebarProps {
-  documents: Document[];
   conversations: Conversation[];
   currentConversationId: string | null;
   onConversationSelect: (id: string) => void;
   onConversationDelete: (id: string) => void;
-  onDocumentDelete: (id: string) => void;
   onNewChat: () => void;
   onToggleSidebar: () => void;
 }
 
 export default function Sidebar({
-  documents,
   conversations,
   currentConversationId,
   onConversationSelect,
   onConversationDelete,
-  onDocumentDelete,
   onNewChat,
   onToggleSidebar
 }: SidebarProps) {
   const [conversationsOpen, setConversationsOpen] = useState(true);
-  const [documentsOpen, setDocumentsOpen] = useState(true);
 
   return (
     <div className="w-64 bg-muted flex flex-col h-full">
@@ -108,43 +96,6 @@ export default function Sidebar({
                         e.stopPropagation();
                         onConversationDelete(conv.id);
                       }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="mb-2">
-            <Button
-              variant="ghost"
-              className="w-full justify-between mb-2"
-              onClick={() => setDocumentsOpen(!documentsOpen)}
-            >
-              <span className="font-semibold">Documents</span>
-              {documentsOpen ? (
-                <ChevronDown className="h-4 w-4" />
-              ) : (
-                <ChevronRight className="h-4 w-4" />
-              )}
-            </Button>
-            {documentsOpen && (
-              <div className="mb-2 ml-2">
-                {documents.map((doc) => (
-                  <div
-                    key={doc.id}
-                    className="flex items-center p-2 hover:bg-muted-foreground/10"
-                  >
-                    <span className="text-sm truncate flex-grow mr-2">
-                      {doc.name}
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 flex-shrink-0"
-                      onClick={() => onDocumentDelete(doc.id)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

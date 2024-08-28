@@ -29,6 +29,7 @@ import {
 import FeeCalculator from "./fee-calculator";
 import { ThemeToggle } from "./theme-toggle";
 import { v4 as uuidv4 } from "uuid";
+import { readFileAsText } from "@/lib/fileUtils";
 
 interface Conversation {
   id: string;
@@ -41,6 +42,7 @@ interface Document {
   name: string;
   type: string;
   size: number;
+  conversationId: string;
 }
 
 export default function Chat() {
@@ -51,7 +53,8 @@ export default function Chat() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
-  const [files, setFiles] = useState<FileList | undefined>(undefined);
+  const [documentContext, setDocumentContext] = useState<string>("");
+  const [pinnedDocuments, setPinnedDocuments] = useState<Document[]>([]);
 
   const {
     messages,
@@ -69,6 +72,9 @@ export default function Chat() {
       if (currentConversationId) {
         updateConversation(currentConversationId, message);
       }
+    },
+    body: {
+      documentContext,
     },
   });
 
@@ -121,7 +127,7 @@ export default function Chat() {
 
   const handleSend = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!input.trim() && !files) return;
+    if (!input.trim()) return;
 
     let currentId = currentConversationId || uuidv4();
 
@@ -140,14 +146,7 @@ export default function Chat() {
       updateConversation(currentId, userMessage);
     }
 
-    handleSubmit(e, {
-      experimental_attachments: files,
-    });
-
-    setFiles(undefined);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    handleSubmit(e);
   };
 
   const updateConversation = (id: string, message: Message) => {
@@ -192,9 +191,33 @@ export default function Chat() {
     }
   }, [currentConversationId, router]);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setFiles(e.target.files);
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && currentConversationId) {
+      const file = e.target.files[0];
+      try {
+        const text = await readFileAsText(file);
+        setDocumentContext(text);
+        
+        const newDocument: Document = {
+          id: uuidv4(),
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          conversationId: currentConversationId,
+        };
+        setDocuments(prev => [...prev, newDocument]);
+        setPinnedDocuments(prev => [...prev, newDocument]);
+        
+        toast({
+          description: `Document "${file.name}" has been uploaded and pinned to the current conversation.`,
+        });
+      } catch (error) {
+        console.error("Error reading file:", error);
+        toast({
+          description: "Error uploading document. Please try again.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -246,11 +269,19 @@ export default function Chat() {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
+  useEffect(() => {
+    if (currentConversationId) {
+      const docs = documents.filter(doc => doc.conversationId === currentConversationId);
+      setPinnedDocuments(docs);
+    } else {
+      setPinnedDocuments([]);
+    }
+  }, [currentConversationId, documents]);
+
   return (
     <div className="flex h-screen bg-background">
       {isSidebarOpen && (
         <Sidebar
-          documents={documents}
           conversations={conversations}
           currentConversationId={currentConversationId}
           onConversationSelect={(id) => {
@@ -262,7 +293,6 @@ export default function Chat() {
             }
           }}
           onConversationDelete={deleteConversation}
-          onDocumentDelete={deleteDocument}
           onNewChat={startNewChat}
           onToggleSidebar={toggleSidebar}
         />
@@ -292,83 +322,100 @@ export default function Chat() {
           <div className="flex-grow"></div>
           <ThemeToggle />
         </div>
-        <ScrollArea className="flex-1 flex flex-col">
-          {messages.length === 0 ? (
-            <div className="flex-1 flex items-center justify-center p-20 pt-32">
-              <div className="text-center max-w-md mx-auto">
-                <h2 className="text-2xl font-semibold mb-2">
-                  Welcome to the Legal Assistant
-                </h2>
-                <p className="text-muted-foreground mb-4">
-                  Start a conversation or upload a document to get legal advice
-                </p>
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {pinnedDocuments.length > 0 && (
+            <div className="bg-muted p-2 m-2 flex flex-col space-y-2 rounded-md sticky top-0 z-10">
+              <div className="flex items-center text-center space-x-2">
+                <Paperclip className="h-4 w-4" />
+                <span className="text-sm font-medium">Pinned Documents</span>
+              </div>
+              <div className="flex flex-col space-y-1">
+                {pinnedDocuments.map(doc => (
+                  <span key={doc.id} className="text-sm bg-muted-foreground/20 px-2 py-1 rounded">
+                    {doc.name}
+                  </span>
+                ))}
               </div>
             </div>
-          ) : (
-            <div className="flex-1 p-4">
-              {messages.map((message, index) => (
-                message && (
-                  <div
-                    key={index}
-                    className={`mb-4 ${
-                      message.role === "user" ? "text-right" : "text-left"
-                    }`}
-                  >
+          )}
+          <ScrollArea className="flex-1">
+            {messages.length === 0 ? (
+              <div className="flex-1 flex items-center justify-center p-20 pt-32">
+                <div className="text-center max-w-md mx-auto">
+                  <h2 className="text-2xl font-semibold mb-2">
+                    Welcome to the Legal Assistant
+                  </h2>
+                  <p className="text-muted-foreground mb-4">
+                    Start a conversation or upload a document to get legal advice
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex-1 p-4">
+                {messages.map((message, index) => (
+                  message && (
                     <div
-                      className={`inline-block p-2 rounded-lg ${
-                        message.role === "user"
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-secondary text-secondary-foreground"
+                      key={index}
+                      className={`mb-4 ${
+                        message.role === "user" ? "text-right" : "text-left"
                       }`}
                     >
-                      <p>{message.content}</p>
-                    </div>
-                    {message.role === "assistant" && (
-                      <div className="mt-2 flex items-center space-x-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleCopy(message.content)}
-                        >
-                          <Copy className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={handleRetry}>
-                          <RefreshCw className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleFeedback(true)}
-                        >
-                          <ThumbsUp className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleFeedback(false)}
-                        >
-                          <ThumbsDown className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleGetQuote(index)}
-                        >
-                          Get Quote
-                        </Button>
+                      <div
+                        className={`inline-block p-2 rounded-lg ${
+                          message.role === "user"
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-secondary text-secondary-foreground"
+                        }`}
+                      >
+                        <p>{message.content}</p>
                       </div>
-                    )}
-                  </div>
-                )
-              ))}
-            </div>
-          )}
-          {isLoading && (
-            <div className="flex justify-center p-4">
-              <Loader2 className="h-6 w-6 animate-spin" />
-            </div>
-          )}
-        </ScrollArea>
+                      {message.role === "assistant" && (
+                        <div className="mt-2 flex items-center space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleCopy(message.content)}
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={handleRetry}>
+                            <RefreshCw className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleFeedback(true)}
+                          >
+                            <ThumbsUp className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleFeedback(false)}
+                          >
+                            <ThumbsDown className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleGetQuote(index)}
+                          >
+                            Get Quote
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )
+                ))}
+              </div>
+            )}
+            {isLoading && (
+              <div className="flex justify-center p-4">
+                <Loader2 className="h-6 w-6 animate-spin" />
+              </div>
+            )}
+          </ScrollArea>
+        </div>
 
         <div className="p-4 border-t bg-background">
           <form onSubmit={handleSend} className="flex flex-col space-y-2">
@@ -386,7 +433,6 @@ export default function Chat() {
                 ref={fileInputRef}
                 className="hidden"
                 onChange={handleFileUpload}
-                multiple
               />
               <Button
                 type="button"
@@ -400,11 +446,6 @@ export default function Chat() {
                 <Send className="h-4 w-4" />
               </Button>
             </div>
-            {files && (
-              <p className="text-sm text-muted-foreground">
-                Files selected: {Array.from(files).map(f => f.name).join(', ')}
-              </p>
-            )}
           </form>
         </div>
       </div>
