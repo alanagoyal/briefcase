@@ -1,4 +1,5 @@
 import * as pdfjs from 'pdfjs-dist';
+import * as mammoth from 'mammoth';
 
 // Ensure the worker is loaded
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
@@ -6,6 +7,8 @@ pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/$
 export async function readFileAsText(file: File): Promise<string> {
   if (file.type === 'application/pdf') {
     return readPdfAsText(file);
+  } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+    return readWordDocumentAsText(file);
   } else {
     return readTextFile(file);
   }
@@ -39,4 +42,10 @@ async function readPdfAsText(file: File): Promise<string> {
   }
 
   return fullText;
+}
+
+async function readWordDocumentAsText(file: File): Promise<string> {
+  const arrayBuffer = await file.arrayBuffer();
+  const result = await mammoth.extractRawText({ arrayBuffer });
+  return result.value;
 }

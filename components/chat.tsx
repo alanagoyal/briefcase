@@ -550,6 +550,7 @@ export default function Chat() {
                 ref={fileInputRef}
                 className="hidden"
                 onChange={handleFileUpload}
+                accept=".pdf,.docx,.txt,.md"
               />
               <Button
                 type="button"
