@@ -9,7 +9,11 @@ const openai = new OpenAIApi(config)
 export const runtime = 'edge'
 
 export async function POST(req: Request) {
+  console.log('Received POST request to /api/chat')
+  
   const { messages, documentContext } = await req.json()
+  console.log('Received messages:', messages)
+  console.log('Document context:', documentContext ? 'Present' : 'Not provided')
 
   const apiMessages = [
     {
@@ -24,14 +28,19 @@ export async function POST(req: Request) {
     ...messages
   ]
 
+  console.log('Prepared API messages:', apiMessages)
+
   try {
+    console.log('Calling OpenAI API...')
     const response = await openai.createChatCompletion({
       model: 'gpt-4o-mini',
       stream: true,
       messages: apiMessages
     })
+    console.log('Received response from OpenAI API')
 
     const stream = OpenAIStream(response)
+    console.log('Created OpenAIStream')
     return new StreamingTextResponse(stream)
   } catch (error) {
     console.error('Error calling OpenAI API:', error)

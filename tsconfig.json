@@ -3,8 +3,9 @@
     "lib": [
       "dom",
       "dom.iterable",
-      "esnext"
+      "esnext",
     ],
+    "typeRoots": ["./node_modules/@types", "./types"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -22,6 +23,7 @@
       }
     ],
     "paths": {
+      "pdfjs-dist": ["./node_modules/pdfjs-dist/build/pdf"],
       "@/*": [
         "./*"
       ]
@@ -32,7 +34,8 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    "freestylenext/types/**/*.ts"
+    "freestylenext/types/**/*.ts",
+    "types/pdf.d.ts"
   ],
   "exclude": [
     "node_modules",
