@@ -6,5 +6,4 @@ export default function Home() {
   );
 }
 
-// Remove or modify this if you don't need edge runtime
-export const runtime = 'edge';
+export const dynamic = "force-dynamic";
