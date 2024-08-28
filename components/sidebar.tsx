@@ -5,6 +5,7 @@ import {
   Trash2,
   PenSquare,
   Columns2,
+  Briefcase,
 } from "lucide-react";
 import { Message } from "ai/react";
 import { isToday, isYesterday, isThisWeek, isThisMonth } from "date-fns";
@@ -101,7 +102,9 @@ export default function Sidebar({
         </Button>
       </div>
       <div className="p-2 flex-grow overflow-y-auto">
-        <h1 className="text-2xl font-bold ml-2 mb-4 text-[#3675F1]">Briefcase</h1>
+        <h1 className="text-2xl font-bold ml-2 mb-4 text-[#3675F1] font-['Avenir'] flex items-center">
+          Briefcase
+        </h1>
         <div className="mb-2 ml-2">
           {groupedConversations.map((group, groupIndex) => (
             <div key={groupIndex} className="mb-4">

@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Columns2, PenSquare, FileText } from "lucide-react";
+import { Columns2, PenSquare, FileText, Briefcase } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -422,9 +422,9 @@ export default function Chat() {
         />
       )}
       <div className="flex-1 flex flex-col">
-        <div className="p-2 bg-background flex items-center space-x-2">
-          {!isSidebarOpen && (
-            <>
+        <div className="p-2 bg-background flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            {!isSidebarOpen && (
               <Button
                 variant="ghost"
                 size="icon"
@@ -433,15 +433,22 @@ export default function Chat() {
               >
                 <Columns2 className="h-5 w-5" />
               </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={startNewChat}
-                aria-label="New chat"
-              >
-                <PenSquare className="h-5 w-5" />
-              </Button>
-            </>
+            )}
+            {!isSidebarOpen && (
+              <h1 className="text-2xl font-bold text-[#3675F1] font-['Avenir'] flex items-center">
+                Briefcase
+              </h1>
+            )}
+          </div>
+          {!isSidebarOpen && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={startNewChat}
+              aria-label="New chat"
+            >
+              <PenSquare className="h-5 w-5" />
+            </Button>
           )}
         </div>
 
