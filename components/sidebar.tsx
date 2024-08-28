@@ -74,6 +74,11 @@ export default function Sidebar({
       }
     });
 
+    // Sort conversations within each group by createdAt date (most recent first)
+    groups.forEach(group => {
+      group.conversations.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    });
+
     return groups.filter((group) => group.conversations.length > 0);
   }, [conversations]);
 

@@ -188,7 +188,7 @@ export default function Chat() {
       messages: [],
       createdAt: new Date(),
     };
-    setConversations((prev) => [...prev, newConversation]);
+    setConversations((prev) => [newConversation, ...prev]);
     setCurrentConversationId(newId);
     setMessages([]);
     router.push(`/?id=${newId}`);
@@ -212,7 +212,7 @@ export default function Chat() {
         messages: [],
         createdAt: new Date(),
       };
-      setConversations((prev) => [...prev, newConversation]);
+      setConversations((prev) => [newConversation, ...prev]);
       setCurrentConversationId(currentId);
       router.push(`/?id=${currentId}`);
     }
