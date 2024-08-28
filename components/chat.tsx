@@ -64,6 +64,8 @@ export default function Chat() {
     [id: string]: string;
   }>({});
   const [pinnedDocuments, setPinnedDocuments] = useState<Document[]>([]);
+  const [fileJustUploaded, setFileJustUploaded] = useState(false);
+  const [focusTrigger, setFocusTrigger] = useState(0);
 
   const {
     messages,
@@ -297,10 +299,8 @@ export default function Chat() {
         };
         setDocuments((prev) => [...prev, newDocument]);
         setPinnedDocuments((prev) => [...prev, newDocument]);
+        setFileJustUploaded(true);
 
-        toast({
-          description: `Document "${file.name}" has been uploaded and pinned to the current conversation.`,
-        });
       } catch (error) {
         console.error("Error reading file:", error);
         toast({
@@ -310,6 +310,18 @@ export default function Chat() {
       }
     }
   };
+
+  useEffect(() => {
+    if (fileJustUploaded) {
+      inputRef.current?.focus();
+      setFileJustUploaded(false);
+    }
+
+    toast({
+      description: `Your document has been uploaded and pinned to the current conversation`,
+    });
+
+  }, [fileJustUploaded]);
 
   const deleteDocument = (id: string) => {
     setDocuments((prev) => {
@@ -383,6 +395,12 @@ export default function Chat() {
     }
   }, [currentConversationId, conversations]);
 
+  useEffect(() => {
+    if (focusTrigger > 0) {
+      inputRef.current?.focus();
+    }
+  }, [focusTrigger]);
+
   return (
     <div className="flex h-screen bg-background">
       {isSidebarOpen && (
@@ -395,6 +413,7 @@ export default function Chat() {
             if (conversation) {
               setMessages(conversation.messages);
               router.push(`/?id=${id}`);
+              setFocusTrigger(prev => prev + 1); // Trigger focus
             }
           }}
           onConversationDelete={deleteConversation}
@@ -473,9 +492,7 @@ export default function Chat() {
                       >
                         <div
                           className={`inline-block p-2 rounded-lg  ${
-                            message.role === "user"
-                              ? "bg-muted"
-                              : ""
+                            message.role === "user" ? "bg-muted" : ""
                           }`}
                         >
                           {message.role === "user" ? (
@@ -582,7 +599,8 @@ export default function Chat() {
           </form>
           {/* Add the disclaimer below the input */}
           <div className="mt-2 text-xs text-muted-foreground text-center">
-            Briefcase can make mistakes. Please check important info with a lawyer.
+            Briefcase can make mistakes. Please check important info with a
+            lawyer.
           </div>
         </div>
       </div>
