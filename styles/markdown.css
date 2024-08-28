@@ -50,6 +50,14 @@
   color: var(--muted-foreground);
 }
 
+/* Ensure all content wraps properly */
+.markdown-content * {
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+}
+
 /* Code blocks */
 .markdown-content pre {
   background-color: var(--muted);
@@ -57,6 +65,11 @@
   border-radius: 4px;
   overflow-x: auto;
   margin-bottom: 1em;
+  white-space: pre-wrap;       /* CSS 3 */
+  white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
+  white-space: -pre-wrap;      /* Opera 4-6 */
+  white-space: -o-pre-wrap;    /* Opera 7 */
+  word-wrap: break-word;       /* Internet Explorer 5.5+ */
 }
 
 .markdown-content code {
@@ -65,6 +78,7 @@
   background-color: var(--muted);
   padding: 0.2em 0.4em;
   border-radius: 3px;
+  color: var(--foreground);  /* Add this line to ensure text color matches the rest of the content */
 }
 
 /* Inline code */
@@ -104,12 +118,15 @@
   border-collapse: collapse;
   width: 100%;
   margin-bottom: 1em;
+  table-layout: fixed;
 }
 
 .markdown-content th,
 .markdown-content td {
   border: 1px solid var(--border);
   padding: 0.5em;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
 }
 
 .markdown-content th {
