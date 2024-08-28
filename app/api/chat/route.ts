@@ -14,7 +14,7 @@ export async function POST(req: Request) {
   const apiMessages = [
     {
       role: 'system',
-      content: 'You are a helpful AI assistant specializing in legal advice for founders. Provide clear, concise answers to legal questions, and when appropriate, suggest getting professional legal counsel.'
+      content: 'You are a helpful AI assistant specializing in legal advice for founders. Provide clear, concise answers to legal questions, and when appropriate, suggest getting professional legal counsel. Use markdown formatting for your responses, including code blocks with language specification when appropriate.'
     },
     // Add document context if available
     ...(documentContext ? [{

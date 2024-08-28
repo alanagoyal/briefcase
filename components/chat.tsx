@@ -30,6 +30,11 @@ import FeeCalculator from "./fee-calculator";
 import { ThemeToggle } from "./theme-toggle";
 import { v4 as uuidv4 } from "uuid";
 import { readFileAsText } from "@/lib/fileUtils";
+import ReactMarkdown from 'react-markdown'
+import rehypeRaw from 'rehype-raw'
+import rehypeSanitize from 'rehype-sanitize'
+import rehypeHighlight from 'rehype-highlight'
+import 'highlight.js/styles/github-dark.css'
 
 interface Conversation {
   id: string;
@@ -367,7 +372,16 @@ export default function Chat() {
                             : "bg-secondary text-secondary-foreground"
                         }`}
                       >
-                        <p>{message.content}</p>
+                        {message.role === "user" ? (
+                          <p>{message.content}</p>
+                        ) : (
+                          <ReactMarkdown
+                            rehypePlugins={[rehypeRaw, rehypeSanitize, rehypeHighlight]}
+                            className="markdown-content"
+                          >
+                            {message.content}
+                          </ReactMarkdown>
+                        )}
                       </div>
                       {message.role === "assistant" && (
                         <div className="mt-2 flex items-center space-x-2">
