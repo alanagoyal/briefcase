@@ -203,8 +203,7 @@ export default function Chat() {
     if (!currentConversationId) {
       const newConversation: Conversation = {
         id: currentId,
-        title:
-          input.trim().slice(0, 30) + (input.trim().length > 30 ? "..." : ""),
+        title: input.trim().slice(0, 30) + (input.trim().length > 30 ? "..." : ""),
         messages: [],
         createdAt: new Date(),
       };
@@ -213,6 +212,8 @@ export default function Chat() {
       router.push(`/?id=${currentId}`);
     }
 
+    const userMessage: Message = { id: uuidv4(), role: 'user', content: input };
+    updateConversation(currentId, userMessage);
     handleSubmit(e);
   };
 
@@ -223,10 +224,9 @@ export default function Chat() {
           ? {
               ...conv,
               messages: [...conv.messages, message],
-              title:
-                conv.messages.length === 0
-                  ? message.content.slice(0, 30)
-                  : conv.title,
+              title: conv.messages.length === 0 && message.role === 'user'
+                ? message.content.slice(0, 30) + (message.content.length > 30 ? "..." : "")
+                : conv.title,
             }
           : conv
       )
@@ -361,6 +361,15 @@ export default function Chat() {
       setPinnedDocuments([]);
     }
   }, [currentConversationId, documents]);
+
+  useEffect(() => {
+    if (currentConversationId) {
+      const currentConversation = conversations.find(conv => conv.id === currentConversationId);
+      if (currentConversation) {
+        setMessages(currentConversation.messages);
+      }
+    }
+  }, [currentConversationId, conversations]);
 
   return (
     <div className="flex h-screen bg-background">
