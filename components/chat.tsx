@@ -24,6 +24,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "./ui/dialog";
 import FeeCalculator from "./fee-calculator";
 import { v4 as uuidv4 } from "uuid";
@@ -34,6 +35,8 @@ import rehypeSanitize from "rehype-sanitize";
 import rehypeHighlight from "rehype-highlight";
 import "highlight.js/styles/github-dark.css";
 import "@/styles/markdown.css";
+import { Label } from "./ui/label";
+import { Avatar, AvatarFallback } from "./ui/avatar";
 
 interface Conversation {
   id: string;
@@ -66,6 +69,9 @@ export default function Chat() {
   const [pinnedDocuments, setPinnedDocuments] = useState<Document[]>([]);
   const [fileJustUploaded, setFileJustUploaded] = useState(false);
   const [focusTrigger, setFocusTrigger] = useState(0);
+  const [userName, setUserName] = useState<string | null>(null);
+  const [isNameDialogOpen, setIsNameDialogOpen] = useState(false);
+  const [nameInput, setNameInput] = useState("");
 
   const {
     messages,
@@ -179,6 +185,28 @@ export default function Chat() {
       localStorage.setItem("documents", JSON.stringify(documents));
     }
   }, [documents]);
+
+  useEffect(() => {
+    const storedName = localStorage.getItem("userName");
+    if (storedName) {
+      setUserName(storedName);
+    } else {
+      setIsNameDialogOpen(true);
+    }
+  }, []);
+
+  const handleNameSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (nameInput.trim()) {
+      localStorage.setItem("userName", nameInput);
+      setUserName(nameInput);
+      setIsNameDialogOpen(false);
+    }
+  };
+
+  const handleNameInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNameInput(e.target.value);
+  };
 
   const startNewChat = () => {
     const newId = uuidv4();
@@ -300,7 +328,6 @@ export default function Chat() {
         setDocuments((prev) => [...prev, newDocument]);
         setPinnedDocuments((prev) => [...prev, newDocument]);
         setFileJustUploaded(true);
-
       } catch (error) {
         console.error("Error reading file:", error);
         toast({
@@ -320,7 +347,6 @@ export default function Chat() {
     toast({
       description: `Your document has been uploaded and pinned to the current conversation`,
     });
-
   }, [fileJustUploaded]);
 
   const deleteDocument = (id: string) => {
@@ -413,7 +439,7 @@ export default function Chat() {
             if (conversation) {
               setMessages(conversation.messages);
               router.push(`/?id=${id}`);
-              setFocusTrigger(prev => prev + 1); // Trigger focus
+              setFocusTrigger((prev) => prev + 1); // Trigger focus
             }
           }}
           onConversationDelete={deleteConversation}
@@ -440,6 +466,7 @@ export default function Chat() {
               </h1>
             )}
           </div>
+          <div className="flex items-center space-x-2">
           {!isSidebarOpen && (
             <Button
               variant="ghost"
@@ -450,6 +477,7 @@ export default function Chat() {
               <PenSquare className="h-5 w-5" />
             </Button>
           )}
+          </div>
         </div>
 
         <div className="flex-1 flex flex-col overflow-hidden">
@@ -464,7 +492,7 @@ export default function Chat() {
                     key={doc.id}
                     className="flex items-center space-x-2 bg-background border border-border rounded-md p-2"
                   >
-                    <div className="bg-pink-500 rounded-lg p-2">
+                    <div className="bg-[#8EC5FC] rounded-lg p-2">
                       <FileText className="h-5 w-5 text-white" />
                     </div>
                     <span className="text-sm">{doc.name}</span>
@@ -493,68 +521,84 @@ export default function Chat() {
                     message && (
                       <div
                         key={index}
-                        className={`mb-4 ${
-                          message.role === "user" ? "text-right" : "text-left"
-                        }`}
+                        className={`mb-4 flex ${
+                          message.role === "user" ? "justify-end" : "justify-start"
+                        } items-start`}
                       >
-                        <div
-                          className={`inline-block p-2 rounded-lg  ${
-                            message.role === "user" ? "bg-muted" : ""
-                          }`}
-                        >
-                          {message.role === "user" ? (
-                            <p>{message.content}</p>
-                          ) : (
-                            <ReactMarkdown
-                              rehypePlugins={[
-                                rehypeRaw,
-                                rehypeSanitize,
-                                rehypeHighlight,
-                              ]}
-                              className="markdown-content"
-                            >
-                              {message.content}
-                            </ReactMarkdown>
+                        {message.role === "assistant" && (
+                          <Avatar className="h-8 w-8 mr-2 flex-shrink-0 mt-1">
+                            <AvatarFallback className="bg-[#3675F1]">
+                              <Briefcase className="h-5 w-5 text-white" />
+                            </AvatarFallback>
+                          </Avatar>
+                        )}
+                        <div className={`max-w-[80%] ${message.role === "user" ? "order-1" : "order-2"}`}>
+                          <div
+                            className={`inline-block p-2 rounded-lg ${
+                              message.role === "user" ? "bg-muted" : ""
+                            }`}
+                          >
+                            {message.role === "user" ? (
+                              <p>{message.content}</p>
+                            ) : (
+                              <ReactMarkdown
+                                rehypePlugins={[
+                                  rehypeRaw,
+                                  rehypeSanitize,
+                                  rehypeHighlight,
+                                ]}
+                                className="markdown-content"
+                              >
+                                {message.content}
+                              </ReactMarkdown>
+                            )}
+                          </div>
+                          {message.role === "assistant" && (
+                            <div className="mt-2 flex items-center space-x-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleCopy(message.content)}
+                              >
+                                <Copy className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleRetry}
+                              >
+                                <RefreshCw className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleFeedback(true)}
+                              >
+                                <ThumbsUp className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleFeedback(false)}
+                              >
+                                <ThumbsDown className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleGetQuote(index)}
+                              >
+                                Get Quote
+                              </Button>
+                            </div>
                           )}
                         </div>
-                        {message.role === "assistant" && (
-                          <div className="mt-2 flex items-center space-x-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleCopy(message.content)}
-                            >
-                              <Copy className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={handleRetry}
-                            >
-                              <RefreshCw className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleFeedback(true)}
-                            >
-                              <ThumbsUp className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleFeedback(false)}
-                            >
-                              <ThumbsDown className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleGetQuote(index)}
-                            >
-                              Get Quote
-                            </Button>
-                          </div>
+                        {message.role === "user" && (
+                          <Avatar className="h-8 w-8 ml-2 flex-shrink-0 mt-1 order-2">
+                            <AvatarFallback className="bg-gradient-to-br from-[#8EC5FC] via-[#3675f1] to-[#2556e4] text-white font-[Avenir] font-bold">
+                              {userName?.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
                         )}
                       </div>
                     )
@@ -625,6 +669,46 @@ export default function Chat() {
               .join("\n")}
             initialQuestion={quoteQuestion}
           />
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        open={isNameDialogOpen}
+        onOpenChange={(open) => {
+          if (!open && nameInput.trim()) {
+            setIsNameDialogOpen(false);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Welcome to Briefcase</DialogTitle>
+            <DialogDescription>
+              Please enter your name to get started
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleNameSubmit}>
+            <Label htmlFor="name" className="text-right">
+              Name
+            </Label>
+            <Input
+              id="name"
+              name="name"
+              placeholder="Enter your name"
+              className="w-full mb-4"
+              required
+              value={nameInput}
+              onChange={handleNameInputChange}
+            />
+            <DialogFooter>
+              <Button
+                type="submit"
+                className="bg-[#3675F1] hover:bg-[#2556E4] w-full"
+                disabled={!nameInput.trim()}
+              >
+                Start Chatting
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>
