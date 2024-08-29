@@ -1,19 +1,17 @@
 import { Configuration, OpenAIApi } from 'openai-edge'
 import { OpenAIStream, StreamingTextResponse } from 'ai'
 
-const config = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY
-})
-const openai = new OpenAIApi(config)
-
 // export const runtime = 'edge'
 
 export async function POST(req: Request) {
   console.log('Received POST request to /api/chat')
   
-  const { messages, documentContexts } = await req.json()
+  const { messages, documentContexts, userApiKey } = await req.json()
   console.log('Received messages:', messages)
   console.log('Document contexts:', documentContexts ? 'Present' : 'Not provided')
+
+  const apiKey = userApiKey || process.env.OPENAI_API_KEY
+  const customOpenAI = new OpenAIApi(new Configuration({ apiKey }))
 
   const apiMessages = [
     {
@@ -32,7 +30,7 @@ export async function POST(req: Request) {
 
   try {
     console.log('Calling OpenAI API...')
-    const response = await openai.createChatCompletion({
+    const response = await customOpenAI.createChatCompletion({
       model: 'gpt-4o-mini',
       stream: true,
       messages: apiMessages
