@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Paperclip,
   Send,
@@ -121,6 +120,7 @@ export default function Chat() {
   const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
   const [quoteQuestion, setQuoteQuestion] = useState<string>("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   // useEffects
 
@@ -287,6 +287,26 @@ export default function Chat() {
       setIsLimitReached(count >= 10);
     }
   }, []);
+
+  const scrollToBottom = useCallback(() => {
+    if (scrollAreaRef.current) {
+      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+    }
+  }, []);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, scrollToBottom]);
+
+  useEffect(() => {
+    const scrollArea = scrollAreaRef.current;
+    if (!scrollArea) return;
+
+    const observer = new MutationObserver(scrollToBottom);
+    observer.observe(scrollArea, { childList: true, subtree: true });
+
+    return () => observer.disconnect();
+  }, [scrollToBottom]);
 
   // Helper functions
   const startNewChat = () => {
@@ -675,7 +695,7 @@ export default function Chat() {
               </div>
             </div>
           )}
-          <ScrollArea className="flex-1">
+          <div className="flex-1 overflow-y-auto" ref={scrollAreaRef}>
             {messages.length === 0 ? (
               <div className="flex-1 flex items-center justify-center p-20 pt-32">
                 <div className="text-center max-w-md mx-auto">
@@ -828,7 +848,7 @@ export default function Chat() {
                 <Loader2 className="h-6 w-6 animate-spin" />
               </div>
             )}
-          </ScrollArea>
+          </div>
         </div>
 
         <div className="p-4 border-t bg-background">
