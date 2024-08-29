@@ -31,7 +31,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "./ui/dialog";
 import FeeCalculator from "./fee-calculator";
 import { v4 as uuidv4 } from "uuid";
@@ -40,9 +39,7 @@ import ReactMarkdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import rehypeSanitize from "rehype-sanitize";
 import rehypeHighlight from "rehype-highlight";
-import "highlight.js/styles/github-dark.css";
 import "@/styles/markdown.css";
-import { Label } from "./ui/label";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import {
   Tooltip,
@@ -88,7 +85,7 @@ export default function Chat() {
   const [userName, setUserName] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [userApiKey, setUserApiKey] = useState<string | null>(null);
-  const [messageCount, setMessageCount] = useState<number>(0);
+  const [, setMessageCount] = useState<number>(0);
   const [isLimitReached, setIsLimitReached] = useState(false);
   const [isStreamStarted, setIsStreamStarted] = useState(false);
 
