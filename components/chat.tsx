@@ -37,6 +37,12 @@ import "highlight.js/styles/github-dark.css";
 import "@/styles/markdown.css";
 import { Label } from "./ui/label";
 import { Avatar, AvatarFallback } from "./ui/avatar";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./ui/tooltip";
 
 interface Conversation {
   id: string;
@@ -451,14 +457,23 @@ export default function Chat() {
         <div className="p-2 bg-background flex items-center justify-between">
           <div className="flex items-center space-x-2">
             {!isSidebarOpen && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={toggleSidebar}
-                aria-label="Open sidebar"
-              >
-                <Columns2 className="h-5 w-5" />
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={toggleSidebar}
+                      aria-label="Open sidebar"
+                    >
+                      <Columns2 className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Open sidebar</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             )}
             {!isSidebarOpen && (
               <h1 className="text-2xl font-bold text-[#3675F1] font-['Avenir'] flex items-center">
@@ -468,14 +483,23 @@ export default function Chat() {
           </div>
           <div className="flex items-center space-x-2">
           {!isSidebarOpen && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={startNewChat}
-              aria-label="New chat"
-            >
-              <PenSquare className="h-5 w-5" />
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={startNewChat}
+                    aria-label="New chat"
+                  >
+                    <PenSquare className="h-5 w-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>New chat</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
           </div>
         </div>
@@ -555,34 +579,70 @@ export default function Chat() {
                           </div>
                           {message.role === "assistant" && (
                             <div className="mt-2 flex items-center space-x-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleCopy(message.content)}
-                              >
-                                <Copy className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={handleRetry}
-                              >
-                                <RefreshCw className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleFeedback(true)}
-                              >
-                                <ThumbsUp className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleFeedback(false)}
-                              >
-                                <ThumbsDown className="h-4 w-4" />
-                              </Button>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleCopy(message.content)}
+                                    >
+                                      <Copy className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Copy</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={handleRetry}
+                                    >
+                                      <RefreshCw className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Regenerate</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleFeedback(true)}
+                                    >
+                                      <ThumbsUp className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Good response</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleFeedback(false)}
+                                    >
+                                      <ThumbsDown className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Bad response</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                               <Button
                                 variant="outline"
                                 size="sm"

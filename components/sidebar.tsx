@@ -10,6 +10,12 @@ import {
 import { Message } from "ai/react";
 import { isToday, isYesterday, isThisWeek, isThisMonth } from "date-fns";
 import { ThemeToggle } from "./theme-toggle";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./ui/tooltip";
 
 interface Conversation {
   id: string;
@@ -84,22 +90,40 @@ export default function Sidebar({
   return (
     <div className="w-64 flex flex-col h-full border">
       <div className="p-2 flex justify-between items-center">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onToggleSidebar}
-          aria-label="Close sidebar"
-        >
-          <Columns2 className="h-5 w-5" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onNewChat}
-          aria-label="New chat"
-        >
-          <PenSquare className="h-5 w-5" />
-        </Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onToggleSidebar}
+                aria-label="Close sidebar"
+              >
+                <Columns2 className="h-5 w-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Close sidebar</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onNewChat}
+                aria-label="New chat"
+              >
+                <PenSquare className="h-5 w-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>New chat</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
       <div className="p-2 flex-grow overflow-y-auto">
         <h1 className="text-2xl font-bold ml-2 mb-4 text-[#3675F1] font-['Avenir'] flex items-center">
