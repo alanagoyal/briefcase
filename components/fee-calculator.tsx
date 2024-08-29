@@ -2,7 +2,7 @@
 
 import { Textarea } from "./ui/textarea";
 import { useState } from "react";
-import { Clock, DollarSign } from "lucide-react";
+import { Clock, DollarSign, Loader2 } from "lucide-react";
 import { Button } from "./ui/button";
 
 // Define the interface for the API response
@@ -34,7 +34,7 @@ export default function FeeCalculator({
       setIsLoading(true);
       setShowResults(false);
       try {
-        const response = await fetch("/calculate-fees", {
+        const response = await fetch("/api/calculate-fees", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -81,7 +81,7 @@ export default function FeeCalculator({
   return (
     <div>
       <Textarea
-        value={initialQuestion || lawyerQuestion}
+        value={lawyerQuestion}
         onChange={(e) => {
           setLawyerQuestion(e.target.value);
         }}
@@ -94,7 +94,14 @@ export default function FeeCalculator({
         className="w-full mb-4 bg-[#3675F1] hover:bg-[#2556E4] text-white"
         disabled={!summary || !lawyerQuestion || isLoading}
       >
-        {isLoading ? "Calculating..." : "Calculate Fee"}
+        {isLoading ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Calculating...
+          </>
+        ) : (
+          "Calculate Fee"
+        )}
       </Button>
       {showResults && (
         <div className="space-y-4">
