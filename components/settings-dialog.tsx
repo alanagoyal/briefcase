@@ -13,6 +13,13 @@ import {
   DialogTitle,
   DialogFooter,
 } from "./ui/dialog";
+import { Info } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./ui/tooltip";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -82,12 +89,12 @@ export default function SettingsDialog({
           <DialogTitle>{localStorage.getItem("userName") ? "Settings" : "Welcome to Briefcase"}</DialogTitle>
           <DialogDescription>
             {localStorage.getItem("userName")
-              ? "Update your name and OpenAI API key"
+              ? "Update your information below"
               : "Please enter your name to get started"}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="name">Name</Label>
             <Input
               id="name"
@@ -97,8 +104,23 @@ export default function SettingsDialog({
               required
             />
           </div>
-          <div>
-            <Label htmlFor="apiKey">OpenAI API Key (optional)</Label>
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2">
+              <Label htmlFor="apiKey">OpenAI API Key</Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Info className="h-4 w-4 text-muted-foreground" />
+                  </TooltipTrigger>
+                  <TooltipContent side="right" align="center">
+                    <p className="max-w-[300px]">
+                      Briefcase has a limit of 10 messages per day. 
+                      For unlimited access, please enter your OpenAI Key.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
             <Input
               id="apiKey"
               value={apiKey}
@@ -106,6 +128,7 @@ export default function SettingsDialog({
               type="password"
               placeholder="Enter your OpenAI API Key"
             />
+            <p className="text-muted-foreground text-xs">Your API key will not be stored on our servers. It is only used to authenticate your requests to the OpenAI API.</p>
           </div>
           <DialogFooter>
             <Button
