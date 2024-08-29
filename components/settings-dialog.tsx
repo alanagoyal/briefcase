@@ -20,6 +20,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "./ui/tooltip";
+import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react"; // Add this import
 
 interface SettingsDialogProps {
   open: boolean;
@@ -34,33 +36,75 @@ export default function SettingsDialog({
   onNameChange,
   onApiKeyChange,
 }: SettingsDialogProps) {
+  const router = useRouter();
   const [name, setName] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [isClient, setIsClient] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); // Add this state
 
   useEffect(() => {
     setIsClient(true);
     const storedName = localStorage.getItem("userName");
+    const storedApiKey = localStorage.getItem("openaiApiKey");
+    console.log("Stored name:", storedName, "Stored API key:", storedApiKey ? "exists" : "not set");
     if (storedName) {
       setName(storedName);
     }
-    const storedApiKey = localStorage.getItem("openaiApiKey");
     if (storedApiKey) {
       setApiKey(storedApiKey);
     }
   }, [open]);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  // Validate API key
+  const validateApiKey = async (apiKey: string): Promise<boolean> => {
+    try {
+      const response = await fetch('/api/validate-api-key', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiKey }),
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        return data.valid;
+      }
+      return false;
+    } catch (error) {
+      console.error("Error validating API key:", error);
+      return false;
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (name.trim()) {
       localStorage.setItem("userName", name);
-      localStorage.setItem("openaiApiKey", apiKey);
+      if (apiKey) {
+        setIsLoading(true); // Set loading to true before API call
+        const isValid = await validateApiKey(apiKey);
+        setIsLoading(false); // Set loading to false after API call
+        if (isValid) {
+          localStorage.setItem("openaiApiKey", apiKey);
+          onApiKeyChange(apiKey);
+          toast({
+            description: "Settings saved successfully",
+          });
+          onOpenChange(false);
+        } else {
+          toast({
+            description: "Invalid API key. Please check and try again.",
+            variant: "destructive",
+          });
+        }
+      } else {
+        localStorage.removeItem("openaiApiKey");
+        onApiKeyChange(""); // This will trigger the effect in Chat to restore the message count
+        toast({
+          description: "Settings saved successfully",
+        });
+        onOpenChange(false);
+      }
       onNameChange(name);
-      onApiKeyChange(apiKey);
-      toast({
-        description: "Settings saved successfully",
-      });
-      onOpenChange(false);
     } else {
       toast({
         description: "Please enter a name",
@@ -70,17 +114,20 @@ export default function SettingsDialog({
   };
 
   if (!isClient) {
-    return null; // or a loading spinner
+    return null;
   }
 
   return (
     <Dialog open={open} onOpenChange={(newOpen) => {
+      console.log("Dialog onOpenChange called, newOpen:", newOpen, "name:", name);
       if (!newOpen && !name.trim()) {
+        console.log("Preventing dialog close due to empty name");
         toast({
           description: "Please enter a name before closing",
           variant: "destructive",
         });
       } else {
+        console.log("Allowing dialog state change");
         onOpenChange(newOpen);
       }
     }}>
@@ -99,7 +146,10 @@ export default function SettingsDialog({
             <Input
               id="name"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => {
+                console.log("Name input changed:", e.target.value);
+                setName(e.target.value);
+              }}
               placeholder="Enter your name"
               required
             />
@@ -124,7 +174,10 @@ export default function SettingsDialog({
             <Input
               id="apiKey"
               value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
+              onChange={(e) => {
+                console.log("API key input changed:", e.target.value ? "new value set" : "cleared");
+                setApiKey(e.target.value);
+              }}
               type="password"
               placeholder="Enter your OpenAI API Key"
             />
@@ -134,8 +187,16 @@ export default function SettingsDialog({
             <Button
               type="submit"
               className="bg-[#3675F1] hover:bg-[#2556E4] w-full"
+              disabled={isLoading}
             >
-              {localStorage.getItem("userName") ? "Save Settings" : "Start Chatting"}
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                localStorage.getItem("userName") ? "Save Settings" : "Start Chatting"
+              )}
             </Button>
           </DialogFooter>
         </form>

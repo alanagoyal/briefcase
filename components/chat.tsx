@@ -84,9 +84,11 @@ export default function Chat() {
   const [userName, setUserName] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [userApiKey, setUserApiKey] = useState<string | null>(null);
-  const [, setMessageCount] = useState<number>(0);
+  const [messageCount, setMessageCount] = useState<number>(0);
   const [isLimitReached, setIsLimitReached] = useState(false);
   const [isStreamStarted, setIsStreamStarted] = useState(false);
+  const [originalMessageCount, setOriginalMessageCount] = useState<number>(0);
+  const [hasEverSetApiKey, setHasEverSetApiKey] = useState<boolean>(false);
 
   // useChat hook
   const {
@@ -121,6 +123,8 @@ export default function Chat() {
   const [quoteQuestion, setQuoteQuestion] = useState<string>("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  const messageCountRef = useRef(0);
 
   // useEffects
 
@@ -278,15 +282,66 @@ export default function Chat() {
     }
   }, [isLoading, messages]);
 
-  // Load message count from localStorage
+  // Load message count and API key from localStorage
   useEffect(() => {
     const storedCount = localStorage.getItem("messageCount");
+    const storedApiKey = localStorage.getItem("openaiApiKey");
+    
     if (storedCount) {
       const count = parseInt(storedCount, 10);
       setMessageCount(count);
-      setIsLimitReached(count >= 10);
+      setOriginalMessageCount(count);
+      setIsLimitReached(count >= 3 && !storedApiKey);
+    }
+
+    if (storedApiKey) {
+      setUserApiKey(storedApiKey);
     }
   }, []);
+
+  // Save message count to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem("messageCount", messageCount.toString());
+    setIsLimitReached(messageCount >= 3 && !userApiKey);
+  }, [messageCount, userApiKey]);
+
+  // Handle API key changes
+  useEffect(() => {
+    if (userApiKey) {
+      setIsLimitReached(false);
+    } else {
+      setIsLimitReached(messageCount >= 3);
+    }
+  }, [userApiKey, messageCount]);
+
+  // Modified showToast function
+  const showToast = useCallback((message: string, variant: "default" | "destructive") => {
+    setTimeout(() => {
+      toast({
+        description: message,
+        variant: variant,
+      });
+    }, 0);
+  }, []);
+
+  // Effect to show toast when limit is reached
+  useEffect(() => {
+    if (isLimitReached && !userApiKey) {
+      showToast("You've reached the message limit. Please set your OpenAI API key for unlimited use.", "destructive");
+    }
+  }, [isLimitReached, userApiKey, showToast]);
+
+  // Increment message count
+  const incrementMessageCount = useCallback(() => {
+    setMessageCount((prevCount) => {
+      const newCount = prevCount + 1;
+      localStorage.setItem("messageCount", newCount.toString());
+      if (newCount === 2 && !userApiKey) {
+        showToast("You have 1 message left before reaching the limit.", "destructive");
+      }
+      return newCount;
+    });
+  }, [userApiKey, showToast]);
 
   const scrollToBottom = useCallback(() => {
     if (scrollAreaRef.current) {
@@ -310,6 +365,11 @@ export default function Chat() {
 
   // Helper functions
   const startNewChat = () => {
+    if (isLimitReached && !userApiKey) {
+      showToast("You've reached the message limit. Please set your OpenAI API key for unlimited use.", "destructive");
+      return;
+    }
+
     const newId = uuidv4();
     const newConversation: Conversation = {
       id: newId,
@@ -329,8 +389,11 @@ export default function Chat() {
 
   const handleSend = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!input.trim() || (isLimitReached && !userApiKey)) {
-      console.log("Message not sent: Empty input or limit reached");
+    if (!input.trim()) {
+      return;
+    }
+    if (isLimitReached && !userApiKey) {
+      showToast("You've reached the message limit. Please set your OpenAI API key for unlimited use.", "destructive");
       return;
     }
 
@@ -488,10 +551,13 @@ export default function Chat() {
   };
 
   const handleRetry = () => {
+    if (isLimitReached && !userApiKey) {
+      showToast("You've reached the message limit. Please set your OpenAI API key for unlimited use.", "destructive");
+      return;
+    }
+
+    incrementMessageCount();
     reload();
-    toast({
-      description: "Regenerating response...",
-    });
   };
 
   const handleFeedback = (isPositive: boolean) => {
@@ -503,34 +569,6 @@ export default function Chat() {
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
-
-  const incrementMessageCount = useCallback(() => {
-    if (!userApiKey) {
-      setMessageCount((prevCount) => {
-        const newCount = prevCount + 1;
-        localStorage.setItem("messageCount", newCount.toString());
-        console.log(`Message count: ${newCount}`);
-        if (newCount >= 8) {
-          console.log(`Reminder: ${10 - newCount} messages left`);
-          toast({
-            description: `You have ${
-              10 - newCount
-            } messages left. Please set your OpenAI API key for unlimited use.`,
-          });
-        }
-        if (newCount >= 10) {
-          console.log("Message limit reached");
-          setIsLimitReached(true);
-          toast({
-            description:
-              "You've reached the message limit. Please set your OpenAI API key for unlimited use.",
-            variant: "destructive",
-          });
-        }
-        return newCount;
-      });
-    }
-  }, [userApiKey]);
 
   const removeDocument = (docId: string) => {
     setDocuments((prevDocs) => prevDocs.filter((doc) => doc.id !== docId));
@@ -565,15 +603,6 @@ export default function Chat() {
       setDocumentContext(updatedContext);
     }
   };
-
-  // Add this effect to reset message count when API key is set
-  useEffect(() => {
-    if (userApiKey) {
-      setMessageCount(0);
-      localStorage.setItem("messageCount", "0");
-      setIsLimitReached(false);
-    }
-  }, [userApiKey]);
 
   // Render
   return (
@@ -920,10 +949,19 @@ export default function Chat() {
           }
         }}
         onApiKeyChange={(apiKey) => {
-          setUserApiKey(apiKey);
-          setIsLimitReached(false);
-          setMessageCount(0);
-          localStorage.setItem("messageCount", "0");
+          setUserApiKey(apiKey || null);
+          if (apiKey) {
+            console.log("API key set in settings");
+            localStorage.setItem("openaiApiKey", apiKey);
+            setHasEverSetApiKey(true);
+          } else {
+            console.log("API key removed in settings");
+            localStorage.removeItem("openaiApiKey");
+            if (originalMessageCount >= 3) {
+              console.log("Limit reached after removing API key");
+              setIsLimitReached(true);
+            }
+          }
         }}
       />
     </div>
