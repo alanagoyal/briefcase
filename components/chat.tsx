@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Columns2, PenSquare, FileText, Briefcase, Settings } from "lucide-react";
+import { Columns2, PenSquare, FileText, Briefcase, Settings, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -50,6 +50,8 @@ interface Conversation {
   title: string;
   messages: Message[];
   createdAt: Date;
+  documentContext?: string;
+  documents?: Document[];
 }
 
 interface Document {
@@ -57,6 +59,7 @@ interface Document {
   name: string;
   type: string;
   size: number;
+  content: string;
   conversationId: string;
 }
 
@@ -72,17 +75,15 @@ export default function Chat() {
   const [currentConversationId, setCurrentConversationId] = useState<
     string | null
   >(null);
-  const [documentContexts, setDocumentContexts] = useState<{
-    [id: string]: string;
-  }>({});
+  const [documentContext, setDocumentContext] = useState<string>("");
   const [pinnedDocuments, setPinnedDocuments] = useState<Document[]>([]);
-  const [fileJustUploaded, setFileJustUploaded] = useState(false);
   const [focusTrigger, setFocusTrigger] = useState(0);
   const [userName, setUserName] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [userApiKey, setUserApiKey] = useState<string | null>(null);
   const [, setMessageCount] = useState(0);
   const [isLimitReached, setIsLimitReached] = useState(false);
+  const [isStreamStarted, setIsStreamStarted] = useState(false);
 
   // useChat hook
   const {
@@ -103,11 +104,10 @@ export default function Chat() {
         updateConversation(currentConversationId, message);
       }
       incrementMessageCount();
+      setIsStreamStarted(false);
     },
     body: {
-      documentContexts: currentConversationId
-        ? documentContexts[currentConversationId] || ""
-        : "",
+      documentContext: documentContext,
       userApiKey: userApiKey,
     },
   });
@@ -148,6 +148,7 @@ export default function Chat() {
       if (conversation) {
         setCurrentConversationId(conversationId);
         setMessages(conversation.messages);
+        setDocumentContext(conversation.documentContext || "");
       }
     }
   }, [conversationId, setMessages]);
@@ -164,7 +165,7 @@ export default function Chat() {
               : new Date(conv.createdAt).toISOString();
         } catch (error) {
           console.error(`Invalid date for conversation ${conv.id}:`, error);
-          createdAtString = new Date().toISOString(); // Fallback to current date
+          createdAtString = new Date().toISOString();
         }
 
         return {
@@ -181,7 +182,7 @@ export default function Chat() {
                 `Invalid date for message in conversation ${conv.id}:`,
                 error
               );
-              msgCreatedAtString = undefined; // Fallback to undefined for message date
+              msgCreatedAtString = undefined;
             }
 
             return {
@@ -189,6 +190,8 @@ export default function Chat() {
               createdAt: msgCreatedAtString,
             };
           }),
+          documentContext: conv.documentContext,
+          documents: conv.documents,
         };
       });
 
@@ -230,18 +233,6 @@ export default function Chat() {
     }
   }, [currentConversationId, router]);
 
-  // Show toast when a file is uploaded
-  useEffect(() => {
-    if (fileJustUploaded) {
-      inputRef.current?.focus();
-      setFileJustUploaded(false);
-    }
-
-    toast({
-      description: `Your document has been uploaded and pinned to the current conversation`,
-    });
-  }, [fileJustUploaded]);
-
   // Update pinned documents when current conversation changes
   useEffect(() => {
     if (currentConversationId) {
@@ -272,6 +263,13 @@ export default function Chat() {
       inputRef.current?.focus();
     }
   }, [focusTrigger]);
+
+  // Add this effect to detect when streaming starts
+  useEffect(() => {
+    if (isLoading && messages.length > 0 && messages[messages.length - 1].role === 'assistant') {
+      setIsStreamStarted(true);
+    }
+  }, [isLoading, messages]);
 
   // Helper functions
   const startNewChat = () => {
@@ -371,22 +369,32 @@ export default function Chat() {
       try {
         const text = await readFileAsText(file);
 
-        setDocumentContexts((prev) => ({
-          ...prev,
-          [currentConversationId]:
-            (prev[currentConversationId] || "") + "\n\n" + text,
-        }));
-
         const newDocument: Document = {
           id: uuidv4(),
           name: file.name,
           type: file.type,
           size: file.size,
+          content: text,
           conversationId: currentConversationId,
         };
+
+        const newDocumentContext = (documentContext || "") + "\n\n" + text;
+        setDocumentContext(newDocumentContext);
+
+        setConversations((prev) =>
+          prev.map((conv) =>
+            conv.id === currentConversationId
+              ? {
+                  ...conv,
+                  documentContext: newDocumentContext,
+                  documents: [...(conv.documents || []), newDocument],
+                }
+              : conv
+          )
+        );
+
         setDocuments((prev) => [...prev, newDocument]);
         setPinnedDocuments((prev) => [...prev, newDocument]);
-        setFileJustUploaded(true);
       } catch (error) {
         console.error("Error reading file:", error);
         toast({
@@ -453,6 +461,31 @@ export default function Chat() {
     }
   }, [userApiKey]);
 
+  const removeDocument = (docId: string) => {
+    setDocuments((prevDocs) => prevDocs.filter((doc) => doc.id !== docId));
+    setPinnedDocuments((prevPinned) => prevPinned.filter((doc) => doc.id !== docId));
+    
+    if (currentConversationId) {
+      setConversations((prevConvs) =>
+        prevConvs.map((conv) => {
+          if (conv.id === currentConversationId) {
+            const updatedDocs = conv.documents?.filter((doc) => doc.id !== docId) || [];
+            const updatedContext = updatedDocs.map((doc) => doc.content).join("\n\n");
+            return { ...conv, documents: updatedDocs, documentContext: updatedContext };
+          }
+          return conv;
+        })
+      );
+      
+      // Update the current document context
+      const updatedContext = pinnedDocuments
+        .filter((doc) => doc.id !== docId)
+        .map((doc) => doc.content)
+        .join("\n\n");
+      setDocumentContext(updatedContext);
+    }
+  };
+
   // Render
   return (
     <div className="flex h-screen bg-background">
@@ -466,7 +499,7 @@ export default function Chat() {
             if (conversation) {
               setMessages(conversation.messages);
               router.push(`/?id=${id}`);
-              setFocusTrigger((prev) => prev + 1); // Trigger focus
+              setFocusTrigger((prev) => prev + 1);
             }
           }}
           onConversationDelete={deleteConversation}
@@ -545,12 +578,30 @@ export default function Chat() {
                 {pinnedDocuments.map((doc) => (
                   <div
                     key={doc.id}
-                    className="flex items-center space-x-2 bg-background border border-border rounded-md p-2"
+                    className="flex items-center justify-between space-x-2 bg-background border border-border rounded-md p-2"
                   >
-                    <div className="bg-[#8EC5FC] rounded-lg p-2">
-                      <FileText className="h-5 w-5 text-white" />
+                    <div className="flex items-center space-x-2">
+                      <div className="bg-[#8EC5FC] rounded-lg p-2">
+                        <FileText className="h-5 w-5 text-white" />
+                      </div>
+                      <span className="text-sm">{doc.name}</span>
                     </div>
-                    <span className="text-sm">{doc.name}</span>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeDocument(doc.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Remove document</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
                 ))}
               </div>
@@ -704,7 +755,7 @@ export default function Chat() {
                 )}
               </div>
             )}
-            {isLoading && (
+            {isLoading && !isStreamStarted && (
               <div className="flex justify-center p-4">
                 <Loader2 className="h-6 w-6 animate-spin" />
               </div>
@@ -749,7 +800,6 @@ export default function Chat() {
               </Button>
             </div>
           </form>
-          {/* Add the disclaimer below the input */}
           <div className="mt-2 text-xs text-muted-foreground text-center">
             Briefcase can make mistakes. Please check important info with a
             lawyer.

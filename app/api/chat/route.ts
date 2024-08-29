@@ -6,9 +6,9 @@ import { OpenAIStream, StreamingTextResponse } from 'ai'
 export async function POST(req: Request) {
   console.log('Received POST request to /api/chat')
   
-  const { messages, documentContexts, userApiKey } = await req.json()
+  const { messages, documentContext, userApiKey } = await req.json()
   console.log('Received messages:', messages)
-  console.log('Document contexts:', documentContexts ? 'Present' : 'Not provided')
+  console.log('Document context:', documentContext ? 'Present' : 'Not provided')
 
   const apiKey = userApiKey || process.env.OPENAI_API_KEY
   const customOpenAI = new OpenAIApi(new Configuration({ apiKey }))
@@ -18,10 +18,10 @@ export async function POST(req: Request) {
       role: 'system',
       content: 'You are a helpful AI assistant specializing in legal advice for founders. Provide clear, concise answers to legal questions, and when appropriate, suggest getting professional legal counsel. Use markdown formatting for your responses, including code blocks with language specification when appropriate.'
     },
-    // Add document contexts if available
-    ...(documentContexts ? [{
+    // Add document context if available
+    ...(documentContext ? [{
       role: 'system',
-      content: `Context from uploaded documents:\n${documentContexts}\n\nPlease consider this context for all future responses in this conversation.`
+      content: `Context from uploaded documents:\n${documentContext}\n\nPlease consider this context for all future responses in this conversation.`
     }] : []),
     ...messages
   ]
