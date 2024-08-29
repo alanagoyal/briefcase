@@ -61,10 +61,12 @@ interface Document {
 }
 
 export default function Chat() {
+  // Router and search params
   const router = useRouter();
   const searchParams = useSearchParams();
   const conversationId = searchParams.get("id");
 
+  // State declarations
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<
@@ -79,9 +81,10 @@ export default function Chat() {
   const [userName, setUserName] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [userApiKey, setUserApiKey] = useState<string | null>(null);
-  const [messageCount, setMessageCount] = useState(0);
+  const [, setMessageCount] = useState(0);
   const [isLimitReached, setIsLimitReached] = useState(false);
 
+  // useChat hook
   const {
     messages,
     input,
@@ -109,12 +112,16 @@ export default function Chat() {
     },
   });
 
+  // Refs
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
   const [quoteQuestion, setQuoteQuestion] = useState<string>("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
+  // useEffects
+
+  // Load conversations and documents from localStorage
   useEffect(() => {
     const storedConversations = JSON.parse(
       localStorage.getItem("conversations") || "[]"
@@ -145,6 +152,7 @@ export default function Chat() {
     }
   }, [conversationId, setMessages]);
 
+  // Save conversations to localStorage when they change
   useEffect(() => {
     if (conversations.length > 0) {
       const serializedConversations = conversations.map((conv) => {
@@ -191,12 +199,14 @@ export default function Chat() {
     }
   }, [conversations]);
 
+  // Save documents to localStorage when they change
   useEffect(() => {
     if (documents.length > 0) {
       localStorage.setItem("documents", JSON.stringify(documents));
     }
   }, [documents]);
 
+  // Load user name and API key from localStorage
   useEffect(() => {
     const storedName = localStorage.getItem("userName");
     if (storedName) {
@@ -211,6 +221,59 @@ export default function Chat() {
     }
   }, []);
 
+  // Update URL when current conversation changes
+  useEffect(() => {
+    if (currentConversationId) {
+      router.push(`/?id=${currentConversationId}`);
+    } else {
+      router.push("/");
+    }
+  }, [currentConversationId, router]);
+
+  // Show toast when a file is uploaded
+  useEffect(() => {
+    if (fileJustUploaded) {
+      inputRef.current?.focus();
+      setFileJustUploaded(false);
+    }
+
+    toast({
+      description: `Your document has been uploaded and pinned to the current conversation`,
+    });
+  }, [fileJustUploaded]);
+
+  // Update pinned documents when current conversation changes
+  useEffect(() => {
+    if (currentConversationId) {
+      const docs = documents.filter(
+        (doc) => doc.conversationId === currentConversationId
+      );
+      setPinnedDocuments(docs);
+    } else {
+      setPinnedDocuments([]);
+    }
+  }, [currentConversationId, documents]);
+
+  // Update messages when current conversation changes
+  useEffect(() => {
+    if (currentConversationId) {
+      const currentConversation = conversations.find(
+        (conv) => conv.id === currentConversationId
+      );
+      if (currentConversation) {
+        setMessages(currentConversation.messages);
+      }
+    }
+  }, [currentConversationId, conversations]);
+
+  // Focus input when focusTrigger changes
+  useEffect(() => {
+    if (focusTrigger > 0) {
+      inputRef.current?.focus();
+    }
+  }, [focusTrigger]);
+
+  // Helper functions
   const startNewChat = () => {
     const newId = uuidv4();
     const newConversation: Conversation = {
@@ -302,14 +365,6 @@ export default function Chat() {
     });
   };
 
-  useEffect(() => {
-    if (currentConversationId) {
-      router.push(`/?id=${currentConversationId}`);
-    } else {
-      router.push("/");
-    }
-  }, [currentConversationId, router]);
-
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && currentConversationId) {
       const file = e.target.files[0];
@@ -342,25 +397,6 @@ export default function Chat() {
     }
   };
 
-  useEffect(() => {
-    if (fileJustUploaded) {
-      inputRef.current?.focus();
-      setFileJustUploaded(false);
-    }
-
-    toast({
-      description: `Your document has been uploaded and pinned to the current conversation`,
-    });
-  }, [fileJustUploaded]);
-
-  const deleteDocument = (id: string) => {
-    setDocuments((prev) => {
-      const updatedDocuments = prev.filter((doc) => doc.id !== id);
-      localStorage.setItem("documents", JSON.stringify(updatedDocuments));
-      return updatedDocuments;
-    });
-  };
-
   const handleGetQuote = (index: number) => {
     if (index > 0 && messages[index - 1].role === "user") {
       const question = messages[index - 1].content;
@@ -389,47 +425,9 @@ export default function Chat() {
     });
   };
 
-  const clearChatHistory = () => {
-    if (currentConversationId) {
-      setMessages([]);
-      setConversations((prev) =>
-        prev.filter((conv) => conv.id !== currentConversationId)
-      );
-      setCurrentConversationId(null);
-    }
-  };
-
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
-
-  useEffect(() => {
-    if (currentConversationId) {
-      const docs = documents.filter(
-        (doc) => doc.conversationId === currentConversationId
-      );
-      setPinnedDocuments(docs);
-    } else {
-      setPinnedDocuments([]);
-    }
-  }, [currentConversationId, documents]);
-
-  useEffect(() => {
-    if (currentConversationId) {
-      const currentConversation = conversations.find(
-        (conv) => conv.id === currentConversationId
-      );
-      if (currentConversation) {
-        setMessages(currentConversation.messages);
-      }
-    }
-  }, [currentConversationId, conversations]);
-
-  useEffect(() => {
-    if (focusTrigger > 0) {
-      inputRef.current?.focus();
-    }
-  }, [focusTrigger]);
 
   const incrementMessageCount = useCallback(() => {
     if (!userApiKey) {
@@ -455,6 +453,7 @@ export default function Chat() {
     }
   }, [userApiKey]);
 
+  // Render
   return (
     <div className="flex h-screen bg-background">
       {isSidebarOpen && (
