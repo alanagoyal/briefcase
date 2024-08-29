@@ -851,7 +851,7 @@ export default function Chat() {
                                 </Tooltip>
                               </TooltipProvider>
                               <Button
-                                variant="outline"
+                                className="bg-black hover:bg-[#2556E4] text-white"
                                 size="sm"
                                 onClick={() => handleGetQuote(index)}
                               >
@@ -924,9 +924,9 @@ export default function Chat() {
         </div>
       </div>
       <Dialog open={isQuoteDialogOpen} onOpenChange={setIsQuoteDialogOpen}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="sm:max-w-xl">
           <DialogHeader>
-            <DialogTitle>Fee Calculator</DialogTitle>
+            <DialogTitle>Get Quote</DialogTitle>
             <DialogDescription>Ask a question to get a quote</DialogDescription>
           </DialogHeader>
           <FeeCalculator
@@ -951,14 +951,11 @@ export default function Chat() {
         onApiKeyChange={(apiKey) => {
           setUserApiKey(apiKey || null);
           if (apiKey) {
-            console.log("API key set in settings");
             localStorage.setItem("openaiApiKey", apiKey);
             setHasEverSetApiKey(true);
           } else {
-            console.log("API key removed in settings");
             localStorage.removeItem("openaiApiKey");
             if (originalMessageCount >= 3) {
-              console.log("Limit reached after removing API key");
               setIsLimitReached(true);
             }
           }

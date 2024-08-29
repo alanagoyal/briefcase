@@ -36,17 +36,15 @@ export default function SettingsDialog({
   onNameChange,
   onApiKeyChange,
 }: SettingsDialogProps) {
-  const router = useRouter();
   const [name, setName] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [isClient, setIsClient] = useState(false);
-  const [isLoading, setIsLoading] = useState(false); // Add this state
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
     const storedName = localStorage.getItem("userName");
     const storedApiKey = localStorage.getItem("openaiApiKey");
-    console.log("Stored name:", storedName, "Stored API key:", storedApiKey ? "exists" : "not set");
     if (storedName) {
       setName(storedName);
     }
@@ -119,19 +117,16 @@ export default function SettingsDialog({
 
   return (
     <Dialog open={open} onOpenChange={(newOpen) => {
-      console.log("Dialog onOpenChange called, newOpen:", newOpen, "name:", name);
       if (!newOpen && !name.trim()) {
-        console.log("Preventing dialog close due to empty name");
         toast({
           description: "Please enter a name before closing",
           variant: "destructive",
         });
       } else {
-        console.log("Allowing dialog state change");
         onOpenChange(newOpen);
       }
     }}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>{localStorage.getItem("userName") ? "Settings" : "Welcome to Briefcase"}</DialogTitle>
           <DialogDescription>
@@ -147,7 +142,6 @@ export default function SettingsDialog({
               id="name"
               value={name}
               onChange={(e) => {
-                console.log("Name input changed:", e.target.value);
                 setName(e.target.value);
               }}
               placeholder="Enter your name"
@@ -175,7 +169,6 @@ export default function SettingsDialog({
               id="apiKey"
               value={apiKey}
               onChange={(e) => {
-                console.log("API key input changed:", e.target.value ? "new value set" : "cleared");
                 setApiKey(e.target.value);
               }}
               type="password"

@@ -2,7 +2,7 @@
 
 import { Textarea } from "./ui/textarea";
 import { useState } from "react";
-import { Clock, DollarSign, Loader2 } from "lucide-react";
+import { CircleDollarSign, Clock, DollarSign, Loader2 } from "lucide-react";
 import { Button } from "./ui/button";
 
 // Define the interface for the API response
@@ -100,27 +100,26 @@ export default function FeeCalculator({
             Calculating...
           </>
         ) : (
-          "Calculate Fee"
+          "Get Quote"
         )}
       </Button>
       {showResults && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-1">
+            <div className="flex items-center space-x-1 bg-muted rounded-md p-2">
               <Clock className="w-4 h-4 text-gray-500" />
               <span className="text-sm text-gray-500">
                 Estimated Time: {estimatedTime.toFixed(2)} hours
               </span>
             </div>
-            <div className="flex items-center space-x-1">
-              <DollarSign className="w-4 h-4 text-gray-500" />
+            <div className="flex items-center space-x-1 bg-muted rounded-md p-2">
+              <CircleDollarSign className="w-4 h-4 text-gray-500" />
               <span className="text-sm text-gray-500">
                 Estimated Cost: ${estimatedFee.toFixed(2)}
               </span>
             </div>
           </div>
           <div>
-            <h4 className="font-semibold">Rationale:</h4>
             <p className="text-sm text-gray-600">{rationale}</p>
           </div>
         </div>
