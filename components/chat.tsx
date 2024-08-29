@@ -395,6 +395,12 @@ export default function Chat() {
 
         setDocuments((prev) => [...prev, newDocument]);
         setPinnedDocuments((prev) => [...prev, newDocument]);
+
+        // Focus on the chat input after file upload
+        setTimeout(() => {
+          inputRef.current?.focus();
+        }, 0);
+
       } catch (error) {
         console.error("Error reading file:", error);
         toast({
