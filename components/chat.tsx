@@ -2,7 +2,14 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Columns2, PenSquare, FileText, Briefcase, Settings, Trash2 } from "lucide-react";
+import {
+  Columns2,
+  PenSquare,
+  FileText,
+  Briefcase,
+  Settings,
+  Trash2,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -81,7 +88,7 @@ export default function Chat() {
   const [userName, setUserName] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [userApiKey, setUserApiKey] = useState<string | null>(null);
-  const [, setMessageCount] = useState(0);
+  const [messageCount, setMessageCount] = useState<number>(0);
   const [isLimitReached, setIsLimitReached] = useState(false);
   const [isStreamStarted, setIsStreamStarted] = useState(false);
 
@@ -103,7 +110,6 @@ export default function Chat() {
       if (currentConversationId) {
         updateConversation(currentConversationId, message);
       }
-      incrementMessageCount();
       setIsStreamStarted(false);
     },
     body: {
@@ -266,10 +272,24 @@ export default function Chat() {
 
   // Add this effect to detect when streaming starts
   useEffect(() => {
-    if (isLoading && messages.length > 0 && messages[messages.length - 1].role === 'assistant') {
+    if (
+      isLoading &&
+      messages.length > 0 &&
+      messages[messages.length - 1].role === "assistant"
+    ) {
       setIsStreamStarted(true);
     }
   }, [isLoading, messages]);
+
+  // Load message count from localStorage
+  useEffect(() => {
+    const storedCount = localStorage.getItem("messageCount");
+    if (storedCount) {
+      const count = parseInt(storedCount, 10);
+      setMessageCount(count);
+      setIsLimitReached(count >= 10);
+    }
+  }, []);
 
   // Helper functions
   const startNewChat = () => {
@@ -292,7 +312,10 @@ export default function Chat() {
 
   const handleSend = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!input.trim() || (isLimitReached && !userApiKey)) return;
+    if (!input.trim() || (isLimitReached && !userApiKey)) {
+      console.log("Message not sent: Empty input or limit reached");
+      return;
+    }
 
     let currentId = currentConversationId || uuidv4();
 
@@ -333,35 +356,57 @@ export default function Chat() {
     );
   };
 
-  const deleteConversation = (id: string) => {
-    setConversations((prev) => {
-      const updatedConversations = prev.filter((conv) => conv.id !== id);
-      localStorage.setItem(
-        "conversations",
-        JSON.stringify(updatedConversations)
-      );
+  const deleteConversation = useCallback(
+    (id: string) => {
+      setConversations((prev) => {
+        const updatedConversations = prev.filter((conv) => conv.id !== id);
+        localStorage.setItem(
+          "conversations",
+          JSON.stringify(updatedConversations)
+        );
 
-      if (currentConversationId === id) {
-        const index = prev.findIndex((conv) => conv.id === id);
-        if (updatedConversations.length > 0) {
-          const newConversationId =
-            index > 0
-              ? updatedConversations[index - 1].id
-              : updatedConversations[0].id;
-          setCurrentConversationId(newConversationId);
-          setMessages(
-            updatedConversations.find((conv) => conv.id === newConversationId)
-              ?.messages || []
-          );
-        } else {
-          setCurrentConversationId(null);
-          setMessages([]);
+        const flatConversations = prev
+          .slice()
+          .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+        const currentIndex = flatConversations.findIndex(
+          (conv) => conv.id === id
+        );
+
+        let newConversationId = null;
+        if (currentIndex > 0) {
+          // There's a more recent conversation
+          newConversationId = flatConversations[currentIndex - 1].id;
+        } else if (updatedConversations.length > 0) {
+          // The deleted conversation was the most recent, so select the new most recent
+          newConversationId = updatedConversations[0].id;
         }
-      }
 
-      return updatedConversations;
-    });
-  };
+        if (currentConversationId === id) {
+          setCurrentConversationId(newConversationId);
+          if (newConversationId) {
+            setMessages(
+              updatedConversations.find((conv) => conv.id === newConversationId)
+                ?.messages || []
+            );
+          } else {
+            setMessages([]);
+          }
+        }
+
+        return updatedConversations;
+      });
+    },
+    [currentConversationId]
+  );
+
+  // Add this effect to handle router updates
+  useEffect(() => {
+    if (currentConversationId) {
+      router.push(`/?id=${currentConversationId}`);
+    } else {
+      router.push("/");
+    }
+  }, [currentConversationId, router]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && currentConversationId) {
@@ -400,7 +445,6 @@ export default function Chat() {
         setTimeout(() => {
           inputRef.current?.focus();
         }, 0);
-
       } catch (error) {
         console.error("Error reading file:", error);
         toast({
@@ -447,7 +491,10 @@ export default function Chat() {
     if (!userApiKey) {
       setMessageCount((prevCount) => {
         const newCount = prevCount + 1;
+        localStorage.setItem("messageCount", newCount.toString());
+        console.log(`Message count: ${newCount}`);
         if (newCount >= 8) {
+          console.log(`Reminder: ${10 - newCount} messages left`);
           toast({
             description: `You have ${
               10 - newCount
@@ -455,6 +502,7 @@ export default function Chat() {
           });
         }
         if (newCount >= 10) {
+          console.log("Message limit reached");
           setIsLimitReached(true);
           toast({
             description:
@@ -469,20 +517,29 @@ export default function Chat() {
 
   const removeDocument = (docId: string) => {
     setDocuments((prevDocs) => prevDocs.filter((doc) => doc.id !== docId));
-    setPinnedDocuments((prevPinned) => prevPinned.filter((doc) => doc.id !== docId));
-    
+    setPinnedDocuments((prevPinned) =>
+      prevPinned.filter((doc) => doc.id !== docId)
+    );
+
     if (currentConversationId) {
       setConversations((prevConvs) =>
         prevConvs.map((conv) => {
           if (conv.id === currentConversationId) {
-            const updatedDocs = conv.documents?.filter((doc) => doc.id !== docId) || [];
-            const updatedContext = updatedDocs.map((doc) => doc.content).join("\n\n");
-            return { ...conv, documents: updatedDocs, documentContext: updatedContext };
+            const updatedDocs =
+              conv.documents?.filter((doc) => doc.id !== docId) || [];
+            const updatedContext = updatedDocs
+              .map((doc) => doc.content)
+              .join("\n\n");
+            return {
+              ...conv,
+              documents: updatedDocs,
+              documentContext: updatedContext,
+            };
           }
           return conv;
         })
       );
-      
+
       // Update the current document context
       const updatedContext = pinnedDocuments
         .filter((doc) => doc.id !== docId)
@@ -491,6 +548,15 @@ export default function Chat() {
       setDocumentContext(updatedContext);
     }
   };
+
+  // Add this effect to reset message count when API key is set
+  useEffect(() => {
+    if (userApiKey) {
+      setMessageCount(0);
+      localStorage.setItem("messageCount", "0");
+      setIsLimitReached(false);
+    }
+  }, [userApiKey]);
 
   // Render
   return (
@@ -504,7 +570,6 @@ export default function Chat() {
             const conversation = conversations.find((conv) => conv.id === id);
             if (conversation) {
               setMessages(conversation.messages);
-              router.push(`/?id=${id}`);
               setFocusTrigger((prev) => prev + 1);
             }
           }}
@@ -841,6 +906,7 @@ export default function Chat() {
           setUserApiKey(apiKey);
           setIsLimitReached(false);
           setMessageCount(0);
+          localStorage.setItem("messageCount", "0");
         }}
       />
     </div>
