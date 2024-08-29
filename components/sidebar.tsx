@@ -5,7 +5,6 @@ import {
   Trash2,
   PenSquare,
   Columns2,
-  Briefcase,
 } from "lucide-react";
 import { Message } from "ai/react";
 import { isToday, isYesterday, isThisWeek, isThisMonth } from "date-fns";
@@ -16,6 +15,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "./ui/tooltip";
+import { useRouter } from "next/navigation";
 
 interface Conversation {
   id: string;
@@ -31,6 +31,7 @@ interface SidebarProps {
   onConversationDelete: (id: string) => void;
   onNewChat: () => void;
   onToggleSidebar: () => void;
+  onOpenSettings: () => void;
 }
 
 interface ConversationGroup {
@@ -45,8 +46,10 @@ export default function Sidebar({
   onConversationDelete,
   onNewChat,
   onToggleSidebar,
+  onOpenSettings,
 }: SidebarProps) {
   const [hoveredConversationId, setHoveredConversationId] = useState<string | null>(null);
+  const router = useRouter();
 
   const groupedConversations = useMemo(() => {
     const groups: ConversationGroup[] = [
@@ -167,7 +170,11 @@ export default function Sidebar({
       </div>
       <div className="p-4 flex flex-col space-y-1">
         <ThemeToggle />
-        <Button variant="ghost" className="justify-start">
+        <Button
+          variant="ghost"
+          className="justify-start"
+          onClick={onOpenSettings}
+        >
           <Settings className="mr-2 h-5 w-5" /> Settings
         </Button>
       </div>

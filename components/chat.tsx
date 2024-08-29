@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Columns2, PenSquare, FileText, Briefcase } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -43,6 +43,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "./ui/tooltip";
+import SettingsDialog from "./settings-dialog";
 
 interface Conversation {
   id: string;
@@ -76,8 +77,10 @@ export default function Chat() {
   const [fileJustUploaded, setFileJustUploaded] = useState(false);
   const [focusTrigger, setFocusTrigger] = useState(0);
   const [userName, setUserName] = useState<string | null>(null);
-  const [isNameDialogOpen, setIsNameDialogOpen] = useState(false);
-  const [nameInput, setNameInput] = useState("");
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [userApiKey, setUserApiKey] = useState<string | null>(null);
+  const [messageCount, setMessageCount] = useState(0);
+  const [isLimitReached, setIsLimitReached] = useState(false);
 
   const {
     messages,
@@ -96,11 +99,13 @@ export default function Chat() {
       if (currentConversationId) {
         updateConversation(currentConversationId, message);
       }
+      incrementMessageCount();
     },
     body: {
       documentContexts: currentConversationId
         ? documentContexts[currentConversationId] || ""
         : "",
+      userApiKey: userApiKey,
     },
   });
 
@@ -197,22 +202,14 @@ export default function Chat() {
     if (storedName) {
       setUserName(storedName);
     } else {
-      setIsNameDialogOpen(true);
+      setIsSettingsOpen(true);
+    }
+
+    const storedApiKey = localStorage.getItem("openaiApiKey");
+    if (storedApiKey) {
+      setUserApiKey(storedApiKey);
     }
   }, []);
-
-  const handleNameSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (nameInput.trim()) {
-      localStorage.setItem("userName", nameInput);
-      setUserName(nameInput);
-      setIsNameDialogOpen(false);
-    }
-  };
-
-  const handleNameInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setNameInput(e.target.value);
-  };
 
   const startNewChat = () => {
     const newId = uuidv4();
@@ -234,7 +231,7 @@ export default function Chat() {
 
   const handleSend = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    if (!input.trim() || (isLimitReached && !userApiKey)) return;
 
     let currentId = currentConversationId || uuidv4();
 
@@ -253,6 +250,7 @@ export default function Chat() {
 
     const userMessage: Message = { id: uuidv4(), role: "user", content: input };
     updateConversation(currentId, userMessage);
+    incrementMessageCount();
     handleSubmit(e);
   };
 
@@ -433,6 +431,30 @@ export default function Chat() {
     }
   }, [focusTrigger]);
 
+  const incrementMessageCount = useCallback(() => {
+    if (!userApiKey) {
+      setMessageCount((prevCount) => {
+        const newCount = prevCount + 1;
+        if (newCount >= 8) {
+          toast({
+            description: `You have ${
+              10 - newCount
+            } messages left. Please set your OpenAI API key for unlimited use.`,
+          });
+        }
+        if (newCount >= 10) {
+          setIsLimitReached(true);
+          toast({
+            description:
+              "You've reached the message limit. Please set your OpenAI API key for unlimited use.",
+            variant: "destructive",
+          });
+        }
+        return newCount;
+      });
+    }
+  }, [userApiKey]);
+
   return (
     <div className="flex h-screen bg-background">
       {isSidebarOpen && (
@@ -451,6 +473,7 @@ export default function Chat() {
           onConversationDelete={deleteConversation}
           onNewChat={startNewChat}
           onToggleSidebar={toggleSidebar}
+          onOpenSettings={() => setIsSettingsOpen(true)}
         />
       )}
       <div className="flex-1 flex flex-col">
@@ -482,25 +505,25 @@ export default function Chat() {
             )}
           </div>
           <div className="flex items-center space-x-2">
-          {!isSidebarOpen && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={startNewChat}
-                    aria-label="New chat"
-                  >
-                    <PenSquare className="h-5 w-5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>New chat</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
+            {!isSidebarOpen && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={startNewChat}
+                      aria-label="New chat"
+                    >
+                      <PenSquare className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>New chat</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
           </div>
         </div>
 
@@ -546,7 +569,9 @@ export default function Chat() {
                       <div
                         key={index}
                         className={`mb-4 flex ${
-                          message.role === "user" ? "justify-end" : "justify-start"
+                          message.role === "user"
+                            ? "justify-end"
+                            : "justify-start"
                         } items-start`}
                       >
                         {message.role === "assistant" && (
@@ -556,7 +581,11 @@ export default function Chat() {
                             </AvatarFallback>
                           </Avatar>
                         )}
-                        <div className={`max-w-[80%] ${message.role === "user" ? "order-1" : "order-2"}`}>
+                        <div
+                          className={`max-w-[80%] ${
+                            message.role === "user" ? "order-1" : "order-2"
+                          }`}
+                        >
                           <div
                             className={`inline-block p-2 rounded-lg ${
                               message.role === "user" ? "bg-muted" : ""
@@ -585,7 +614,9 @@ export default function Chat() {
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      onClick={() => handleCopy(message.content)}
+                                      onClick={() =>
+                                        handleCopy(message.content)
+                                      }
                                     >
                                       <Copy className="h-4 w-4" />
                                     </Button>
@@ -683,6 +714,7 @@ export default function Chat() {
                 className="flex-1"
                 ref={inputRef}
                 autoFocus
+                disabled={isLimitReached && !userApiKey}
               />
               <input
                 type="file"
@@ -703,6 +735,7 @@ export default function Chat() {
                 type="submit"
                 size="icon"
                 className="bg-[#3675F1] hover:bg-[#2556E4]"
+                disabled={isLimitReached && !userApiKey}
               >
                 <Send className="h-4 w-4 text-white" />
               </Button>
@@ -731,46 +764,21 @@ export default function Chat() {
           />
         </DialogContent>
       </Dialog>
-      <Dialog
-        open={isNameDialogOpen}
-        onOpenChange={(open) => {
-          if (!open && nameInput.trim()) {
-            setIsNameDialogOpen(false);
+      <SettingsDialog
+        open={isSettingsOpen}
+        onOpenChange={setIsSettingsOpen}
+        onNameChange={(name) => {
+          setUserName(name);
+          if (name && !localStorage.getItem("userName")) {
+            setIsSettingsOpen(false);
           }
         }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Welcome to Briefcase</DialogTitle>
-            <DialogDescription>
-              Please enter your name to get started
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleNameSubmit}>
-            <Label htmlFor="name" className="text-right">
-              Name
-            </Label>
-            <Input
-              id="name"
-              name="name"
-              placeholder="Enter your name"
-              className="w-full mb-4"
-              required
-              value={nameInput}
-              onChange={handleNameInputChange}
-            />
-            <DialogFooter>
-              <Button
-                type="submit"
-                className="bg-[#3675F1] hover:bg-[#2556E4] w-full"
-                disabled={!nameInput.trim()}
-              >
-                Start Chatting
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+        onApiKeyChange={(apiKey) => {
+          setUserApiKey(apiKey);
+          setIsLimitReached(false);
+          setMessageCount(0);
+        }}
+      />
     </div>
   );
 }
