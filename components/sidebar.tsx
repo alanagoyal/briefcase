@@ -147,7 +147,7 @@ export default function Sidebar({
                   onClick={() => onConversationSelect(conv.id)}
                 >
                   <span className="text-sm truncate flex-grow mr-2">
-                    {conv.title}
+                    {conv.title.charAt(0).toUpperCase() + conv.title.slice(1).toLowerCase()}
                   </span>
                   <Button
                     variant="ghost"

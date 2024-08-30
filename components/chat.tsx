@@ -851,7 +851,7 @@ export default function Chat() {
                                 </Tooltip>
                               </TooltipProvider>
                               <Button
-                                className="bg-black hover:bg-[#2556E4] text-white"
+                                className="hover:bg-[#2556E4] hover:text-white"
                                 size="sm"
                                 onClick={() => handleGetQuote(index)}
                               >
