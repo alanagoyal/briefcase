@@ -782,7 +782,7 @@ export default function Chat() {
                               </ReactMarkdown>
                             )}
                           </div>
-                          {message.role === "assistant" && (
+                          {message.role === "assistant" && !isStreamStarted && (
                             <div className="mt-2 flex items-center space-x-2">
                               <TooltipProvider>
                                 <Tooltip>
