@@ -1061,7 +1061,7 @@ export default function Chat() {
         <DialogContent className="sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>Get Quote</DialogTitle>
-            <DialogDescription>Ask a question to get a quote</DialogDescription>
+            <DialogDescription>Submit a question to see how much it would cost to consult a lawyer</DialogDescription>
           </DialogHeader>
           <FeeCalculator
             summary={messages[messages.length - 1]?.content || ""}

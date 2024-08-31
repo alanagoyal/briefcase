@@ -80,47 +80,51 @@ export default function FeeCalculator({
 
   return (
     <div>
-      <Textarea
-        value={lawyerQuestion}
-        onChange={(e) => {
-          setLawyerQuestion(e.target.value);
-        }}
-        onKeyDown={handleKeyDown}
-        placeholder="Type your specific question for the lawyer here..."
-        className="mb-4"
-      />
-      <Button
-        onClick={handleCalculateFee}
-        className="w-full mb-4 bg-[#3675F1] hover:bg-[#2556E4] text-white"
-        disabled={!summary || !lawyerQuestion || isLoading}
-      >
-        {isLoading ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Calculating...
-          </>
-        ) : (
-          "Get Quote"
-        )}
-      </Button>
+      {!showResults && (
+        <>
+          <Textarea
+            value={lawyerQuestion}
+            onChange={(e) => {
+              setLawyerQuestion(e.target.value);
+            }}
+            onKeyDown={handleKeyDown}
+            placeholder="Type your specific question for the lawyer here..."
+            className="mb-4"
+          />
+          <Button
+            onClick={handleCalculateFee}
+            className="w-full mb-4 bg-[#3675F1] hover:bg-[#2556E4] text-white"
+            disabled={!summary || !lawyerQuestion || isLoading}
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Calculating...
+              </>
+            ) : (
+              "Get Quote"
+            )}
+          </Button>
+        </>
+      )}
       {showResults && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-1 bg-muted rounded-md p-2">
-              <Clock className="w-4 h-4 text-gray-500" />
-              <span className="text-sm text-gray-500">
+              <Clock className="w-4 h-4 text-[#3675F1]" />
+              <span className="text-sm">
                 Estimated Time: {estimatedTime.toFixed(2)} hours
               </span>
             </div>
             <div className="flex items-center space-x-1 bg-muted rounded-md p-2">
-              <CircleDollarSign className="w-4 h-4 text-gray-500" />
-              <span className="text-sm text-gray-500">
+              <CircleDollarSign className="w-4 h-4 text-[#3675F1]" />
+              <span className="text-sm">
                 Estimated Cost: ${estimatedFee.toFixed(2)}
               </span>
             </div>
           </div>
           <div>
-            <p className="text-sm text-gray-600">{rationale}</p>
+            <p className="text-sm">{rationale}</p>
           </div>
         </div>
       )}
