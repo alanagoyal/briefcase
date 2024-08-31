@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { Button } from "./ui/button";
 import {
   Settings,
@@ -6,8 +6,6 @@ import {
   PenSquare,
   Columns2,
 } from "lucide-react";
-import { Message } from "ai/react";
-import { isToday, isYesterday, isThisWeek, isThisMonth } from "date-fns";
 import { ThemeToggle } from "./theme-toggle";
 import {
   Tooltip,
@@ -15,87 +13,28 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "./ui/tooltip";
-import { useRouter } from "next/navigation";
-
-interface Conversation {
-  id: string;
-  title: string;
-  messages: Message[];
-  createdAt: Date;
-}
-
-interface ConversationGroup {
-  title: string;
-  conversations: Conversation[];
-}
+import { Conversation } from "../types/chat";
 
 interface SidebarProps {
-  conversations: Conversation[];
+  groupedConversations: { title: string; conversations: Conversation[] }[];
   currentConversationId: string | null;
   onConversationSelect: (id: string) => void;
   onConversationDelete: (id: string) => void;
   onNewChat: () => void;
   onToggleSidebar: () => void;
   onOpenSettings: () => void;
-  isGeneratingTitle: boolean;
 }
 
 export default function Sidebar({
-  conversations,
+  groupedConversations,
   currentConversationId,
   onConversationSelect,
   onConversationDelete,
   onNewChat,
   onToggleSidebar,
   onOpenSettings,
-  isGeneratingTitle,
 }: SidebarProps) {
   const [hoveredConversationId, setHoveredConversationId] = useState<string | null>(null);
-  const router = useRouter();
-
-  const groupedConversations = useMemo(() => {
-    const groups: ConversationGroup[] = [
-      { title: "Today", conversations: [] },
-      { title: "Yesterday", conversations: [] },
-      { title: "This Week", conversations: [] },
-      { title: "This Month", conversations: [] },
-      { title: "Older", conversations: [] },
-    ];
-
-    conversations.forEach((conv) => {
-      // Find the most recent message date
-      const lastMessageDate = conv.messages.length > 0
-        ? new Date(conv.messages[conv.messages.length - 1].createdAt || conv.createdAt)
-        : conv.createdAt;
-
-      if (isToday(lastMessageDate)) {
-        groups[0].conversations.push(conv);
-      } else if (isYesterday(lastMessageDate)) {
-        groups[1].conversations.push(conv);
-      } else if (isThisWeek(lastMessageDate)) {
-        groups[2].conversations.push(conv);
-      } else if (isThisMonth(lastMessageDate)) {
-        groups[3].conversations.push(conv);
-      } else {
-        groups[4].conversations.push(conv);
-      }
-    });
-
-    // Sort conversations within each group by the most recent message date
-    groups.forEach(group => {
-      group.conversations.sort((a, b) => {
-        const aDate = a.messages.length > 0
-          ? new Date(a.messages[a.messages.length - 1].createdAt || a.createdAt)
-          : a.createdAt;
-        const bDate = b.messages.length > 0
-          ? new Date(b.messages[b.messages.length - 1].createdAt || b.createdAt)
-          : b.createdAt;
-        return bDate.getTime() - aDate.getTime();
-      });
-    });
-
-    return groups.filter((group) => group.conversations.length > 0);
-  }, [conversations]);
 
   return (
     <div className="w-64 flex flex-col h-full border">
@@ -140,9 +79,9 @@ export default function Sidebar({
           Briefcase
         </h1>
         <div className="mb-2 ml-2">
-          {groupedConversations.map((group, groupIndex) => (
-            <div key={groupIndex} className="mb-4">
-              <h3 className="text-sm font-semibold mb-2">{group.title}</h3>
+          {groupedConversations.map((group) => (
+            <div key={group.title} className="mb-4">
+              <h2 className="text-sm font-semibold mb-2">{group.title}</h2>
               {group.conversations.map((conv) => (
                 <div
                   key={conv.id}
@@ -152,6 +91,8 @@ export default function Sidebar({
                       : ""
                   }`}
                   onClick={() => onConversationSelect(conv.id)}
+                  onMouseEnter={() => setHoveredConversationId(conv.id)}
+                  onMouseLeave={() => setHoveredConversationId(null)}
                 >
                   <span className="text-sm truncate flex-grow mr-2">
                     {conv.title.length > 30 ? conv.title.slice(0, 30) + '...' : conv.title}
@@ -160,7 +101,7 @@ export default function Sidebar({
                     variant="ghost"
                     size="icon"
                     className={`h-6 w-6 flex-shrink-0 ${
-                      conv.id === currentConversationId ? "opacity-100" : "opacity-0 hover:opacity-100"
+                      conv.id === currentConversationId || conv.id === hoveredConversationId ? "opacity-100" : "opacity-0"
                     } transition-opacity`}
                     onClick={(e) => {
                       e.stopPropagation();

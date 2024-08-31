@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Columns2,
@@ -47,24 +47,9 @@ import {
   TooltipTrigger,
 } from "./ui/tooltip";
 import SettingsDialog from "./settings-dialog";
-
-interface Conversation {
-  id: string;
-  title: string;
-  messages: Message[];
-  createdAt: Date;
-  documentContext?: string;
-  documents?: Document[];
-}
-
-interface Document {
-  id: string;
-  name: string;
-  type: string;
-  size: number;
-  content: string;
-  conversationId: string;
-}
+import { KeyboardShortcuts } from './keyboard-shortcuts';
+import { isToday, isYesterday, isThisWeek, isThisMonth } from "date-fns";
+import { Conversation, Document } from "../types/chat";
 
 export default function Chat() {
   // Router and search params
@@ -715,12 +700,50 @@ export default function Chat() {
     }
   };
 
+  const groupedConversations = useMemo(() => {
+    const groups = [
+      { title: "Today", conversations: [] as Conversation[] },
+      { title: "Yesterday", conversations: [] as Conversation[] },
+      { title: "This Week", conversations: [] as Conversation[] },
+      { title: "This Month", conversations: [] as Conversation[] },
+      { title: "Older", conversations: [] as Conversation[] },
+    ];
+
+    conversations.forEach((conv) => {
+      const lastMessageDate =
+        conv.messages.length > 0
+          ? new Date(
+              conv.messages[conv.messages.length - 1].createdAt ||
+                conv.createdAt
+            )
+          : conv.createdAt;
+
+      if (isToday(lastMessageDate)) {
+        groups[0].conversations.push(conv);
+      } else if (isYesterday(lastMessageDate)) {
+        groups[1].conversations.push(conv);
+      } else if (isThisWeek(lastMessageDate)) {
+        groups[2].conversations.push(conv);
+      } else if (isThisMonth(lastMessageDate)) {
+        groups[3].conversations.push(conv);
+      } else {
+        groups[4].conversations.push(conv);
+      }
+    });
+
+    groups.forEach(group => {
+      group.conversations.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    });
+
+    return groups.filter(group => group.conversations.length > 0);
+  }, [conversations]);
+
   // Render
   return (
     <div className="flex h-screen bg-background">
       {isSidebarOpen && (
         <Sidebar
-          conversations={conversations}
+          groupedConversations={groupedConversations}
           currentConversationId={currentConversationId}
           onConversationSelect={(id) => {
             setCurrentConversationId(id);
@@ -734,7 +757,6 @@ export default function Chat() {
           onNewChat={startNewChat}
           onToggleSidebar={toggleSidebar}
           onOpenSettings={() => setIsSettingsOpen(true)}
-          isGeneratingTitle={isGeneratingTitle}
         />
       )}
       <div className="flex-1 flex flex-col">
@@ -1071,6 +1093,19 @@ export default function Chat() {
             }
           }
         }}
+      />
+      <KeyboardShortcuts
+        sortedConversations={groupedConversations.flatMap(group => group.conversations)}
+        currentConversationId={currentConversationId}
+        onConversationSelect={(id) => {
+          setCurrentConversationId(id);
+          const conversation = conversations.find((conv) => conv.id === id);
+          if (conversation) {
+            setMessages(conversation.messages);
+            setFocusTrigger((prev) => prev + 1);
+          }
+        }}
+        isSidebarOpen={isSidebarOpen}
       />
     </div>
   );
