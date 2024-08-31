@@ -87,8 +87,6 @@ export default function Chat() {
   const [messageCount, setMessageCount] = useState<number>(0);
   const [isLimitReached, setIsLimitReached] = useState(false);
   const [isStreamStarted, setIsStreamStarted] = useState(false);
-  const [originalMessageCount, setOriginalMessageCount] = useState<number>(0);
-  const [hasEverSetApiKey, setHasEverSetApiKey] = useState<boolean>(false);
   const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
   const [lastRequestId, setLastRequestId] = useState<string | null>(null);
 
@@ -133,8 +131,6 @@ export default function Chat() {
   const [quoteQuestion, setQuoteQuestion] = useState<string>("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-
-  const messageCountRef = useRef(0);
 
   // useEffects
 
@@ -1068,7 +1064,6 @@ export default function Chat() {
           setUserApiKey(apiKey || null);
           if (apiKey) {
             localStorage.setItem("openaiApiKey", apiKey);
-            setHasEverSetApiKey(true);
           } else {
             localStorage.removeItem("openaiApiKey");
             if (messageCount >= 10) {
