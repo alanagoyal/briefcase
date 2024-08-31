@@ -89,6 +89,7 @@ export default function Chat() {
   const [isStreamStarted, setIsStreamStarted] = useState(false);
   const [originalMessageCount, setOriginalMessageCount] = useState<number>(0);
   const [hasEverSetApiKey, setHasEverSetApiKey] = useState<boolean>(false);
+  const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
 
   // useChat hook
   const {
@@ -418,75 +419,102 @@ export default function Chat() {
     handleSubmit(e);
   };
 
-  const updateConversation = (id: string, message: Message) => {
-    setConversations((prev) =>
-      prev.map((conv) =>
-        conv.id === id
-          ? {
-              ...conv,
-              messages: [...conv.messages, message],
-              title:
-                conv.messages.length === 0 && message.role === "user"
-                  ? message.content.slice(0, 30) +
-                    (message.content.length > 30 ? "..." : "")
-                  : conv.title,
-            }
-          : conv
-      )
-    );
-  };
-
-  const deleteConversation = useCallback(
-    (id: string) => {
-      setConversations((prev) => {
-        const updatedConversations = prev.filter((conv) => conv.id !== id);
-        localStorage.setItem(
-          "conversations",
-          JSON.stringify(updatedConversations)
-        );
-
-        const flatConversations = prev
-          .slice()
-          .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-        const currentIndex = flatConversations.findIndex(
-          (conv) => conv.id === id
-        );
-
-        let newConversationId = null;
-        if (currentIndex > 0) {
-          // There's a more recent conversation
-          newConversationId = flatConversations[currentIndex - 1].id;
-        } else if (updatedConversations.length > 0) {
-          // The deleted conversation was the most recent, so select the new most recent
-          newConversationId = updatedConversations[0].id;
-        }
-
-        if (currentConversationId === id) {
-          setCurrentConversationId(newConversationId);
-          if (newConversationId) {
-            setMessages(
-              updatedConversations.find((conv) => conv.id === newConversationId)
-                ?.messages || []
-            );
-          } else {
-            setMessages([]);
-          }
-        }
-
-        return updatedConversations;
+  const generateTitle = useCallback(async (id: string, userMessage: string, assistantMessage: string) => {
+    setIsGeneratingTitle(true);
+    try {
+      const response = await fetch('/api/generate-title', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userMessage, assistantMessage }),
       });
-    },
-    [currentConversationId]
-  );
 
-  // Add this effect to handle router updates
-  useEffect(() => {
-    if (currentConversationId) {
-      router.push(`/?id=${currentConversationId}`);
-    } else {
-      router.push("/");
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to generate title: ${response.status} ${errorText}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.title) {
+        setConversations((prev) =>
+          prev.map((conv) =>
+            conv.id === id
+              ? { ...conv, title: data.title }
+              : conv
+          )
+        );
+
+        // Update localStorage
+        localStorage.setItem('conversations', JSON.stringify(
+          conversations.map(conv =>
+            conv.id === id ? { ...conv, title: data.title } : conv
+          )
+        ));
+      } else {
+        console.error("No title in response:", data);
+      }
+
+    } catch (error) {
+      console.error('Error generating title:', error);
+      toast({
+        description: "Failed to generate title. Using default.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingTitle(false);
     }
-  }, [currentConversationId, router]);
+  }, [conversations, toast]);
+
+  const updateConversation = useCallback((id: string, message: Message) => {
+    setConversations((prev) => {
+      const updatedConversations = prev.map((conv) => {
+        if (conv.id === id) {
+          const updatedMessages = [...conv.messages, message];
+          const shouldGenerateTitle = 
+            message.role === 'assistant' && 
+            updatedMessages.filter(m => m.role === 'assistant').length === 1;
+
+          if (shouldGenerateTitle) {
+            setTimeout(() => generateTitle(id, message.content, conv.messages[0].content), 0);
+          }
+
+          return {
+            ...conv,
+            messages: updatedMessages,
+          };
+        }
+        return conv;
+      });
+
+      return updatedConversations;
+    });
+  }, [generateTitle]);
+
+  const deleteConversation = useCallback((id: string) => {
+    setConversations((prev) => {
+      const index = prev.findIndex((conv) => conv.id === id);
+      const updatedConversations = prev.filter((conv) => conv.id !== id);
+      
+      if (currentConversationId === id) {
+        let newSelectedId = null;
+        if (index > 0) {
+          // Select the conversation above
+          newSelectedId = updatedConversations[index - 1].id;
+        } else if (updatedConversations.length > 0) {
+          // Select the first conversation (which was below the deleted one)
+          newSelectedId = updatedConversations[0].id;
+        }
+        
+        // Update the currentConversationId
+        setCurrentConversationId(newSelectedId);
+      }
+      
+      // Update localStorage
+      localStorage.setItem('conversations', JSON.stringify(updatedConversations));
+      
+      return updatedConversations;
+    });
+  }, [currentConversationId, setCurrentConversationId]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && currentConversationId) {
@@ -623,6 +651,7 @@ export default function Chat() {
           onNewChat={startNewChat}
           onToggleSidebar={toggleSidebar}
           onOpenSettings={() => setIsSettingsOpen(true)}
+          isGeneratingTitle={isGeneratingTitle}
         />
       )}
       <div className="flex-1 flex flex-col">
