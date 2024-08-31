@@ -300,9 +300,8 @@ export default function Chat() {
     if (storedCount) {
       const count = parseInt(storedCount, 10);
       setMessageCount(count);
-      setOriginalMessageCount(count);
-      setIsLimitReached(count >= 3 && !storedApiKey);
-    }
+      setIsLimitReached(count >= 10 && !storedApiKey);
+    } 
 
     if (storedApiKey) {
       setUserApiKey(storedApiKey);
@@ -311,16 +310,19 @@ export default function Chat() {
 
   // Save message count to localStorage whenever it changes
   useEffect(() => {
-    localStorage.setItem("messageCount", messageCount.toString());
-    setIsLimitReached(messageCount >= 3 && !userApiKey);
+    if (messageCount > 0) {
+      localStorage.setItem("messageCount", messageCount.toString());
+    }
+    setIsLimitReached(messageCount >= 10 && !userApiKey);
   }, [messageCount, userApiKey]);
+
 
   // Handle API key changes
   useEffect(() => {
     if (userApiKey) {
       setIsLimitReached(false);
     } else {
-      setIsLimitReached(messageCount >= 3);
+      setIsLimitReached(messageCount >= 10);
     }
   }, [userApiKey, messageCount]);
 
@@ -1069,7 +1071,7 @@ export default function Chat() {
             setHasEverSetApiKey(true);
           } else {
             localStorage.removeItem("openaiApiKey");
-            if (originalMessageCount >= 3) {
+            if (messageCount >= 10) {
               setIsLimitReached(true);
             }
           }
