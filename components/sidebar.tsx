@@ -24,6 +24,11 @@ interface Conversation {
   createdAt: Date;
 }
 
+interface ConversationGroup {
+  title: string;
+  conversations: Conversation[];
+}
+
 interface SidebarProps {
   conversations: Conversation[];
   currentConversationId: string | null;
@@ -32,11 +37,7 @@ interface SidebarProps {
   onNewChat: () => void;
   onToggleSidebar: () => void;
   onOpenSettings: () => void;
-}
-
-interface ConversationGroup {
-  title: string;
-  conversations: Conversation[];
+  isGeneratingTitle: boolean;
 }
 
 export default function Sidebar({
@@ -47,6 +48,7 @@ export default function Sidebar({
   onNewChat,
   onToggleSidebar,
   onOpenSettings,
+  isGeneratingTitle,
 }: SidebarProps) {
   const [hoveredConversationId, setHoveredConversationId] = useState<string | null>(null);
   const router = useRouter();
@@ -147,7 +149,7 @@ export default function Sidebar({
                   onClick={() => onConversationSelect(conv.id)}
                 >
                   <span className="text-sm truncate flex-grow mr-2">
-                    {conv.title.charAt(0).toUpperCase() + conv.title.slice(1).toLowerCase()}
+                    {conv.title.length > 30 ? conv.title.slice(0, 30) + '...' : conv.title}
                   </span>
                   <Button
                     variant="ghost"
