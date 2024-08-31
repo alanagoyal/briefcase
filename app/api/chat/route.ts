@@ -1,10 +1,7 @@
 import { OpenAIStream, StreamingTextResponse } from "ai";
-import { wrapAISDKModel, wrapOpenAI } from "braintrust";
+import { wrapOpenAI } from "braintrust";
 import OpenAI from "openai";
-
 import { logger } from "../logger";
-
-// export const runtime = 'edge'
 
 export async function POST(req: Request) {
   const { messages, documentContext, userApiKey } = await req.json();
