@@ -63,13 +63,10 @@ export default function Sidebar({
     ];
 
     conversations.forEach((conv) => {
-      const lastMessageDate =
-        conv.messages.length > 0
-          ? new Date(
-              conv.messages[conv.messages.length - 1].createdAt ||
-                conv.createdAt
-            )
-          : conv.createdAt;
+      // Find the most recent message date
+      const lastMessageDate = conv.messages.length > 0
+        ? new Date(conv.messages[conv.messages.length - 1].createdAt || conv.createdAt)
+        : conv.createdAt;
 
       if (isToday(lastMessageDate)) {
         groups[0].conversations.push(conv);
@@ -84,9 +81,17 @@ export default function Sidebar({
       }
     });
 
-    // Sort conversations within each group by createdAt date (most recent first)
+    // Sort conversations within each group by the most recent message date
     groups.forEach(group => {
-      group.conversations.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      group.conversations.sort((a, b) => {
+        const aDate = a.messages.length > 0
+          ? new Date(a.messages[a.messages.length - 1].createdAt || a.createdAt)
+          : a.createdAt;
+        const bDate = b.messages.length > 0
+          ? new Date(b.messages[b.messages.length - 1].createdAt || b.createdAt)
+          : b.createdAt;
+        return bDate.getTime() - aDate.getTime();
+      });
     });
 
     return groups.filter((group) => group.conversations.length > 0);
