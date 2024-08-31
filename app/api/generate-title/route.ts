@@ -2,7 +2,7 @@ import { invoke, wrapTraced } from "braintrust";
 import { NextResponse } from "next/server";
 
 // This enables logging for braintrust
-import "./logger";
+import { logger } from "../logger";
 
 export async function POST(req: Request) {
   try {

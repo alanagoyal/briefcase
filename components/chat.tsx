@@ -90,6 +90,7 @@ export default function Chat() {
   const [originalMessageCount, setOriginalMessageCount] = useState<number>(0);
   const [hasEverSetApiKey, setHasEverSetApiKey] = useState<boolean>(false);
   const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
+  const [lastRequestId, setLastRequestId] = useState<string | null>(null);
 
   // useChat hook
   const {
@@ -114,6 +115,14 @@ export default function Chat() {
     body: {
       documentContext: documentContext,
       userApiKey: userApiKey,
+    },
+    onResponse: (response) => {
+      const spanId = response.headers.get("x-braintrust-span-id");
+      if (spanId) {
+        setLastRequestId(spanId);
+      } else {
+        console.warn("No x-braintrust-span-id found in response headers");
+      }
     },
   });
 
@@ -287,7 +296,7 @@ export default function Chat() {
   useEffect(() => {
     const storedCount = localStorage.getItem("messageCount");
     const storedApiKey = localStorage.getItem("openaiApiKey");
-    
+
     if (storedCount) {
       const count = parseInt(storedCount, 10);
       setMessageCount(count);
@@ -316,19 +325,25 @@ export default function Chat() {
   }, [userApiKey, messageCount]);
 
   // Modified showToast function
-  const showToast = useCallback((message: string, variant: "default" | "destructive") => {
-    setTimeout(() => {
-      toast({
-        description: message,
-        variant: variant,
-      });
-    }, 0);
-  }, []);
+  const showToast = useCallback(
+    (message: string, variant: "default" | "destructive") => {
+      setTimeout(() => {
+        toast({
+          description: message,
+          variant: variant,
+        });
+      }, 0);
+    },
+    []
+  );
 
   // Effect to show toast when limit is reached
   useEffect(() => {
     if (isLimitReached && !userApiKey) {
-      showToast("You've reached the message limit. Please set your OpenAI API key for unlimited use.", "destructive");
+      showToast(
+        "You've reached the message limit. Please set your OpenAI API key for unlimited use.",
+        "destructive"
+      );
     }
   }, [isLimitReached, userApiKey, showToast]);
 
@@ -338,7 +353,10 @@ export default function Chat() {
       const newCount = prevCount + 1;
       localStorage.setItem("messageCount", newCount.toString());
       if (newCount === 2 && !userApiKey) {
-        showToast("You have 1 message left before reaching the limit.", "destructive");
+        showToast(
+          "You have 1 message left before reaching the limit.",
+          "destructive"
+        );
       }
       return newCount;
     });
@@ -367,7 +385,10 @@ export default function Chat() {
   // Helper functions
   const startNewChat = () => {
     if (isLimitReached && !userApiKey) {
-      showToast("You've reached the message limit. Please set your OpenAI API key for unlimited use.", "destructive");
+      showToast(
+        "You've reached the message limit. Please set your OpenAI API key for unlimited use.",
+        "destructive"
+      );
       return;
     }
 
@@ -394,7 +415,10 @@ export default function Chat() {
       return;
     }
     if (isLimitReached && !userApiKey) {
-      showToast("You've reached the message limit. Please set your OpenAI API key for unlimited use.", "destructive");
+      showToast(
+        "You've reached the message limit. Please set your OpenAI API key for unlimited use.",
+        "destructive"
+      );
       return;
     }
 
@@ -419,102 +443,121 @@ export default function Chat() {
     handleSubmit(e);
   };
 
-  const generateTitle = useCallback(async (id: string, userMessage: string, assistantMessage: string) => {
-    setIsGeneratingTitle(true);
-    try {
-      const response = await fetch('/api/generate-title', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userMessage, assistantMessage }),
-      });
+  const generateTitle = useCallback(
+    async (id: string, userMessage: string, assistantMessage: string) => {
+      setIsGeneratingTitle(true);
+      try {
+        const response = await fetch("/api/generate-title", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userMessage, assistantMessage }),
+        });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to generate title: ${response.status} ${errorText}`);
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(
+            `Failed to generate title: ${response.status} ${errorText}`
+          );
+        }
+
+        const data = await response.json();
+
+        if (data.title) {
+          setConversations((prev) =>
+            prev.map((conv) =>
+              conv.id === id ? { ...conv, title: data.title } : conv
+            )
+          );
+
+          // Update localStorage
+          localStorage.setItem(
+            "conversations",
+            JSON.stringify(
+              conversations.map((conv) =>
+                conv.id === id ? { ...conv, title: data.title } : conv
+              )
+            )
+          );
+        } else {
+          console.error("No title in response:", data);
+        }
+      } catch (error) {
+        console.error("Error generating title:", error);
+        toast({
+          description: "Failed to generate title. Using default.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsGeneratingTitle(false);
       }
+    },
+    [conversations, toast]
+  );
 
-      const data = await response.json();
-      
-      if (data.title) {
-        setConversations((prev) =>
-          prev.map((conv) =>
-            conv.id === id
-              ? { ...conv, title: data.title }
-              : conv
-          )
-        );
+  const updateConversation = useCallback(
+    (id: string, message: Message) => {
+      setConversations((prev) => {
+        const updatedConversations = prev.map((conv) => {
+          if (conv.id === id) {
+            const updatedMessages = [...conv.messages, message];
+            const shouldGenerateTitle =
+              message.role === "assistant" &&
+              updatedMessages.filter((m) => m.role === "assistant").length ===
+                1;
 
-        // Update localStorage
-        localStorage.setItem('conversations', JSON.stringify(
-          conversations.map(conv =>
-            conv.id === id ? { ...conv, title: data.title } : conv
-          )
-        ));
-      } else {
-        console.error("No title in response:", data);
-      }
+            if (shouldGenerateTitle) {
+              setTimeout(
+                () =>
+                  generateTitle(id, message.content, conv.messages[0].content),
+                0
+              );
+            }
 
-    } catch (error) {
-      console.error('Error generating title:', error);
-      toast({
-        description: "Failed to generate title. Using default.",
-        variant: "destructive",
+            return {
+              ...conv,
+              messages: updatedMessages,
+            };
+          }
+          return conv;
+        });
+
+        return updatedConversations;
       });
-    } finally {
-      setIsGeneratingTitle(false);
-    }
-  }, [conversations, toast]);
+    },
+    [generateTitle]
+  );
 
-  const updateConversation = useCallback((id: string, message: Message) => {
-    setConversations((prev) => {
-      const updatedConversations = prev.map((conv) => {
-        if (conv.id === id) {
-          const updatedMessages = [...conv.messages, message];
-          const shouldGenerateTitle = 
-            message.role === 'assistant' && 
-            updatedMessages.filter(m => m.role === 'assistant').length === 1;
+  const deleteConversation = useCallback(
+    (id: string) => {
+      setConversations((prev) => {
+        const index = prev.findIndex((conv) => conv.id === id);
+        const updatedConversations = prev.filter((conv) => conv.id !== id);
 
-          if (shouldGenerateTitle) {
-            setTimeout(() => generateTitle(id, message.content, conv.messages[0].content), 0);
+        if (currentConversationId === id) {
+          let newSelectedId = null;
+          if (index > 0) {
+            // Select the conversation above
+            newSelectedId = updatedConversations[index - 1].id;
+          } else if (updatedConversations.length > 0) {
+            // Select the first conversation (which was below the deleted one)
+            newSelectedId = updatedConversations[0].id;
           }
 
-          return {
-            ...conv,
-            messages: updatedMessages,
-          };
+          // Update the currentConversationId
+          setCurrentConversationId(newSelectedId);
         }
-        return conv;
+
+        // Update localStorage
+        localStorage.setItem(
+          "conversations",
+          JSON.stringify(updatedConversations)
+        );
+
+        return updatedConversations;
       });
-
-      return updatedConversations;
-    });
-  }, [generateTitle]);
-
-  const deleteConversation = useCallback((id: string) => {
-    setConversations((prev) => {
-      const index = prev.findIndex((conv) => conv.id === id);
-      const updatedConversations = prev.filter((conv) => conv.id !== id);
-      
-      if (currentConversationId === id) {
-        let newSelectedId = null;
-        if (index > 0) {
-          // Select the conversation above
-          newSelectedId = updatedConversations[index - 1].id;
-        } else if (updatedConversations.length > 0) {
-          // Select the first conversation (which was below the deleted one)
-          newSelectedId = updatedConversations[0].id;
-        }
-        
-        // Update the currentConversationId
-        setCurrentConversationId(newSelectedId);
-      }
-      
-      // Update localStorage
-      localStorage.setItem('conversations', JSON.stringify(updatedConversations));
-      
-      return updatedConversations;
-    });
-  }, [currentConversationId, setCurrentConversationId]);
+    },
+    [currentConversationId, setCurrentConversationId]
+  );
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && currentConversationId) {
@@ -580,7 +623,10 @@ export default function Chat() {
 
   const handleRetry = () => {
     if (isLimitReached && !userApiKey) {
-      showToast("You've reached the message limit. Please set your OpenAI API key for unlimited use.", "destructive");
+      showToast(
+        "You've reached the message limit. Please set your OpenAI API key for unlimited use.",
+        "destructive"
+      );
       return;
     }
 
@@ -588,11 +634,50 @@ export default function Chat() {
     reload();
   };
 
-  const handleFeedback = (isPositive: boolean) => {
-    toast({
-      description: `${isPositive ? "Positive" : "Negative"} feedback submitted`,
-    });
-  };
+  const handleFeedback = useCallback(
+    async (isPositive: boolean) => {
+      if (!lastRequestId) {
+        console.error("No request ID available for feedback");
+        toast({
+          description: "Unable to submit feedback at this time",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        description: `${
+          isPositive ? "Positive" : "Negative"
+        } feedback submitted`,
+      });
+
+      try {
+        const response = await fetch("/api/feedback", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            requestId: lastRequestId,
+            score: isPositive ? 1 : 0,
+            comment: "",
+            userId: userName || "anonymous",
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to submit feedback");
+        }
+      } catch (error) {
+        console.error("Error submitting feedback:", error);
+        toast({
+          description: "Failed to submit feedback",
+          variant: "destructive",
+        });
+      }
+    },
+    [lastRequestId, userName, toast]
+  );
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
