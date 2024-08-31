@@ -1,18 +1,21 @@
-# Freestyle X NextJS
-
-This template is for development with **Freestyle** and **NextJS**
-
-![beta](https://img.shields.io/badge/beta-ff8866)
-
-## Development
-
-
 ### Installation
 ```bash
-git clone https://github.com/freestyle-sh/freestyle-next-template
-cd freestyle-next-template
+git clone https://github.com/alanagoyal/briefcase
+cd briefcase
 npm install
 ```
+
+### Environment Variables
+
+Create a `.env` file in the root directory with the following variables:
+
+```bash
+BRAINTRUST_API_KEY='<your-braintrust-api-key>'
+OPENAI_API_KEY='<your-openai-api-key>'
+```
+
+### Create Braintrust Functions
+TODO
 
 ### Development
 ```
