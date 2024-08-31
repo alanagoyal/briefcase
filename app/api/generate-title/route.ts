@@ -1,11 +1,8 @@
-import { invoke, initLogger, wrapTraced } from "braintrust";
+import { invoke, wrapTraced } from "braintrust";
 import { NextResponse } from "next/server";
 
-initLogger({
-  projectName: "ycs24",
-  apiKey: process.env.BRAINTRUST_API_KEY,
-  asyncFlush: true,
-});
+// This enables logging for braintrust
+import "./logger";
 
 export async function POST(req: Request) {
   try {
