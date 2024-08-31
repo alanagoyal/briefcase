@@ -133,3 +133,80 @@
   background-color: var(--muted);
   font-weight: bold;
 }
+
+/* LaTeX-style equations */
+.markdown-content .math-inline {
+  display: inline-block;
+  font-family: 'KaTeX_Main', 'Times New Roman', serif;
+  font-size: 1.1em;
+  line-height: 1.2;
+  white-space: nowrap;
+  padding: 0 0.2em;
+}
+
+.markdown-content .math-display {
+  display: block;
+  font-family: 'KaTeX_Main', 'Times New Roman', serif;
+  font-size: 1.1em;
+  line-height: 1.2;
+  text-align: center;
+  padding: 0.5em 0;
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+/* Brackets */
+.markdown-content .math-inline .bracket,
+.markdown-content .math-display .bracket {
+  font-size: 1.2em;
+  vertical-align: middle;
+}
+
+/* Fractions */
+.markdown-content .math-inline .fraction,
+.markdown-content .math-display .fraction {
+  display: inline-block;
+  vertical-align: middle;
+  text-align: center;
+}
+
+.markdown-content .math-inline .fraction .numerator,
+.markdown-content .math-display .fraction .numerator {
+  display: block;
+  padding-bottom: 0.15em;
+  border-bottom: 1px solid;
+}
+
+.markdown-content .math-inline .fraction .denominator,
+.markdown-content .math-display .fraction .denominator {
+  display: block;
+  padding-top: 0.15em;
+}
+
+/* Subscripts and superscripts */
+.markdown-content .math-inline sub,
+.markdown-content .math-display sub,
+.markdown-content .math-inline sup,
+.markdown-content .math-display sup {
+  font-size: 0.8em;
+}
+
+/* Improve readability for inline code and math */
+.markdown-content p code,
+.markdown-content li code,
+.markdown-content .math-inline {
+  background-color: var(--muted);
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+}
+
+/* Ensure proper spacing for lists with equations */
+.markdown-content li {
+  margin-bottom: 1em;
+}
+
+/* Improve spacing for equation-heavy content */
+.markdown-content p,
+.markdown-content .math-display {
+  margin-bottom: 1.5em;
+}
