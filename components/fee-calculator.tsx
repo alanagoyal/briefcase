@@ -110,13 +110,13 @@ export default function FeeCalculator({
       {showResults && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-1 bg-muted rounded-md p-2">
+            <div className="flex items-center space-x-1 bg-muted/80 rounded-md p-2 hover:bg-muted transition-colors duration-200 cursor-arrow">
               <Clock className="w-4 h-4 text-[#3675F1]" />
               <span className="text-sm">
                 Estimated Time: {estimatedTime.toFixed(2)} hours
               </span>
             </div>
-            <div className="flex items-center space-x-1 bg-muted rounded-md p-2">
+            <div className="flex items-center space-x-1 bg-muted/80 rounded-md p-2 hover:bg-muted transition-colors duration-200 cursor-arrow">
               <CircleDollarSign className="w-4 h-4 text-[#3675F1]" />
               <span className="text-sm">
                 Estimated Cost: ${estimatedFee.toFixed(2)}
