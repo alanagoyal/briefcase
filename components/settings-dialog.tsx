@@ -13,15 +13,13 @@ import {
   DialogTitle,
   DialogFooter,
 } from "./ui/dialog";
-import { Info } from "lucide-react";
+import { Info, Loader2 } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "./ui/tooltip";
-import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react"; // Add this import
 
 interface SettingsDialogProps {
   open: boolean;
@@ -96,7 +94,7 @@ export default function SettingsDialog({
         }
       } else {
         localStorage.removeItem("openaiApiKey");
-        onApiKeyChange(""); // This will trigger the effect in Chat to restore the message count
+        onApiKeyChange(""); 
         toast({
           description: "Settings saved successfully",
         });
@@ -116,7 +114,7 @@ export default function SettingsDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(newOpen) => {
+    <Dialog open={open} onOpenChange={(newOpen: boolean) => {
       if (!newOpen && !name.trim()) {
         toast({
           description: "Please enter a name before closing",
