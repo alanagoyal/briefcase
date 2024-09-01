@@ -77,17 +77,17 @@ export default function Sidebar({
         </TooltipProvider>
       </div>
       <div className="p-2 flex-grow overflow-y-auto">
-        <h1 className="text-2xl font-bold ml-2 mb-4 text-[#3675F1] font-['Avenir'] flex items-center">
+        <h1 className="text-2xl font-bold mb-4 text-[#3675F1] font-['Avenir'] flex items-center px-2">
           Briefcase
         </h1>
-        <div className="mb-2 ml-2">
+        <div className="mb-2">
           {groupedConversations.map((group) => (
             <div key={group.title} className="mb-4">
-              <h2 className="text-sm font-semibold mb-2">{group.title}</h2>
+              <h2 className="text-sm font-semibold mb-2 px-2">{group.title}</h2>
               {group.conversations.map((conv) => (
                 <div
                   key={conv.id}
-                  className={`flex items-center p-2 cursor-pointer rounded-md ${
+                  className={`relative p-2 cursor-pointer rounded-md ${
                     conv.id === currentConversationId
                       ? "bg-[#3675F1] text-white"
                       : ""
@@ -96,22 +96,26 @@ export default function Sidebar({
                   onMouseEnter={() => setHoveredConversationId(conv.id)}
                   onMouseLeave={() => setHoveredConversationId(null)}
                 >
-                  <span className="text-sm truncate flex-grow mr-2">
-                    {conv.title.length > 30 ? conv.title.slice(0, 30) + '...' : conv.title}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className={`h-6 w-6 flex-shrink-0 ${
-                      conv.id === currentConversationId || conv.id === hoveredConversationId ? "opacity-100" : "opacity-0"
-                    } transition-opacity`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onConversationDelete(conv.id);
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="text-sm truncate w-full px-2 mr-5">
+                      {conv.title}
+                    </span>
+                  </div>
+                  <div className="relative z-10 flex justify-end">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={`h-6 w-6 ${
+                        conv.id === currentConversationId || conv.id === hoveredConversationId ? "opacity-100" : "opacity-0"
+                      } transition-opacity`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onConversationDelete(conv.id);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
