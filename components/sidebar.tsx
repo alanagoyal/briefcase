@@ -1,10 +1,12 @@
+"use client"
+
 import { useState } from "react";
 import { Button } from "./ui/button";
 import {
   Settings,
   Trash2,
   PenSquare,
-  Columns2,
+  PanelLeftClose,
 } from "lucide-react";
 import { ThemeToggle } from "./theme-toggle";
 import {
@@ -48,7 +50,7 @@ export default function Sidebar({
                 onClick={onToggleSidebar}
                 aria-label="Close sidebar"
               >
-                <Columns2 className="h-5 w-5" />
+                <PanelLeftClose className="h-5 w-5" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>

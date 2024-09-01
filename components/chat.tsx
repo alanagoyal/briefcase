@@ -3,19 +3,19 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  Columns2,
   PenSquare,
   FileText,
   Briefcase,
   Settings,
   Trash2,
+  PanelLeftOpen,
+  PanelLeftClose,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
   Paperclip,
   Send,
-  Loader2,
   Copy,
   RefreshCw,
   ThumbsUp,
@@ -47,10 +47,12 @@ import {
   TooltipTrigger,
 } from "./ui/tooltip";
 import SettingsDialog from "./settings-dialog";
-import { KeyboardShortcuts } from './keyboard-shortcuts';
+import { KeyboardShortcuts } from "./keyboard-shortcuts";
 import { isToday, isYesterday, isThisWeek, isThisMonth } from "date-fns";
 import { Conversation, Document } from "../types/chat";
 import AnimatedBriefcase from "./animation";
+import { CommandMenu } from "./command-menu";
+import { useTheme } from "next-themes";
 
 export default function Chat() {
   // Router and search params
@@ -73,9 +75,9 @@ export default function Chat() {
   const [messageCount, setMessageCount] = useState<number | null>(null);
   const [isLimitReached, setIsLimitReached] = useState(false);
   const [isStreamStarted, setIsStreamStarted] = useState(false);
-  const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
   const [lastRequestId, setLastRequestId] = useState<string | null>(null);
   const titleGenerationTriggeredRef = useRef<{ [key: string]: boolean }>({});
+  const [isCommandMenuOpen, setIsCommandMenuOpen] = useState(false);
 
   // useChat hook
   const {
@@ -296,7 +298,9 @@ export default function Chat() {
     if (messageCount !== null) {
       localStorage.setItem("messageCount", messageCount.toString());
     }
-    setIsLimitReached(messageCount !== null && messageCount >= 10 && !userApiKey);
+    setIsLimitReached(
+      messageCount !== null && messageCount >= 10 && !userApiKey
+    );
   }, [messageCount, userApiKey]);
 
   // Handle API key changes
@@ -432,7 +436,6 @@ export default function Chat() {
 
   const generateTitle = useCallback(
     async (id: string, userMessage: string, assistantMessage: string) => {
-      setIsGeneratingTitle(true);
       try {
         const response = await fetch("/api/generate-title", {
           method: "POST",
@@ -457,8 +460,6 @@ export default function Chat() {
         }
       } catch (error) {
         console.error("Error generating title:", error);
-      } finally {
-        setIsGeneratingTitle(false);
       }
     },
     [setConversations]
@@ -467,22 +468,30 @@ export default function Chat() {
   const updateConversation = useCallback(
     (id: string, message: Message) => {
       setConversations((prev) => {
-        const existingConv = prev.find(conv => conv.id === id);
+        const existingConv = prev.find((conv) => conv.id === id);
         if (!existingConv) return prev;
 
         const updatedMessages = [...existingConv.messages, message];
-        
+
         // Only consider title generation for assistant messages
-        if (message.role === "assistant" && !titleGenerationTriggeredRef.current[id]) {
-          const isFirstAssistantMessage = updatedMessages.filter(m => m.role === "assistant").length === 1;
+        if (
+          message.role === "assistant" &&
+          !titleGenerationTriggeredRef.current[id]
+        ) {
+          const isFirstAssistantMessage =
+            updatedMessages.filter((m) => m.role === "assistant").length === 1;
           if (isFirstAssistantMessage) {
             titleGenerationTriggeredRef.current[id] = true;
-            const userMessage = updatedMessages.find(m => m.role === "user")?.content || "";
-            setTimeout(() => generateTitle(id, userMessage, message.content), 0);
+            const userMessage =
+              updatedMessages.find((m) => m.role === "user")?.content || "";
+            setTimeout(
+              () => generateTitle(id, userMessage, message.content),
+              0
+            );
           }
         }
 
-        return prev.map(conv =>
+        return prev.map((conv) =>
           conv.id === id
             ? {
                 ...conv,
@@ -697,9 +706,13 @@ export default function Chat() {
 
     conversations.forEach((conv) => {
       // Get the timestamp of the last message or use the conversation creation time
-      const lastMessageTimestamp = conv.messages.length > 0
-        ? new Date(conv.messages[conv.messages.length - 1].createdAt || conv.createdAt).getTime()
-        : conv.createdAt.getTime();
+      const lastMessageTimestamp =
+        conv.messages.length > 0
+          ? new Date(
+              conv.messages[conv.messages.length - 1].createdAt ||
+                conv.createdAt
+            ).getTime()
+          : conv.createdAt.getTime();
 
       const lastMessageDate = new Date(lastMessageTimestamp);
 
@@ -717,7 +730,7 @@ export default function Chat() {
     });
 
     // Sort conversations within each group
-    groups.forEach(group => {
+    groups.forEach((group) => {
       group.conversations.sort((a, b) => {
         const aTimestamp = a.lastMessageTimestamp ?? 0;
         const bTimestamp = b.lastMessageTimestamp ?? 0;
@@ -725,11 +738,12 @@ export default function Chat() {
       });
     });
 
-    return groups.filter(group => group.conversations.length > 0);
+    return groups.filter((group) => group.conversations.length > 0);
   }, [conversations]);
 
   // Calculate remaining messages
-  const remainingMessages = messageCount !== null ? Math.max(10 - messageCount, 0) : null;
+  const remainingMessages =
+    messageCount !== null ? Math.max(10 - messageCount, 0) : null;
 
   // Reset titleGenerationTriggeredRef when starting a new conversation
   const startNewConversation = useCallback(() => {
@@ -742,6 +756,8 @@ export default function Chat() {
   useEffect(() => {
     titleGenerationTriggeredRef.current = {};
   }, [currentConversationId]);
+
+  const { setTheme, theme } = useTheme();
 
   // Render
   return (
@@ -775,13 +791,19 @@ export default function Chat() {
                       variant="ghost"
                       size="icon"
                       onClick={toggleSidebar}
-                      aria-label="Open sidebar"
+                      aria-label={
+                        isSidebarOpen ? "Close sidebar" : "Open sidebar"
+                      }
                     >
-                      <Columns2 className="h-5 w-5" />
+                      {isSidebarOpen ? (
+                        <PanelLeftClose className="h-5 w-5" />
+                      ) : (
+                        <PanelLeftOpen className="h-5 w-5" />
+                      )}
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Open sidebar</p>
+                    <p>{isSidebarOpen ? "Close sidebar" : "Open sidebar"}</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -1020,8 +1042,9 @@ export default function Chat() {
         </div>
         {!userApiKey && remainingMessages !== null && (
           <div className="text-sm text-muted-foreground bg-muted p-2 rounded-t-lg">
-            You have {remainingMessages} message{remainingMessages !== 1 ? 's' : ''} remaining. 
-            To send more messages, please add your OpenAI API key in settings.
+            You have {remainingMessages} message
+            {remainingMessages !== 1 ? "s" : ""} remaining. To send more
+            messages, please add your OpenAI API key in settings.
           </div>
         )}
         <div className="p-4 border-t bg-background">
@@ -1035,6 +1058,7 @@ export default function Chat() {
                 ref={inputRef}
                 autoFocus
                 disabled={isLimitReached && !userApiKey}
+                aria-hidden="false"
               />
               <input
                 type="file"
@@ -1071,7 +1095,10 @@ export default function Chat() {
         <DialogContent className="sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>Get Quote</DialogTitle>
-            <DialogDescription>Submit a question to see how much it would cost to consult a lawyer</DialogDescription>
+            <DialogDescription>
+              Submit a question to see how much it would cost to consult a
+              lawyer
+            </DialogDescription>
           </DialogHeader>
           <FeeCalculator
             summary={messages[messages.length - 1]?.content || ""}
@@ -1105,7 +1132,9 @@ export default function Chat() {
         }}
       />
       <KeyboardShortcuts
-        sortedConversations={groupedConversations.flatMap(group => group.conversations)}
+        sortedConversations={groupedConversations.flatMap(
+          (group) => group.conversations
+        )}
         currentConversationId={currentConversationId}
         onConversationSelect={(id) => {
           setCurrentConversationId(id);
@@ -1116,6 +1145,17 @@ export default function Chat() {
           }
         }}
         isSidebarOpen={isSidebarOpen}
+        isCommandMenuOpen={isCommandMenuOpen}
+      />
+      <CommandMenu
+        onSettingsOpen={() => setIsSettingsOpen(true)}
+        onThemeToggle={() => setTheme(theme === "light" ? "dark" : "light")}
+        onNewChat={startNewChat}
+        onToggleSidebar={toggleSidebar}
+        isSidebarOpen={isSidebarOpen}
+        currentTheme={theme}
+        isOpen={isCommandMenuOpen}
+        onOpenChange={setIsCommandMenuOpen}
       />
     </div>
   );
