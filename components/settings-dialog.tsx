@@ -36,6 +36,7 @@ export default function SettingsDialog({
 }: SettingsDialogProps) {
   const [name, setName] = useState("");
   const [apiKey, setApiKey] = useState("");
+  const [initialApiKey, setInitialApiKey] = useState("");
   const [isClient, setIsClient] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -48,6 +49,7 @@ export default function SettingsDialog({
     }
     if (storedApiKey) {
       setApiKey(storedApiKey);
+      setInitialApiKey(storedApiKey);
     }
   }, [open]);
 
@@ -75,32 +77,39 @@ export default function SettingsDialog({
     e.preventDefault();
     if (name.trim()) {
       localStorage.setItem("userName", name);
-      if (apiKey) {
-        setIsLoading(true); // Set loading to true before API call
-        const isValid = await validateApiKey(apiKey);
-        setIsLoading(false); // Set loading to false after API call
-        if (isValid) {
-          localStorage.setItem("openaiApiKey", apiKey);
-          onApiKeyChange(apiKey);
-          toast({
-            description: "Settings saved successfully",
-          });
-          onOpenChange(false);
+      
+      // Check if the API key has changed
+      if (apiKey !== initialApiKey) {
+        if (apiKey) {
+          setIsLoading(true);
+          const isValid = await validateApiKey(apiKey);
+          setIsLoading(false);
+          if (isValid) {
+            localStorage.setItem("openaiApiKey", apiKey);
+            onApiKeyChange(apiKey);
+            toast({
+              description: "Settings saved successfully",
+            });
+            onOpenChange(false);
+          } else {
+            toast({
+              description: "Invalid API key. Please check and try again.",
+              variant: "destructive",
+            });
+            return; // Don't close the dialog if the API key is invalid
+          }
         } else {
-          toast({
-            description: "Invalid API key. Please check and try again.",
-            variant: "destructive",
-          });
+          // API key is being removed
+          localStorage.removeItem("openaiApiKey");
+          onApiKeyChange("");
         }
-      } else {
-        localStorage.removeItem("openaiApiKey");
-        onApiKeyChange(""); 
-        toast({
-          description: "Settings saved successfully",
-        });
-        onOpenChange(false);
       }
+      
       onNameChange(name);
+      toast({
+        description: "Settings saved successfully",
+      });
+      onOpenChange(false);
     } else {
       toast({
         description: "Please enter a name",
