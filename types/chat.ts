@@ -7,6 +7,7 @@ export interface Conversation {
   createdAt: Date;
   documentContext?: string;
   documents?: Document[];
+  lastMessageTimestamp?: number; // Add this line
 }
 
 export interface Document {

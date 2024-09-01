@@ -502,12 +502,22 @@ export default function Chat() {
             return {
               ...conv,
               messages: updatedMessages,
+              createdAt: new Date(), // Update the conversation's timestamp
             };
           }
           return conv;
         });
 
-        return updatedConversations;
+        // Sort the conversations based on the most recent message
+        return updatedConversations.sort((a, b) => {
+          const aTimestamp = a.messages.length > 0
+            ? new Date(a.messages[a.messages.length - 1].createdAt || a.createdAt).getTime()
+            : a.createdAt.getTime();
+          const bTimestamp = b.messages.length > 0
+            ? new Date(b.messages[b.messages.length - 1].createdAt || b.createdAt).getTime()
+            : b.createdAt.getTime();
+          return bTimestamp - aTimestamp;
+        });
       });
     },
     [generateTitle]
@@ -713,29 +723,33 @@ export default function Chat() {
     ];
 
     conversations.forEach((conv) => {
-      const lastMessageDate =
-        conv.messages.length > 0
-          ? new Date(
-              conv.messages[conv.messages.length - 1].createdAt ||
-                conv.createdAt
-            )
-          : conv.createdAt;
+      // Get the timestamp of the last message or use the conversation creation time
+      const lastMessageTimestamp = conv.messages.length > 0
+        ? new Date(conv.messages[conv.messages.length - 1].createdAt || conv.createdAt).getTime()
+        : conv.createdAt.getTime();
+
+      const lastMessageDate = new Date(lastMessageTimestamp);
 
       if (isToday(lastMessageDate)) {
-        groups[0].conversations.push(conv);
+        groups[0].conversations.push({ ...conv, lastMessageTimestamp });
       } else if (isYesterday(lastMessageDate)) {
-        groups[1].conversations.push(conv);
+        groups[1].conversations.push({ ...conv, lastMessageTimestamp });
       } else if (isThisWeek(lastMessageDate)) {
-        groups[2].conversations.push(conv);
+        groups[2].conversations.push({ ...conv, lastMessageTimestamp });
       } else if (isThisMonth(lastMessageDate)) {
-        groups[3].conversations.push(conv);
+        groups[3].conversations.push({ ...conv, lastMessageTimestamp });
       } else {
-        groups[4].conversations.push(conv);
+        groups[4].conversations.push({ ...conv, lastMessageTimestamp });
       }
     });
 
+    // Sort conversations within each group
     groups.forEach(group => {
-      group.conversations.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      group.conversations.sort((a, b) => {
+        const aTimestamp = a.lastMessageTimestamp ?? 0;
+        const bTimestamp = b.lastMessageTimestamp ?? 0;
+        return bTimestamp - aTimestamp;
+      });
     });
 
     return groups.filter(group => group.conversations.length > 0);
