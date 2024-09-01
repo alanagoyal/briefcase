@@ -75,6 +75,7 @@ export default function Chat() {
   const [isStreamStarted, setIsStreamStarted] = useState(false);
   const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
   const [lastRequestId, setLastRequestId] = useState<string | null>(null);
+  const titleGenerationTriggeredRef = useRef<{ [key: string]: boolean }>({});
 
   // useChat hook
   const {
@@ -440,10 +441,7 @@ export default function Chat() {
         });
 
         if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(
-            `Failed to generate title: ${response.status} ${errorText}`
-          );
+          throw new Error(`Failed to generate title: ${response.status}`);
         }
 
         const data = await response.json();
@@ -454,70 +452,45 @@ export default function Chat() {
               conv.id === id ? { ...conv, title: data.title } : conv
             )
           );
-
-          // Update localStorage
-          localStorage.setItem(
-            "conversations",
-            JSON.stringify(
-              conversations.map((conv) =>
-                conv.id === id ? { ...conv, title: data.title } : conv
-              )
-            )
-          );
         } else {
           console.error("No title in response:", data);
         }
       } catch (error) {
         console.error("Error generating title:", error);
-        toast({
-          description: "Failed to generate title. Using default.",
-          variant: "destructive",
-        });
       } finally {
         setIsGeneratingTitle(false);
       }
     },
-    [conversations, toast]
+    [setConversations]
   );
 
   const updateConversation = useCallback(
     (id: string, message: Message) => {
       setConversations((prev) => {
-        const updatedConversations = prev.map((conv) => {
-          if (conv.id === id) {
-            const updatedMessages = [...conv.messages, message];
-            const shouldGenerateTitle =
-              message.role === "assistant" &&
-              updatedMessages.filter((m) => m.role === "assistant").length ===
-                1;
+        const existingConv = prev.find(conv => conv.id === id);
+        if (!existingConv) return prev;
 
-            if (shouldGenerateTitle) {
-              setTimeout(
-                () =>
-                  generateTitle(id, message.content, conv.messages[0].content),
-                0
-              );
-            }
-
-            return {
-              ...conv,
-              messages: updatedMessages,
-              createdAt: new Date(), // Update the conversation's timestamp
-            };
+        const updatedMessages = [...existingConv.messages, message];
+        
+        // Only consider title generation for assistant messages
+        if (message.role === "assistant" && !titleGenerationTriggeredRef.current[id]) {
+          const isFirstAssistantMessage = updatedMessages.filter(m => m.role === "assistant").length === 1;
+          if (isFirstAssistantMessage) {
+            titleGenerationTriggeredRef.current[id] = true;
+            const userMessage = updatedMessages.find(m => m.role === "user")?.content || "";
+            setTimeout(() => generateTitle(id, userMessage, message.content), 0);
           }
-          return conv;
-        });
+        }
 
-        // Sort the conversations based on the most recent message
-        return updatedConversations.sort((a, b) => {
-          const aTimestamp = a.messages.length > 0
-            ? new Date(a.messages[a.messages.length - 1].createdAt || a.createdAt).getTime()
-            : a.createdAt.getTime();
-          const bTimestamp = b.messages.length > 0
-            ? new Date(b.messages[b.messages.length - 1].createdAt || b.createdAt).getTime()
-            : b.createdAt.getTime();
-          return bTimestamp - aTimestamp;
-        });
+        return prev.map(conv =>
+          conv.id === id
+            ? {
+                ...conv,
+                messages: updatedMessages,
+                createdAt: new Date(),
+              }
+            : conv
+        );
       });
     },
     [generateTitle]
@@ -757,6 +730,18 @@ export default function Chat() {
 
   // Calculate remaining messages
   const remainingMessages = messageCount !== null ? Math.max(10 - messageCount, 0) : null;
+
+  // Reset titleGenerationTriggeredRef when starting a new conversation
+  const startNewConversation = useCallback(() => {
+    const newId = startNewChat();
+    titleGenerationTriggeredRef.current = {};
+    return newId;
+  }, [startNewChat]);
+
+  // Also reset titleGenerationTriggeredRef when the conversation changes
+  useEffect(() => {
+    titleGenerationTriggeredRef.current = {};
+  }, [currentConversationId]);
 
   // Render
   return (
