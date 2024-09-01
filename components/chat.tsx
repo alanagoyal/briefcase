@@ -50,6 +50,7 @@ import SettingsDialog from "./settings-dialog";
 import { KeyboardShortcuts } from './keyboard-shortcuts';
 import { isToday, isYesterday, isThisWeek, isThisMonth } from "date-fns";
 import { Conversation, Document } from "../types/chat";
+import AnimatedBriefcase from "./animation";
 
 export default function Chat() {
   // Router and search params
@@ -69,7 +70,7 @@ export default function Chat() {
   const [userName, setUserName] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [userApiKey, setUserApiKey] = useState<string | null>(null);
-  const [messageCount, setMessageCount] = useState<number>(0);
+  const [messageCount, setMessageCount] = useState<number | null>(null);
   const [isLimitReached, setIsLimitReached] = useState(false);
   const [isStreamStarted, setIsStreamStarted] = useState(false);
   const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
@@ -279,10 +280,10 @@ export default function Chat() {
     const storedApiKey = localStorage.getItem("openaiApiKey");
 
     if (storedCount) {
-      const count = parseInt(storedCount, 10);
-      setMessageCount(count);
-      setIsLimitReached(count >= 10 && !storedApiKey);
-    } 
+      setMessageCount(parseInt(storedCount, 10));
+    } else {
+      setMessageCount(0);
+    }
 
     if (storedApiKey) {
       setUserApiKey(storedApiKey);
@@ -291,19 +292,18 @@ export default function Chat() {
 
   // Save message count to localStorage whenever it changes
   useEffect(() => {
-    if (messageCount > 0) {
+    if (messageCount !== null) {
       localStorage.setItem("messageCount", messageCount.toString());
     }
-    setIsLimitReached(messageCount >= 10 && !userApiKey);
+    setIsLimitReached(messageCount !== null && messageCount >= 10 && !userApiKey);
   }, [messageCount, userApiKey]);
-
 
   // Handle API key changes
   useEffect(() => {
     if (userApiKey) {
       setIsLimitReached(false);
     } else {
-      setIsLimitReached(messageCount >= 10);
+      setIsLimitReached(messageCount !== null && messageCount >= 10);
     }
   }, [userApiKey, messageCount]);
 
@@ -333,15 +333,18 @@ export default function Chat() {
   // Increment message count
   const incrementMessageCount = useCallback(() => {
     setMessageCount((prevCount) => {
-      const newCount = prevCount + 1;
-      localStorage.setItem("messageCount", newCount.toString());
-      if (newCount === 2 && !userApiKey) {
-        showToast(
-          "You have 1 message left before reaching the limit.",
-          "destructive"
-        );
+      if (prevCount !== null) {
+        const newCount = prevCount + 1;
+        localStorage.setItem("messageCount", newCount.toString());
+        if (newCount === 2 && !userApiKey) {
+          showToast(
+            "You have 1 message left before reaching the limit.",
+            "destructive"
+          );
+        }
+        return newCount;
       }
-      return newCount;
+      return prevCount;
     });
   }, [userApiKey, showToast]);
 
@@ -738,6 +741,9 @@ export default function Chat() {
     return groups.filter(group => group.conversations.length > 0);
   }, [conversations]);
 
+  // Calculate remaining messages
+  const remainingMessages = messageCount !== null ? Math.max(10 - messageCount, 0) : null;
+
   // Render
   return (
     <div className="flex h-screen bg-background">
@@ -1008,12 +1014,17 @@ export default function Chat() {
             )}
             {isLoading && !isStreamStarted && (
               <div className="flex justify-center p-4">
-                <Loader2 className="h-6 w-6 animate-spin" />
+                <AnimatedBriefcase />
               </div>
             )}
           </div>
         </div>
-
+        {!userApiKey && remainingMessages !== null && (
+          <div className="text-sm text-muted-foreground bg-muted p-2 rounded-t-lg">
+            You have {remainingMessages} message{remainingMessages !== 1 ? 's' : ''} remaining. 
+            To send more messages, please add your OpenAI API key in settings.
+          </div>
+        )}
         <div className="p-4 border-t bg-background">
           <form onSubmit={handleSend} className="flex flex-col space-y-2">
             <div className="flex items-center space-x-2">
@@ -1088,7 +1099,7 @@ export default function Chat() {
             localStorage.setItem("openaiApiKey", apiKey);
           } else {
             localStorage.removeItem("openaiApiKey");
-            if (messageCount >= 10) {
+            if (messageCount !== null && messageCount >= 10) {
               setIsLimitReached(true);
             }
           }
