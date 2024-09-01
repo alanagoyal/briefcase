@@ -791,19 +791,13 @@ export default function Chat() {
                       variant="ghost"
                       size="icon"
                       onClick={toggleSidebar}
-                      aria-label={
-                        isSidebarOpen ? "Close sidebar" : "Open sidebar"
-                      }
+                      aria-label="Open sidebar"
                     >
-                      {isSidebarOpen ? (
-                        <PanelLeftClose className="h-5 w-5" />
-                      ) : (
-                        <PanelLeftOpen className="h-5 w-5" />
-                      )}
+                      <PanelLeftOpen className="h-5 w-5" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{isSidebarOpen ? "Close sidebar" : "Open sidebar"}</p>
+                  <TooltipContent side="bottom" align="start">
+                    <p>Open sidebar</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -814,7 +808,7 @@ export default function Chat() {
               </h1>
             )}
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 mr-1">
             {!isSidebarOpen && (
               <>
                 <TooltipProvider>
@@ -829,23 +823,32 @@ export default function Chat() {
                         <PenSquare className="h-5 w-5" />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>
+                    <TooltipContent side="bottom">
                       <p>New chat</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setIsSettingsOpen(true)}
-                >
-                  <Settings className="h-5 w-5" />
-                </Button>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setIsSettingsOpen(true)}
+                        aria-label="Open settings"
+                      >
+                        <Settings className="h-5 w-5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" align="end">
+                      <p>Open settings</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </>
             )}
           </div>
         </div>
-
         <div className="flex-1 flex flex-col overflow-hidden">
           {pinnedDocuments.length > 0 && (
             <div className="bg-muted p-2 m-2 flex flex-col space-y-2 rounded-md sticky top-0 z-10">
@@ -1067,22 +1070,40 @@ export default function Chat() {
                 onChange={handleFileUpload}
                 accept=".pdf,.docx,.txt,.md"
               />
-              <Button
-                type="button"
-                size="icon"
-                variant="outline"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Paperclip className="h-4 w-4" />
-              </Button>
-              <Button
-                type="submit"
-                size="icon"
-                className="bg-[#3675F1] hover:bg-[#2556E4]"
-                disabled={isLimitReached && !userApiKey}
-              >
-                <Send className="h-4 w-4 text-white" />
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="outline"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Paperclip className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" align="end">
+                    <p>Attach document</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="submit"
+                      size="icon"
+                      className="bg-[#3675F1] hover:bg-[#2556E4]"
+                      disabled={isLimitReached && !userApiKey}
+                    >
+                      <Send className="h-4 w-4 text-white" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" align="end">
+                    <p>Send message</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </form>
           <div className="mt-2 text-xs text-muted-foreground text-center">

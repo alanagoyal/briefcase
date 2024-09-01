@@ -53,7 +53,7 @@ export default function Sidebar({
                 <PanelLeftClose className="h-5 w-5" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>
+            <TooltipContent side="bottom" align="start">
               <p>Close sidebar</p>
             </TooltipContent>
           </Tooltip>
@@ -70,7 +70,7 @@ export default function Sidebar({
                 <PenSquare className="h-5 w-5" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>
+            <TooltipContent side="bottom">
               <p>New chat</p>
             </TooltipContent>
           </Tooltip>
