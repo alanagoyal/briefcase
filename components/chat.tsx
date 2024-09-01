@@ -53,6 +53,7 @@ import { Conversation, Document } from "../types/chat";
 import AnimatedBriefcase from "./animation";
 import { CommandMenu } from "./command-menu";
 import { useTheme } from "next-themes";
+import { cn } from "@/lib/utils";
 
 export default function Chat() {
   // Router and search params
@@ -871,9 +872,10 @@ export default function Chat() {
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button
-                            variant="ghost"
+                            variant="ghost-no-hover"
                             size="sm"
                             onClick={() => removeDocument(doc.id)}
+                            className="hover:text-red-500"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>

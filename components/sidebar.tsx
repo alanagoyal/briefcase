@@ -16,6 +16,7 @@ import {
   TooltipTrigger,
 } from "./ui/tooltip";
 import { Conversation } from "../types/chat";
+import { cn } from "@/lib/utils";
 
 interface SidebarProps {
   groupedConversations: { title: string; conversations: Conversation[] }[];
@@ -103,11 +104,13 @@ export default function Sidebar({
                   </div>
                   <div className="relative z-10 flex justify-end">
                     <Button
-                      variant="ghost"
+                      variant="ghost-no-hover"
                       size="icon"
-                      className={`h-6 w-6 ${
-                        conv.id === currentConversationId || conv.id === hoveredConversationId ? "opacity-100" : "opacity-0"
-                      } transition-opacity`}
+                      className={cn(
+                        "h-6 w-6",
+                        conv.id === currentConversationId || conv.id === hoveredConversationId ? "opacity-100" : "opacity-0",
+                        "transition-opacity hover:text-red-500"
+                      )}
                       onClick={(e) => {
                         e.stopPropagation();
                         onConversationDelete(conv.id);
