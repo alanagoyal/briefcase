@@ -855,48 +855,46 @@ export default function Chat() {
           </div>
         </div>
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Reserve space for pinned documents */}
-          <div className="h-[4.5rem]">
-            {pinnedDocuments.length > 0 && (
-              <div className="bg-muted p-2 m-2 flex flex-col space-y-2 rounded-md sticky top-0 z-10">
-                <div className="flex items-center text-center space-x-2">
-                  <span className="text-sm font-medium">Pinned Documents</span>
-                </div>
-                <div className="flex flex-col space-y-1">
-                  {pinnedDocuments.map((doc) => (
-                    <div
-                      key={doc.id}
-                      className="flex items-center justify-between space-x-2 bg-background border border-border rounded-md p-2"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <div className="bg-[#8EC5FC] rounded-lg p-2">
-                          <FileText className="h-5 w-5 text-white" />
-                        </div>
-                        <span className="text-sm">{doc.name}</span>
-                      </div>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost-no-hover"
-                              size="sm"
-                              onClick={() => removeDocument(doc.id)}
-                              className="hover:text-red-500"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Remove document</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
-                  ))}
-                </div>
+          {/* Show pinned documents section when there are pinned documents */}
+          {pinnedDocuments.length > 0 && (
+            <div className={`bg-muted p-2 m-2 flex flex-col space-y-2 rounded-md sticky top-0 z-10 ${messages.length === 0 ? 'mb-4' : ''}`}>
+              <div className="flex items-center text-center space-x-2">
+                <span className="text-sm font-medium">Pinned Documents</span>
               </div>
-            )}
-          </div>
+              <div className="flex flex-col space-y-1">
+                {pinnedDocuments.map((doc) => (
+                  <div
+                    key={doc.id}
+                    className="flex items-center justify-between space-x-2 bg-background border border-border rounded-md p-2"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <div className="bg-[#8EC5FC] rounded-lg p-2">
+                        <FileText className="h-5 w-5 text-white" />
+                      </div>
+                      <span className="text-sm">{doc.name}</span>
+                    </div>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost-no-hover"
+                            size="sm"
+                            onClick={() => removeDocument(doc.id)}
+                            className="hover:text-red-500"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Remove document</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="flex-1 overflow-y-auto" ref={scrollAreaRef}>
             {messages.length === 0 ? (
               <div className="flex-1 flex items-center justify-center min-h-[calc(100vh-14.5rem)] w-full">
@@ -909,7 +907,7 @@ export default function Chat() {
                     quote for more complex legal inquiries
                   </p>
                   <div className="flex flex-wrap justify-center gap-2 mb-8">
-                  <Badge
+                    <Badge
                       variant="outline"
                       className="bg-muted text-foreground hover:bg-[#3675F1] hover:text-white px-3 py-1 text-xs cursor-pointer flex items-center justify-between"
                       onClick={() =>
