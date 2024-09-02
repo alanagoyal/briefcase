@@ -350,7 +350,7 @@ export default function Chat() {
       if (prevCount !== null) {
         const newCount = prevCount + 1;
         localStorage.setItem("messageCount", newCount.toString());
-        if (newCount === 2 && !userApiKey) {
+        if (newCount === 9 && !userApiKey) {
           showToast(
             "You have 1 message left before reaching the limit.",
             "destructive"
