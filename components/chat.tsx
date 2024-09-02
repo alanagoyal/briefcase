@@ -54,6 +54,7 @@ import AnimatedBriefcase from "./animation";
 import { CommandMenu } from "./command-menu";
 import { useTheme } from "next-themes";
 import { Badge } from "./ui/badge";
+import { Skeleton } from "./ui/skeleton";
 
 export default function Chat() {
   // Router and search params
@@ -79,6 +80,7 @@ export default function Chat() {
   const [lastRequestId, setLastRequestId] = useState<string | null>(null);
   const titleGenerationTriggeredRef = useRef<{ [key: string]: boolean }>({});
   const [isCommandMenuOpen, setIsCommandMenuOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   // useChat hook
   const {
@@ -86,7 +88,7 @@ export default function Chat() {
     input,
     handleInputChange,
     handleSubmit,
-    isLoading,
+    isLoading: isChatLoading,
     reload,
     setMessages,
   } = useChat({
@@ -126,34 +128,40 @@ export default function Chat() {
 
   // Load conversations and documents from localStorage
   useEffect(() => {
-    const storedConversations = JSON.parse(
-      localStorage.getItem("conversations") || "[]"
-    );
-    const parsedConversations = storedConversations.map((conv: any) => ({
-      ...conv,
-      createdAt: new Date(conv.createdAt),
-      messages: conv.messages.map((msg: any) => ({
-        ...msg,
-        createdAt: msg.createdAt ? new Date(msg.createdAt) : undefined,
-      })),
-    }));
-    setConversations(parsedConversations);
-
-    const storedDocuments = JSON.parse(
-      localStorage.getItem("documents") || "[]"
-    );
-    setDocuments(storedDocuments);
-
-    if (conversationId) {
-      const conversation = parsedConversations.find(
-        (conv: Conversation) => conv.id === conversationId
+    const loadConversations = async () => {
+      setIsLoading(true);
+      const storedConversations = JSON.parse(
+        localStorage.getItem("conversations") || "[]"
       );
-      if (conversation) {
-        setCurrentConversationId(conversationId);
-        setMessages(conversation.messages);
-        setDocumentContext(conversation.documentContext || "");
+      const parsedConversations = storedConversations.map((conv: any) => ({
+        ...conv,
+        createdAt: new Date(conv.createdAt),
+        messages: conv.messages.map((msg: any) => ({
+          ...msg,
+          createdAt: msg.createdAt ? new Date(msg.createdAt) : undefined,
+        })),
+      }));
+      setConversations(parsedConversations);
+
+      const storedDocuments = JSON.parse(
+        localStorage.getItem("documents") || "[]"
+      );
+      setDocuments(storedDocuments);
+
+      if (conversationId) {
+        const conversation = parsedConversations.find(
+          (conv: Conversation) => conv.id === conversationId
+        );
+        if (conversation) {
+          setCurrentConversationId(conversationId);
+          setMessages(conversation.messages);
+          setDocumentContext(conversation.documentContext || "");
+        }
       }
-    }
+      setIsLoading(false);
+    };
+
+    loadConversations();
   }, [conversationId, setMessages]);
 
   // Save conversations to localStorage when they change
@@ -270,13 +278,13 @@ export default function Chat() {
   // Add this effect to detect when streaming starts
   useEffect(() => {
     if (
-      isLoading &&
+      isChatLoading &&
       messages.length > 0 &&
       messages[messages.length - 1].role === "assistant"
     ) {
       setIsStreamStarted(true);
     }
-  }, [isLoading, messages]);
+  }, [isChatLoading, messages]);
 
   // Load message count and API key from localStorage
   useEffect(() => {
@@ -855,9 +863,12 @@ export default function Chat() {
           </div>
         </div>
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Show pinned documents section when there are pinned documents */}
           {pinnedDocuments.length > 0 && (
-            <div className={`bg-muted p-2 m-2 flex flex-col space-y-2 rounded-md sticky top-0 z-10 ${messages.length === 0 ? 'mb-4' : ''}`}>
+            <div
+              className={`bg-muted p-2 m-2 flex flex-col space-y-2 rounded-md sticky top-0 z-10 ${
+                messages.length === 0 ? "mb-4" : ""
+              }`}
+            >
               <div className="flex items-center text-center space-x-2">
                 <span className="text-sm font-medium">Pinned Documents</span>
               </div>
@@ -895,8 +906,22 @@ export default function Chat() {
               </div>
             </div>
           )}
-          <div className="flex-1 overflow-y-auto" ref={scrollAreaRef}>
-            {messages.length === 0 ? (
+          <div className="flex-1 overflow-y-auto p-4" ref={scrollAreaRef}>
+            {isLoading ? (
+              <div className="flex flex-col h-full">
+                {[...Array(20)].map((_, index) => (
+                  <div key={index} className={`mb-4 ${index % 2 === 0 ? '' : 'self-end'}`}>
+                    <Skeleton className={`h-6 ${index % 2 === 0 ? 'w-3/4' : 'w-2/3'}`} />
+                    {index % 3 === 0 && (
+                      <>
+                        <Skeleton className="h-6 w-5/6 mt-1" />
+                        <Skeleton className="h-6 w-4/5 mt-1" />
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : messages.length === 0 ? (
               <div className="flex-1 flex items-center justify-center min-h-[calc(100vh-14.5rem)] w-full">
                 <div className="text-center max-w-md mx-auto">
                   <h2 className="text-2xl font-semibold mb-2">
@@ -1086,7 +1111,7 @@ export default function Chat() {
                 )}
               </div>
             )}
-            {isLoading && !isStreamStarted && (
+            {isChatLoading && !isStreamStarted && (
               <div className="flex justify-center p-4">
                 <AnimatedBriefcase />
               </div>
@@ -1094,7 +1119,7 @@ export default function Chat() {
           </div>
         </div>
         {/* Reserve space for the banner, but only show content when needed */}
-        <div className={`h-10 ${showBanner ? 'bg-muted' : ''}`}>
+        <div className={`h-10 ${showBanner ? "bg-muted" : ""}`}>
           {showBanner && (
             <div className="text-sm text-muted-foreground p-2 rounded-t-lg">
               You have {remainingMessages} message
