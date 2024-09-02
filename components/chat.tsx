@@ -63,6 +63,7 @@ export default function Chat() {
   const conversationId = searchParams.get("id");
 
   // State declarations
+  const { setTheme, theme } = useTheme();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<
@@ -117,12 +118,12 @@ export default function Chat() {
   });
 
   // Refs
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
   const [quoteQuestion, setQuoteQuestion] = useState<string>("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   // useEffects
 
@@ -275,7 +276,7 @@ export default function Chat() {
     }
   }, [focusTrigger]);
 
-  // Add this effect to detect when streaming starts
+  // Detect when streaming starts so we stop showing the spinner
   useEffect(() => {
     if (
       isChatLoading &&
@@ -321,7 +322,7 @@ export default function Chat() {
     }
   }, [userApiKey, messageCount]);
 
-  // Modified showToast function
+  // Show toast function
   const showToast = useCallback(
     (message: string, variant: "default" | "destructive") => {
       setTimeout(() => {
@@ -362,6 +363,7 @@ export default function Chat() {
     });
   }, [userApiKey, showToast]);
 
+  // Automatically scroll to bottom of chat
   const scrollToBottom = useCallback(() => {
     if (scrollAreaRef.current) {
       scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
@@ -704,6 +706,8 @@ export default function Chat() {
     }
   };
 
+
+  // Group conversations by date for sidebar
   const groupedConversations = useMemo(() => {
     const groups = [
       { title: "Today", conversations: [] as Conversation[] },
@@ -761,8 +765,6 @@ export default function Chat() {
   useEffect(() => {
     titleGenerationTriggeredRef.current = {};
   }, [currentConversationId]);
-
-  const { setTheme, theme } = useTheme();
 
   // Handle prompt click for new chat
   const handlePromptClick = (prompt: string) => {
