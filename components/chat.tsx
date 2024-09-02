@@ -57,10 +57,12 @@ import { Badge } from "./ui/badge";
 import { Skeleton } from "./ui/skeleton";
 
 export default function Chat() {
-  // Router and search params
+  // Constants
   const router = useRouter();
   const searchParams = useSearchParams();
   const conversationId = searchParams.get("id");
+  const skeletonHeights = ['h-16', 'h-24', 'h-32', 'h-40', 'h-48'];
+
 
   // State declarations
   const { setTheme, theme } = useTheme();
@@ -706,7 +708,6 @@ export default function Chat() {
     }
   };
 
-
   // Group conversations by date for sidebar
   const groupedConversations = useMemo(() => {
     const groups = [
@@ -910,18 +911,33 @@ export default function Chat() {
           )}
           <div className="flex-1 overflow-y-auto p-4" ref={scrollAreaRef}>
             {isLoading ? (
-              <div className="flex flex-col h-full">
-                {[...Array(20)].map((_, index) => (
-                  <div key={index} className={`mb-4 ${index % 2 === 0 ? '' : 'self-end'}`}>
-                    <Skeleton className={`h-6 ${index % 2 === 0 ? 'w-3/4' : 'w-2/3'}`} />
-                    {index % 3 === 0 && (
-                      <>
-                        <Skeleton className="h-6 w-5/6 mt-1" />
-                        <Skeleton className="h-6 w-4/5 mt-1" />
-                      </>
-                    )}
-                  </div>
-                ))}
+              <div className="flex flex-col h-screen bg-background p-4 space-y-6 overflow-y-auto">
+                {[...Array(10)].map((_, index) => {
+                  const heightClass = skeletonHeights[index % skeletonHeights.length];
+                  return (
+                    <div
+                      key={index}
+                      className={`flex ${
+                        index % 2 === 0 ? "justify-start" : "justify-end"
+                      }`}
+                    >
+                      <div
+                        className={`flex ${
+                          index % 2 === 0 ? "flex-row" : "flex-row-reverse"
+                        } items-start w-4/5`}
+                      >
+                        <Skeleton className="h-8 w-8 rounded-full flex-shrink-0" />
+                        <Skeleton
+                          className={`${heightClass} w-full max-w-[calc(100%-2rem)] rounded-lg ${
+                            index % 2 === 0
+                              ? "ml-2 rounded-tl-none"
+                              : "mr-2 rounded-tr-none"
+                          }`}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             ) : messages.length === 0 ? (
               <div className="flex-1 flex items-center justify-center min-h-[calc(100vh-14.5rem)] w-full">
