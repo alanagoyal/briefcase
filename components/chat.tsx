@@ -772,7 +772,10 @@ export default function Chat() {
     handleInputChange({
       target: { value: prompt },
     } as React.ChangeEvent<HTMLInputElement>);
-    setFocusTrigger((prev) => prev + 1);
+    // Focus the input immediately after setting the value
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 0);
   };
 
   // Render
