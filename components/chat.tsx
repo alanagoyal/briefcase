@@ -9,7 +9,7 @@ import {
   Settings,
   Trash2,
   PanelLeftOpen,
-  PanelLeftClose,
+  ArrowUpRight,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -53,7 +53,7 @@ import { Conversation, Document } from "../types/chat";
 import AnimatedBriefcase from "./animation";
 import { CommandMenu } from "./command-menu";
 import { useTheme } from "next-themes";
-import { cn } from "@/lib/utils";
+import { Badge } from "./ui/badge";
 
 export default function Chat() {
   // Router and search params
@@ -746,12 +746,8 @@ export default function Chat() {
   const remainingMessages =
     messageCount !== null ? Math.max(10 - messageCount, 0) : null;
 
-  // Reset titleGenerationTriggeredRef when starting a new conversation
-  const startNewConversation = useCallback(() => {
-    const newId = startNewChat();
-    titleGenerationTriggeredRef.current = {};
-    return newId;
-  }, [startNewChat]);
+  // Determine if the banner should be shown
+  const showBanner = !userApiKey && remainingMessages !== null;
 
   // Also reset titleGenerationTriggeredRef when the conversation changes
   useEffect(() => {
@@ -759,6 +755,14 @@ export default function Chat() {
   }, [currentConversationId]);
 
   const { setTheme, theme } = useTheme();
+
+  // Handle prompt click for new chat
+  const handlePromptClick = (prompt: string) => {
+    handleInputChange({
+      target: { value: prompt },
+    } as React.ChangeEvent<HTMLInputElement>);
+    setFocusTrigger((prev) => prev + 1);
+  };
 
   // Render
   return (
@@ -851,56 +855,102 @@ export default function Chat() {
           </div>
         </div>
         <div className="flex-1 flex flex-col overflow-hidden">
-          {pinnedDocuments.length > 0 && (
-            <div className="bg-muted p-2 m-2 flex flex-col space-y-2 rounded-md sticky top-0 z-10">
-              <div className="flex items-center text-center space-x-2">
-                <span className="text-sm font-medium">Pinned Documents</span>
-              </div>
-              <div className="flex flex-col space-y-1">
-                {pinnedDocuments.map((doc) => (
-                  <div
-                    key={doc.id}
-                    className="flex items-center justify-between space-x-2 bg-background border border-border rounded-md p-2"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <div className="bg-[#8EC5FC] rounded-lg p-2">
-                        <FileText className="h-5 w-5 text-white" />
+          {/* Reserve space for pinned documents */}
+          <div className="h-[4.5rem]">
+            {pinnedDocuments.length > 0 && (
+              <div className="bg-muted p-2 m-2 flex flex-col space-y-2 rounded-md sticky top-0 z-10">
+                <div className="flex items-center text-center space-x-2">
+                  <span className="text-sm font-medium">Pinned Documents</span>
+                </div>
+                <div className="flex flex-col space-y-1">
+                  {pinnedDocuments.map((doc) => (
+                    <div
+                      key={doc.id}
+                      className="flex items-center justify-between space-x-2 bg-background border border-border rounded-md p-2"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <div className="bg-[#8EC5FC] rounded-lg p-2">
+                          <FileText className="h-5 w-5 text-white" />
+                        </div>
+                        <span className="text-sm">{doc.name}</span>
                       </div>
-                      <span className="text-sm">{doc.name}</span>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost-no-hover"
+                              size="sm"
+                              onClick={() => removeDocument(doc.id)}
+                              className="hover:text-red-500"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Remove document</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost-no-hover"
-                            size="sm"
-                            onClick={() => removeDocument(doc.id)}
-                            className="hover:text-red-500"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Remove document</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
           <div className="flex-1 overflow-y-auto" ref={scrollAreaRef}>
             {messages.length === 0 ? (
-              <div className="flex-1 flex items-center justify-center p-20 pt-32">
+              <div className="flex-1 flex items-center justify-center min-h-[calc(100vh-14.5rem)] w-full">
                 <div className="text-center max-w-md mx-auto">
                   <h2 className="text-2xl font-semibold mb-2">
-                    Welcome to the Legal Assistant
+                    Welcome to Briefcase
                   </h2>
                   <p className="text-muted-foreground mb-4">
-                    Start a conversation or upload a document to get legal
-                    advice
+                    Ask basic legal questions, summarize documents, and get a
+                    quote for more complex legal inquiries
                   </p>
+                  <div className="flex flex-wrap justify-center gap-2 mb-8">
+                  <Badge
+                      variant="outline"
+                      className="bg-muted text-foreground hover:bg-[#3675F1] hover:text-white px-3 py-1 text-xs cursor-pointer flex items-center justify-between"
+                      onClick={() =>
+                        handlePromptClick(
+                          "Explain the difference between a valuation cap and discount"
+                        )
+                      }
+                    >
+                      <span>
+                        Explain the difference between a valuation cap and
+                        discount
+                      </span>
+                      <ArrowUpRight className="h-3 w-3 ml-1" />
+                    </Badge>
+                    <Badge
+                      variant="outline"
+                      className="bg-muted text-foreground hover:bg-[#3675F1] hover:text-white px-3 py-1 text-xs cursor-pointer flex items-center justify-between"
+                      onClick={() =>
+                        handlePromptClick(
+                          "Summarize the terms of this SAFE agreement"
+                        )
+                      }
+                    >
+                      <span>Summarize the terms of this SAFE agreement</span>
+                      <ArrowUpRight className="h-3 w-3 ml-1" />
+                    </Badge>
+                    <Badge
+                      variant="outline"
+                      className="bg-muted text-foreground hover:bg-[#3675F1] hover:text-white px-3 py-1 text-xs cursor-pointer flex items-center justify-between"
+                      onClick={() =>
+                        handlePromptClick(
+                          "What are the common fees/carry for a venture capital firm in year one"
+                        )
+                      }
+                    >
+                      <span>
+                        What are the common fees/carry for a venture firm
+                      </span>
+                      <ArrowUpRight className="h-3 w-3 ml-1" />
+                    </Badge>
+                  </div>
                 </div>
               </div>
             ) : (
@@ -1045,13 +1095,16 @@ export default function Chat() {
             )}
           </div>
         </div>
-        {!userApiKey && remainingMessages !== null && (
-          <div className="text-sm text-muted-foreground bg-muted p-2 rounded-t-lg">
-            You have {remainingMessages} message
-            {remainingMessages !== 1 ? "s" : ""} remaining. To send more
-            messages, please add your OpenAI API key in settings.
-          </div>
-        )}
+        {/* Reserve space for the banner, but only show content when needed */}
+        <div className={`h-10 ${showBanner ? 'bg-muted' : ''}`}>
+          {showBanner && (
+            <div className="text-sm text-muted-foreground p-2 rounded-t-lg">
+              You have {remainingMessages} message
+              {remainingMessages !== 1 ? "s" : ""} remaining. To send more
+              messages, please add your OpenAI API key in settings.
+            </div>
+          )}
+        </div>
         <div className="p-4 border-t bg-background">
           <form onSubmit={handleSend} className="flex flex-col space-y-2">
             <div className="flex items-center space-x-2">
