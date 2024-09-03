@@ -93,6 +93,9 @@ export default function Chat() {
     [key: string]: MessageFeedback;
   }>({});
   const [animatedIcon, setAnimatedIcon] = useState<string | null>(null);
+  const [regeneratingIndex, setRegeneratingIndex] = useState<number | null>(
+    null
+  );
 
   // useChat hook
   const {
@@ -123,8 +126,10 @@ export default function Chat() {
       if (spanId) {
         setLastRequestId(spanId);
       } else {
-        console.warn("No x-braintrust-span-id found in response headers");
+        console.warn(`[${new Date().toISOString()}] No x-braintrust-span-id found in response headers`);
       }
+      setIsStreamStarted(true);
+      setRegeneratingIndex(null);
     },
   });
 
@@ -286,17 +291,6 @@ export default function Chat() {
       inputRef.current?.focus();
     }
   }, [focusTrigger]);
-
-  // Detect when streaming starts so we stop showing the spinner
-  useEffect(() => {
-    if (
-      isChatLoading &&
-      messages.length > 0 &&
-      messages[messages.length - 1].role === "assistant"
-    ) {
-      setIsStreamStarted(true);
-    }
-  }, [isChatLoading, messages]);
 
   // Load message count and API key from localStorage
   useEffect(() => {
@@ -498,7 +492,24 @@ export default function Chat() {
           requestId: lastRequestId,
         };
 
-        const updatedMessages = [...existingConv.messages, updatedMessage];
+        let updatedMessages;
+        if (message.role === "assistant" && existingConv.messages.length > 0) {
+          // If it's an assistant message, replace the last assistant message or add it
+          const lastAssistantIndex = existingConv.messages.findLastIndex(
+            (m) => m.role === "assistant"
+          );
+          if (lastAssistantIndex !== -1) {
+            updatedMessages = [
+              ...existingConv.messages.slice(0, lastAssistantIndex),
+              updatedMessage,
+              ...existingConv.messages.slice(lastAssistantIndex + 1),
+            ];
+          } else {
+            updatedMessages = [...existingConv.messages, updatedMessage];
+          }
+        } else {
+          updatedMessages = [...existingConv.messages, updatedMessage];
+        }
 
         // Only consider title generation for assistant messages
         if (
@@ -626,25 +637,66 @@ export default function Chat() {
     });
   };
 
-  const handleRetry = () => {
-    if (isLimitReached && !userApiKey) {
-      showToast(
-        "You've reached the message limit. Please set your OpenAI API key for unlimited use.",
-        "destructive"
-      );
-      return;
-    }
+  const handleRetry = useCallback(
+    (messageIndex: number) => {
+      animateIcon('regenerate')
+      if (isLimitReached && !userApiKey) {
+        showToast(
+          "You've reached the message limit. Please set your OpenAI API key for unlimited use.",
+          "destructive"
+        );
+        return;
+      }
 
-    incrementMessageCount();
-    reload();
-  };
+      if (messageIndex < 1 || messageIndex >= messages.length) {
+        console.error(`[${new Date().toISOString()}] Invalid message index for regeneration`);
+        return;
+      }
+
+      // Set regeneratingIndex immediately to start the spinning animation
+      setRegeneratingIndex(messageIndex);
+
+      // Introduce a delay before removing the message and starting regeneration
+      setTimeout(() => {
+        // Remove the last assistant message
+        const updatedMessages = messages.slice(0, messageIndex);
+        setMessages(updatedMessages);
+
+        // Update the conversation in state and local storage
+        if (currentConversationId) {
+          setConversations((prev) =>
+            prev.map((conv) =>
+              conv.id === currentConversationId
+                ? { ...conv, messages: updatedMessages }
+                : conv
+            )
+          );
+        }
+
+        // Call reload to regenerate the response
+        reload();
+        incrementMessageCount();
+      }, 500);
+    },
+    [
+      messages,
+      isLimitReached,
+      userApiKey,
+      currentConversationId,
+      setMessages,
+      setConversations,
+      reload,
+      incrementMessageCount,
+      showToast,
+    ]
+  );
 
   const handleFeedback = useCallback(
     async (messageId: string, isPositive: boolean) => {
       const message = messages.find(
         (m) => m.id === messageId
       ) as ExtendedMessage;
-      
+
       const requestId = message.requestId || lastRequestId;
 
       if (!requestId) {
@@ -660,7 +712,7 @@ export default function Chat() {
 
       setMessageFeedback((prev) => {
         const currentFeedback = prev[messageId];
-        
+
         // If the same feedback type is clicked again, remove the feedback
         if (currentFeedback?.feedbackType === feedbackType) {
           const { [messageId]: _, ...rest } = prev;
@@ -675,7 +727,10 @@ export default function Chat() {
       });
 
       // Only show toast and submit to API if feedback is being set, not removed
-      if (!messageFeedback[messageId] || messageFeedback[messageId].feedbackType !== feedbackType) {
+      if (
+        !messageFeedback[messageId] ||
+        messageFeedback[messageId].feedbackType !== feedbackType
+      ) {
         toast({
           description: `${
             isPositive ? "Positive" : "Negative"
@@ -1124,13 +1179,16 @@ export default function Chat() {
                                       size="sm"
                                       onClick={() => {
                                         handleCopy(message.content);
-                                        animateIcon('copy');
+                                        animateIcon("copy");
                                       }}
                                     >
-                                      <Copy className={cn(
-                                        "h-4 w-4",
-                                        animatedIcon === 'copy' && "animate-shake"
-                                      )} />
+                                      <Copy
+                                        className={cn(
+                                          "h-4 w-4",
+                                          animatedIcon === "copy" &&
+                                            "animate-shake text-[#8EC5FC]"
+                                        )}
+                                      />
                                     </Button>
                                   </TooltipTrigger>
                                   <TooltipContent>
@@ -1144,15 +1202,17 @@ export default function Chat() {
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      onClick={() => {
-                                        handleRetry();
-                                        animateIcon('regenerate');
-                                      }}
+                                      onClick={() => handleRetry(index)}
+                                      disabled={regeneratingIndex !== null}
+                                      className="disabled:opacity-100"
                                     >
-                                      <RefreshCw className={cn(
-                                        "h-4 w-4",
-                                        animatedIcon === 'regenerate' && "animate-shake"
-                                      )} />
+                                      <RefreshCw
+                                        className={cn(
+                                          "h-4 w-4",
+                                          animatedIcon === "regenerate" &&
+                                            "animate-spin text-[#3675F1]"
+                                        )}
+                                      />
                                     </Button>
                                   </TooltipTrigger>
                                   <TooltipContent>
@@ -1168,14 +1228,18 @@ export default function Chat() {
                                       size="sm"
                                       onClick={() => {
                                         handleFeedback(message.id, true);
-                                        animateIcon('thumbsUp');
+                                        animateIcon("thumbsUp");
                                       }}
                                     >
                                       <ThumbsUp
                                         className={cn(
                                           "h-4 w-4",
-                                          messageFeedback[message.id]?.feedbackType === "thumbsUp" ? "text-green-500" : "",
-                                          animatedIcon === 'thumbsUp' && "animate-shake"
+                                          messageFeedback[message.id]
+                                            ?.feedbackType === "thumbsUp"
+                                            ? "text-green-500"
+                                            : "",
+                                          animatedIcon === "thumbsUp" &&
+                                            "animate-shake"
                                         )}
                                       />
                                     </Button>
@@ -1193,14 +1257,18 @@ export default function Chat() {
                                       size="sm"
                                       onClick={() => {
                                         handleFeedback(message.id, false);
-                                        animateIcon('thumbsDown');
+                                        animateIcon("thumbsDown");
                                       }}
                                     >
                                       <ThumbsDown
                                         className={cn(
                                           "h-4 w-4",
-                                          messageFeedback[message.id]?.feedbackType === "thumbsDown" ? "text-red-500" : "",
-                                          animatedIcon === 'thumbsDown' && "animate-shake"
+                                          messageFeedback[message.id]
+                                            ?.feedbackType === "thumbsDown"
+                                            ? "text-red-500"
+                                            : "",
+                                          animatedIcon === "thumbsDown" &&
+                                            "animate-shake"
                                         )}
                                       />
                                     </Button>
@@ -1232,14 +1300,19 @@ export default function Chat() {
                 )}
               </div>
             )}
-            {isChatLoading && !isStreamStarted && (
-              <div className="flex justify-center p-4">
-                <AnimatedBriefcase />
-              </div>
-            )}
+            {isChatLoading &&
+              !isStreamStarted && (
+                <div className="flex justify-center p-4">
+                  <AnimatedBriefcase />
+                </div>
+              )}
           </div>
         </div>
-        <div className={`min-h-10 ${showBanner ? "bg-muted flex items-center" : ""}`}>
+        <div
+          className={`min-h-10 ${
+            showBanner ? "bg-muted flex items-center" : ""
+          }`}
+        >
           {showBanner && (
             <div className="text-sm text-muted-foreground px-4 py-2 w-full">
               You have {remainingMessages} message

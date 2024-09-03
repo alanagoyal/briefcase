@@ -14,6 +14,19 @@
   animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
 }
 
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
