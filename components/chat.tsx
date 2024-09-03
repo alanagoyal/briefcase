@@ -491,7 +491,12 @@ export default function Chat() {
         const existingConv = prev.find((conv) => conv.id === id);
         if (!existingConv) return prev;
 
-        const updatedMessages = [...existingConv.messages, message];
+        const updatedMessage = {
+          ...message,
+          requestId: lastRequestId,
+        };
+
+        const updatedMessages = [...existingConv.messages, updatedMessage];
 
         // Only consider title generation for assistant messages
         if (
@@ -522,7 +527,7 @@ export default function Chat() {
         );
       });
     },
-    [generateTitle]
+    [generateTitle, lastRequestId]
   );
 
   const deleteConversation = useCallback(
@@ -637,6 +642,7 @@ export default function Chat() {
       const message = messages.find(
         (m) => m.id === messageId
       ) as ExtendedMessage;
+      
       const requestId = message.requestId || lastRequestId;
 
       if (!requestId) {
