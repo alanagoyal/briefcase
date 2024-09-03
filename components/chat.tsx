@@ -49,20 +49,25 @@ import {
 import SettingsDialog from "./settings-dialog";
 import { KeyboardShortcuts } from "./keyboard-shortcuts";
 import { isToday, isYesterday, isThisWeek, isThisMonth } from "date-fns";
-import { Conversation, Document } from "../types/chat";
+import {
+  Conversation,
+  Document,
+  ExtendedMessage,
+  MessageFeedback,
+} from "../types/chat";
 import AnimatedBriefcase from "./animation";
 import { CommandMenu } from "./command-menu";
 import { useTheme } from "next-themes";
 import { Badge } from "./ui/badge";
 import { Skeleton } from "./ui/skeleton";
+import { cn } from "@/lib/utils";
 
 export default function Chat() {
   // Constants
   const router = useRouter();
   const searchParams = useSearchParams();
   const conversationId = searchParams.get("id");
-  const skeletonHeights = ['h-16', 'h-24', 'h-32', 'h-40', 'h-48'];
-
+  const skeletonHeights = ["h-16", "h-24", "h-32", "h-40", "h-48"];
 
   // State declarations
   const { setTheme, theme } = useTheme();
@@ -84,6 +89,10 @@ export default function Chat() {
   const titleGenerationTriggeredRef = useRef<{ [key: string]: boolean }>({});
   const [isCommandMenuOpen, setIsCommandMenuOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [messageFeedback, setMessageFeedback] = useState<{
+    [key: string]: MessageFeedback;
+  }>({});
+  const [animatedIcon, setAnimatedIcon] = useState<string | null>(null);
 
   // useChat hook
   const {
@@ -484,7 +493,12 @@ export default function Chat() {
         const existingConv = prev.find((conv) => conv.id === id);
         if (!existingConv) return prev;
 
-        const updatedMessages = [...existingConv.messages, message];
+        const updatedMessage = {
+          ...message,
+          requestId: lastRequestId,
+        };
+
+        const updatedMessages = [...existingConv.messages, updatedMessage];
 
         // Only consider title generation for assistant messages
         if (
@@ -515,7 +529,7 @@ export default function Chat() {
         );
       });
     },
-    [generateTitle]
+    [generateTitle, lastRequestId]
   );
 
   const deleteConversation = useCallback(
@@ -626,8 +640,14 @@ export default function Chat() {
   };
 
   const handleFeedback = useCallback(
-    async (isPositive: boolean) => {
-      if (!lastRequestId) {
+    async (messageId: string, isPositive: boolean) => {
+      const message = messages.find(
+        (m) => m.id === messageId
+      ) as ExtendedMessage;
+      
+      const requestId = message.requestId || lastRequestId;
+
+      if (!requestId) {
         console.error("No request ID available for feedback");
         toast({
           description: "Unable to submit feedback at this time",
@@ -636,38 +656,59 @@ export default function Chat() {
         return;
       }
 
-      toast({
-        description: `${
-          isPositive ? "Positive" : "Negative"
-        } feedback submitted`,
+      const feedbackType = isPositive ? "thumbsUp" : "thumbsDown";
+
+      setMessageFeedback((prev) => {
+        const currentFeedback = prev[messageId];
+        
+        // If the same feedback type is clicked again, remove the feedback
+        if (currentFeedback?.feedbackType === feedbackType) {
+          const { [messageId]: _, ...rest } = prev;
+          return rest;
+        } else {
+          // Otherwise, set or update the feedback
+          return {
+            ...prev,
+            [messageId]: { messageId, requestId, feedbackType },
+          };
+        }
       });
 
-      try {
-        const response = await fetch("/api/feedback", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            requestId: lastRequestId,
-            score: isPositive ? 1 : 0,
-            comment: "",
-            userId: userName || "anonymous",
-          }),
+      // Only show toast and submit to API if feedback is being set, not removed
+      if (!messageFeedback[messageId] || messageFeedback[messageId].feedbackType !== feedbackType) {
+        toast({
+          description: `${
+            isPositive ? "Positive" : "Negative"
+          } feedback submitted`,
         });
 
-        if (!response.ok) {
-          throw new Error("Failed to submit feedback");
+        try {
+          const response = await fetch("/api/feedback", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              requestId,
+              score: isPositive ? 1 : 0,
+              comment: "",
+              userId: userName || "anonymous",
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error("Failed to submit feedback");
+          }
+        } catch (error) {
+          console.error("Error submitting feedback:", error);
+          toast({
+            description: "Failed to submit feedback",
+            variant: "destructive",
+          });
         }
-      } catch (error) {
-        console.error("Error submitting feedback:", error);
-        toast({
-          description: "Failed to submit feedback",
-          variant: "destructive",
-        });
       }
     },
-    [lastRequestId, userName, toast]
+    [messages, lastRequestId, userName, toast, messageFeedback]
   );
 
   const toggleSidebar = () => {
@@ -767,6 +808,11 @@ export default function Chat() {
     titleGenerationTriggeredRef.current = {};
   }, [currentConversationId]);
 
+  const animateIcon = (iconName: string) => {
+    setAnimatedIcon(iconName);
+    setTimeout(() => setAnimatedIcon(null), 500); // Reset after animation
+  };
+
   // Handle prompt click for new chat
   const handlePromptClick = (prompt: string) => {
     handleInputChange({
@@ -777,6 +823,30 @@ export default function Chat() {
       inputRef.current?.focus();
     }, 0);
   };
+
+  // Load message feedback from localStorage
+  useEffect(() => {
+    const storedFeedback = localStorage.getItem("messageFeedback");
+    if (storedFeedback) {
+      const parsedFeedback = JSON.parse(storedFeedback);
+      setMessageFeedback(parsedFeedback);
+    }
+
+    const storedLastRequestId = localStorage.getItem("lastRequestId");
+    if (storedLastRequestId) {
+      setLastRequestId(storedLastRequestId);
+    }
+  }, []);
+
+  // Save message feedback to localStorage whenever it changes
+  useEffect(() => {
+    if (Object.keys(messageFeedback).length > 0) {
+      localStorage.setItem("messageFeedback", JSON.stringify(messageFeedback));
+    }
+    if (lastRequestId) {
+      localStorage.setItem("lastRequestId", lastRequestId);
+    }
+  }, [messageFeedback, lastRequestId]);
 
   // Render
   return (
@@ -916,7 +986,8 @@ export default function Chat() {
             {isLoading ? (
               <div className="flex flex-col h-screen bg-background p-4 space-y-6 overflow-y-auto">
                 {[...Array(10)].map((_, index) => {
-                  const heightClass = skeletonHeights[index % skeletonHeights.length];
+                  const heightClass =
+                    skeletonHeights[index % skeletonHeights.length];
                   return (
                     <div
                       key={index}
@@ -1050,11 +1121,15 @@ export default function Chat() {
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      onClick={() =>
-                                        handleCopy(message.content)
-                                      }
+                                      onClick={() => {
+                                        handleCopy(message.content);
+                                        animateIcon('copy');
+                                      }}
                                     >
-                                      <Copy className="h-4 w-4" />
+                                      <Copy className={cn(
+                                        "h-4 w-4",
+                                        animatedIcon === 'copy' && "animate-shake"
+                                      )} />
                                     </Button>
                                   </TooltipTrigger>
                                   <TooltipContent>
@@ -1068,9 +1143,15 @@ export default function Chat() {
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      onClick={handleRetry}
+                                      onClick={() => {
+                                        handleRetry();
+                                        animateIcon('regenerate');
+                                      }}
                                     >
-                                      <RefreshCw className="h-4 w-4" />
+                                      <RefreshCw className={cn(
+                                        "h-4 w-4",
+                                        animatedIcon === 'regenerate' && "animate-shake"
+                                      )} />
                                     </Button>
                                   </TooltipTrigger>
                                   <TooltipContent>
@@ -1084,9 +1165,18 @@ export default function Chat() {
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      onClick={() => handleFeedback(true)}
+                                      onClick={() => {
+                                        handleFeedback(message.id, true);
+                                        animateIcon('thumbsUp');
+                                      }}
                                     >
-                                      <ThumbsUp className="h-4 w-4" />
+                                      <ThumbsUp
+                                        className={cn(
+                                          "h-4 w-4",
+                                          messageFeedback[message.id]?.feedbackType === "thumbsUp" ? "text-green-500" : "",
+                                          animatedIcon === 'thumbsUp' && "animate-shake"
+                                        )}
+                                      />
                                     </Button>
                                   </TooltipTrigger>
                                   <TooltipContent>
@@ -1100,9 +1190,18 @@ export default function Chat() {
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      onClick={() => handleFeedback(false)}
+                                      onClick={() => {
+                                        handleFeedback(message.id, false);
+                                        animateIcon('thumbsDown');
+                                      }}
                                     >
-                                      <ThumbsDown className="h-4 w-4" />
+                                      <ThumbsDown
+                                        className={cn(
+                                          "h-4 w-4",
+                                          messageFeedback[message.id]?.feedbackType === "thumbsDown" ? "text-red-500" : "",
+                                          animatedIcon === 'thumbsDown' && "animate-shake"
+                                        )}
+                                      />
                                     </Button>
                                   </TooltipTrigger>
                                   <TooltipContent>
