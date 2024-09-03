@@ -60,6 +60,7 @@ import { CommandMenu } from "./command-menu";
 import { useTheme } from "next-themes";
 import { Badge } from "./ui/badge";
 import { Skeleton } from "./ui/skeleton";
+import { cn } from "@/lib/utils";
 
 export default function Chat() {
   // Constants
@@ -91,6 +92,7 @@ export default function Chat() {
   const [messageFeedback, setMessageFeedback] = useState<{
     [key: string]: MessageFeedback;
   }>({});
+  const [animatedIcon, setAnimatedIcon] = useState<string | null>(null);
 
   // useChat hook
   const {
@@ -655,49 +657,58 @@ export default function Chat() {
       }
 
       const feedbackType = isPositive ? "thumbsUp" : "thumbsDown";
-      const newFeedback: MessageFeedback = {
-        messageId,
-        requestId,
-        feedbackType,
-      };
 
-      setMessageFeedback((prev) => ({
-        ...prev,
-        [messageId]: newFeedback,
-      }));
-
-      toast({
-        description: `${
-          isPositive ? "Positive" : "Negative"
-        } feedback submitted`,
+      setMessageFeedback((prev) => {
+        const currentFeedback = prev[messageId];
+        
+        // If the same feedback type is clicked again, remove the feedback
+        if (currentFeedback?.feedbackType === feedbackType) {
+          const { [messageId]: _, ...rest } = prev;
+          return rest;
+        } else {
+          // Otherwise, set or update the feedback
+          return {
+            ...prev,
+            [messageId]: { messageId, requestId, feedbackType },
+          };
+        }
       });
 
-      try {
-        const response = await fetch("/api/feedback", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            requestId,
-            score: isPositive ? 1 : 0,
-            comment: "",
-            userId: userName || "anonymous",
-          }),
+      // Only show toast and submit to API if feedback is being set, not removed
+      if (!messageFeedback[messageId] || messageFeedback[messageId].feedbackType !== feedbackType) {
+        toast({
+          description: `${
+            isPositive ? "Positive" : "Negative"
+          } feedback submitted`,
         });
 
-        if (!response.ok) {
-          throw new Error("Failed to submit feedback");
+        try {
+          const response = await fetch("/api/feedback", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              requestId,
+              score: isPositive ? 1 : 0,
+              comment: "",
+              userId: userName || "anonymous",
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error("Failed to submit feedback");
+          }
+        } catch (error) {
+          console.error("Error submitting feedback:", error);
+          toast({
+            description: "Failed to submit feedback",
+            variant: "destructive",
+          });
         }
-      } catch (error) {
-        console.error("Error submitting feedback:", error);
-        toast({
-          description: "Failed to submit feedback",
-          variant: "destructive",
-        });
       }
     },
-    [messages, lastRequestId, userName, toast]
+    [messages, lastRequestId, userName, toast, messageFeedback]
   );
 
   const toggleSidebar = () => {
@@ -796,6 +807,11 @@ export default function Chat() {
   useEffect(() => {
     titleGenerationTriggeredRef.current = {};
   }, [currentConversationId]);
+
+  const animateIcon = (iconName: string) => {
+    setAnimatedIcon(iconName);
+    setTimeout(() => setAnimatedIcon(null), 500); // Reset after animation
+  };
 
   // Handle prompt click for new chat
   const handlePromptClick = (prompt: string) => {
@@ -1105,11 +1121,15 @@ export default function Chat() {
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      onClick={() =>
-                                        handleCopy(message.content)
-                                      }
+                                      onClick={() => {
+                                        handleCopy(message.content);
+                                        animateIcon('copy');
+                                      }}
                                     >
-                                      <Copy className="h-4 w-4" />
+                                      <Copy className={cn(
+                                        "h-4 w-4",
+                                        animatedIcon === 'copy' && "animate-shake"
+                                      )} />
                                     </Button>
                                   </TooltipTrigger>
                                   <TooltipContent>
@@ -1123,9 +1143,15 @@ export default function Chat() {
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      onClick={handleRetry}
+                                      onClick={() => {
+                                        handleRetry();
+                                        animateIcon('regenerate');
+                                      }}
                                     >
-                                      <RefreshCw className="h-4 w-4" />
+                                      <RefreshCw className={cn(
+                                        "h-4 w-4",
+                                        animatedIcon === 'regenerate' && "animate-shake"
+                                      )} />
                                     </Button>
                                   </TooltipTrigger>
                                   <TooltipContent>
@@ -1139,17 +1165,17 @@ export default function Chat() {
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      onClick={() =>
-                                        handleFeedback(message.id, true)
-                                      }
+                                      onClick={() => {
+                                        handleFeedback(message.id, true);
+                                        animateIcon('thumbsUp');
+                                      }}
                                     >
                                       <ThumbsUp
-                                        className={`h-4 w-4 ${
-                                          messageFeedback[message.id]
-                                            ?.feedbackType === "thumbsUp"
-                                            ? "text-green-500"
-                                            : ""
-                                        }`}
+                                        className={cn(
+                                          "h-4 w-4",
+                                          messageFeedback[message.id]?.feedbackType === "thumbsUp" ? "text-green-500" : "",
+                                          animatedIcon === 'thumbsUp' && "animate-shake"
+                                        )}
                                       />
                                     </Button>
                                   </TooltipTrigger>
@@ -1164,17 +1190,17 @@ export default function Chat() {
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      onClick={() =>
-                                        handleFeedback(message.id, false)
-                                      }
+                                      onClick={() => {
+                                        handleFeedback(message.id, false);
+                                        animateIcon('thumbsDown');
+                                      }}
                                     >
                                       <ThumbsDown
-                                        className={`h-4 w-4 ${
-                                          messageFeedback[message.id]
-                                            ?.feedbackType === "thumbsDown"
-                                            ? "text-red-500"
-                                            : ""
-                                        }`}
+                                        className={cn(
+                                          "h-4 w-4",
+                                          messageFeedback[message.id]?.feedbackType === "thumbsDown" ? "text-red-500" : "",
+                                          animatedIcon === 'thumbsDown' && "animate-shake"
+                                        )}
                                       />
                                     </Button>
                                   </TooltipTrigger>
