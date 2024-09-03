@@ -1139,10 +1139,9 @@ export default function Chat() {
             )}
           </div>
         </div>
-        {/* Reserve space for the banner, but only show content when needed */}
-        <div className={`h-10 ${showBanner ? "bg-muted" : ""}`}>
+        <div className={`min-h-10 ${showBanner ? "bg-muted flex items-center" : ""}`}>
           {showBanner && (
-            <div className="text-sm text-muted-foreground p-2 rounded-t-lg">
+            <div className="text-sm text-muted-foreground px-4 py-2 w-full">
               You have {remainingMessages} message
               {remainingMessages !== 1 ? "s" : ""} remaining. To send more
               messages, please add your OpenAI API key in settings.
