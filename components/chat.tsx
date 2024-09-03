@@ -88,7 +88,7 @@ export default function Chat() {
   const [lastRequestId, setLastRequestId] = useState<string | null>(null);
   const titleGenerationTriggeredRef = useRef<{ [key: string]: boolean }>({});
   const [isCommandMenuOpen, setIsCommandMenuOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingSidebar, setIsLoadingSidebar] = useState(true);
   const [messageFeedback, setMessageFeedback] = useState<{
     [key: string]: MessageFeedback;
   }>({});
@@ -141,7 +141,7 @@ export default function Chat() {
   // Load conversations and documents from localStorage
   useEffect(() => {
     const loadConversations = async () => {
-      setIsLoading(true);
+      setIsLoadingSidebar(true);
       const storedConversations = JSON.parse(
         localStorage.getItem("conversations") || "[]"
       );
@@ -170,7 +170,7 @@ export default function Chat() {
           setDocumentContext(conversation.documentContext || "");
         }
       }
-      setIsLoading(false);
+      setIsLoadingSidebar(false);
     };
 
     loadConversations();
@@ -867,6 +867,7 @@ export default function Chat() {
           onNewChat={startNewChat}
           onToggleSidebar={toggleSidebar}
           onOpenSettings={() => setIsSettingsOpen(true)}
+          isLoading={isLoadingSidebar}
         />
       )}
       <div className="flex-1 flex flex-col">
@@ -983,7 +984,7 @@ export default function Chat() {
             </div>
           )}
           <div className="flex-1 overflow-y-auto p-4" ref={scrollAreaRef}>
-            {isLoading ? (
+            {isLoadingSidebar ? (
               <div className="flex flex-col h-screen bg-background p-4 space-y-6 overflow-y-auto">
                 {[...Array(10)].map((_, index) => {
                   const heightClass =

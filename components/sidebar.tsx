@@ -17,6 +17,7 @@ import {
 } from "./ui/tooltip";
 import { Conversation } from "../types/chat";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "./ui/skeleton";
 
 interface SidebarProps {
   groupedConversations: { title: string; conversations: Conversation[] }[];
@@ -26,6 +27,7 @@ interface SidebarProps {
   onNewChat: () => void;
   onToggleSidebar: () => void;
   onOpenSettings: () => void;
+  isLoading: boolean; // Add this new prop
 }
 
 export default function Sidebar({
@@ -36,6 +38,7 @@ export default function Sidebar({
   onNewChat,
   onToggleSidebar,
   onOpenSettings,
+  isLoading, // Add this new prop
 }: SidebarProps) {
   const [hoveredConversationId, setHoveredConversationId] = useState<string | null>(null);
 
@@ -77,53 +80,73 @@ export default function Sidebar({
           </Tooltip>
         </TooltipProvider>
       </div>
-      <div className="p-2 flex-grow overflow-y-auto">
+      <div className="flex-grow overflow-y-auto">
         <h1 className="text-2xl font-bold mb-4 text-[#3675F1] font-['Avenir'] flex items-center px-2">
           Briefcase
         </h1>
-        <div className="mb-2">
-          {groupedConversations.map((group) => (
-            <div key={group.title} className="mb-4">
-              <h2 className="text-sm font-semibold mb-2 px-2">{group.title}</h2>
-              {group.conversations.map((conv) => (
-                <div
-                  key={conv.id}
-                  className={`relative p-2 cursor-pointer rounded-md ${
-                    conv.id === currentConversationId
-                      ? "bg-[#3675F1] text-white"
-                      : ""
-                  }`}
-                  onClick={() => onConversationSelect(conv.id)}
-                  onMouseEnter={() => setHoveredConversationId(conv.id)}
-                  onMouseLeave={() => setHoveredConversationId(null)}
-                >
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="text-sm truncate w-full px-2 mr-5">
-                      {conv.title}
-                    </span>
-                  </div>
-                  <div className="relative z-10 flex justify-end">
-                    <Button
-                      variant="ghost-no-hover"
-                      size="icon"
-                      className={cn(
-                        "h-6 w-6",
-                        conv.id === currentConversationId || conv.id === hoveredConversationId ? "opacity-100" : "opacity-0",
-                        "transition-opacity hover:text-red-500"
-                      )}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onConversationDelete(conv.id);
-                      }}
+        {isLoading ? (
+          // Skeleton loader
+          <div className="flex flex-col h-full space-y-4 p-2">
+            {[...Array(5)].map((_, index) => (
+              <div key={index} className="space-y-2">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-8 w-full" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          // Actual conversations
+          <div className="space-y-4 p-2">
+            {groupedConversations.map((group) => (
+              <div key={group.title}>
+                <h2 className="text-sm font-semibold mb-2">{group.title}</h2>
+                <div className="space-y-1">
+                  {group.conversations.map((conv) => (
+                    <div
+                      key={conv.id}
+                      className={`relative p-2 cursor-pointer rounded-md ${
+                        conv.id === currentConversationId
+                          ? "bg-[#3675F1] text-white"
+                          : ""
+                      }`}
+                      onClick={() => onConversationSelect(conv.id)}
+                      onMouseEnter={() => setHoveredConversationId(conv.id)}
+                      onMouseLeave={() => setHoveredConversationId(null)}
                     >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+                      <div className="absolute inset-0 flex items-center">
+                        <span className="text-sm truncate w-full px-2 mr-5">
+                          {conv.title}
+                        </span>
+                      </div>
+                      <div className="relative z-10 flex justify-end">
+                        <Button
+                          variant="ghost-no-hover"
+                          size="icon"
+                          className={cn(
+                            "h-6 w-6",
+                            conv.id === currentConversationId || conv.id === hoveredConversationId ? "opacity-100" : "opacity-0",
+                            "transition-opacity hover:text-red-500"
+                          )}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onConversationDelete(conv.id);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          ))}
-        </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
       <div className="p-4 flex flex-col space-y-1">
         <ThemeToggle />
