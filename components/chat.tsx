@@ -3,19 +3,19 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  Columns2,
   PenSquare,
   FileText,
   Briefcase,
   Settings,
   Trash2,
+  PanelLeftOpen,
+  ArrowUpRight,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
   Paperclip,
   Send,
-  Loader2,
   Copy,
   RefreshCw,
   ThumbsUp,
@@ -47,17 +47,30 @@ import {
   TooltipTrigger,
 } from "./ui/tooltip";
 import SettingsDialog from "./settings-dialog";
-import { KeyboardShortcuts } from './keyboard-shortcuts';
+import { KeyboardShortcuts } from "./keyboard-shortcuts";
 import { isToday, isYesterday, isThisWeek, isThisMonth } from "date-fns";
-import { Conversation, Document } from "../types/chat";
+import {
+  Conversation,
+  Document,
+  ExtendedMessage,
+  MessageFeedback,
+} from "../types/chat";
+import AnimatedBriefcase from "./animation";
+import { CommandMenu } from "./command-menu";
+import { useTheme } from "next-themes";
+import { Badge } from "./ui/badge";
+import { Skeleton } from "./ui/skeleton";
+import { cn } from "@/lib/utils";
 
 export default function Chat() {
-  // Router and search params
+  // Constants
   const router = useRouter();
   const searchParams = useSearchParams();
   const conversationId = searchParams.get("id");
+  const skeletonHeights = ["h-16", "h-24", "h-32", "h-40", "h-48"];
 
   // State declarations
+  const { setTheme, theme } = useTheme();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<
@@ -69,11 +82,17 @@ export default function Chat() {
   const [userName, setUserName] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [userApiKey, setUserApiKey] = useState<string | null>(null);
-  const [messageCount, setMessageCount] = useState<number>(0);
+  const [messageCount, setMessageCount] = useState<number | null>(null);
   const [isLimitReached, setIsLimitReached] = useState(false);
   const [isStreamStarted, setIsStreamStarted] = useState(false);
-  const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
   const [lastRequestId, setLastRequestId] = useState<string | null>(null);
+  const titleGenerationTriggeredRef = useRef<{ [key: string]: boolean }>({});
+  const [isCommandMenuOpen, setIsCommandMenuOpen] = useState(false);
+  const [isLoadingSidebar, setIsLoadingSidebar] = useState(true);
+  const [messageFeedback, setMessageFeedback] = useState<{
+    [key: string]: MessageFeedback;
+  }>({});
+  const [animatedIcon, setAnimatedIcon] = useState<string | null>(null);
 
   // useChat hook
   const {
@@ -81,7 +100,7 @@ export default function Chat() {
     input,
     handleInputChange,
     handleSubmit,
-    isLoading,
+    isLoading: isChatLoading,
     reload,
     setMessages,
   } = useChat({
@@ -110,45 +129,51 @@ export default function Chat() {
   });
 
   // Refs
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
   const [quoteQuestion, setQuoteQuestion] = useState<string>("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   // useEffects
 
   // Load conversations and documents from localStorage
   useEffect(() => {
-    const storedConversations = JSON.parse(
-      localStorage.getItem("conversations") || "[]"
-    );
-    const parsedConversations = storedConversations.map((conv: any) => ({
-      ...conv,
-      createdAt: new Date(conv.createdAt),
-      messages: conv.messages.map((msg: any) => ({
-        ...msg,
-        createdAt: msg.createdAt ? new Date(msg.createdAt) : undefined,
-      })),
-    }));
-    setConversations(parsedConversations);
-
-    const storedDocuments = JSON.parse(
-      localStorage.getItem("documents") || "[]"
-    );
-    setDocuments(storedDocuments);
-
-    if (conversationId) {
-      const conversation = parsedConversations.find(
-        (conv: Conversation) => conv.id === conversationId
+    const loadConversations = async () => {
+      setIsLoadingSidebar(true);
+      const storedConversations = JSON.parse(
+        localStorage.getItem("conversations") || "[]"
       );
-      if (conversation) {
-        setCurrentConversationId(conversationId);
-        setMessages(conversation.messages);
-        setDocumentContext(conversation.documentContext || "");
+      const parsedConversations = storedConversations.map((conv: any) => ({
+        ...conv,
+        createdAt: new Date(conv.createdAt),
+        messages: conv.messages.map((msg: any) => ({
+          ...msg,
+          createdAt: msg.createdAt ? new Date(msg.createdAt) : undefined,
+        })),
+      }));
+      setConversations(parsedConversations);
+
+      const storedDocuments = JSON.parse(
+        localStorage.getItem("documents") || "[]"
+      );
+      setDocuments(storedDocuments);
+
+      if (conversationId) {
+        const conversation = parsedConversations.find(
+          (conv: Conversation) => conv.id === conversationId
+        );
+        if (conversation) {
+          setCurrentConversationId(conversationId);
+          setMessages(conversation.messages);
+          setDocumentContext(conversation.documentContext || "");
+        }
       }
-    }
+      setIsLoadingSidebar(false);
+    };
+
+    loadConversations();
   }, [conversationId, setMessages]);
 
   // Save conversations to localStorage when they change
@@ -262,16 +287,16 @@ export default function Chat() {
     }
   }, [focusTrigger]);
 
-  // Add this effect to detect when streaming starts
+  // Detect when streaming starts so we stop showing the spinner
   useEffect(() => {
     if (
-      isLoading &&
+      isChatLoading &&
       messages.length > 0 &&
       messages[messages.length - 1].role === "assistant"
     ) {
       setIsStreamStarted(true);
     }
-  }, [isLoading, messages]);
+  }, [isChatLoading, messages]);
 
   // Load message count and API key from localStorage
   useEffect(() => {
@@ -279,10 +304,10 @@ export default function Chat() {
     const storedApiKey = localStorage.getItem("openaiApiKey");
 
     if (storedCount) {
-      const count = parseInt(storedCount, 10);
-      setMessageCount(count);
-      setIsLimitReached(count >= 10 && !storedApiKey);
-    } 
+      setMessageCount(parseInt(storedCount, 10));
+    } else {
+      setMessageCount(0);
+    }
 
     if (storedApiKey) {
       setUserApiKey(storedApiKey);
@@ -291,23 +316,24 @@ export default function Chat() {
 
   // Save message count to localStorage whenever it changes
   useEffect(() => {
-    if (messageCount > 0) {
+    if (messageCount !== null) {
       localStorage.setItem("messageCount", messageCount.toString());
     }
-    setIsLimitReached(messageCount >= 10 && !userApiKey);
+    setIsLimitReached(
+      messageCount !== null && messageCount >= 10 && !userApiKey
+    );
   }, [messageCount, userApiKey]);
-
 
   // Handle API key changes
   useEffect(() => {
     if (userApiKey) {
       setIsLimitReached(false);
     } else {
-      setIsLimitReached(messageCount >= 10);
+      setIsLimitReached(messageCount !== null && messageCount >= 10);
     }
   }, [userApiKey, messageCount]);
 
-  // Modified showToast function
+  // Show toast function
   const showToast = useCallback(
     (message: string, variant: "default" | "destructive") => {
       setTimeout(() => {
@@ -333,18 +359,22 @@ export default function Chat() {
   // Increment message count
   const incrementMessageCount = useCallback(() => {
     setMessageCount((prevCount) => {
-      const newCount = prevCount + 1;
-      localStorage.setItem("messageCount", newCount.toString());
-      if (newCount === 2 && !userApiKey) {
-        showToast(
-          "You have 1 message left before reaching the limit.",
-          "destructive"
-        );
+      if (prevCount !== null) {
+        const newCount = prevCount + 1;
+        localStorage.setItem("messageCount", newCount.toString());
+        if (newCount === 9 && !userApiKey) {
+          showToast(
+            "You have 1 message left before reaching the limit.",
+            "destructive"
+          );
+        }
+        return newCount;
       }
-      return newCount;
+      return prevCount;
     });
   }, [userApiKey, showToast]);
 
+  // Automatically scroll to bottom of chat
   const scrollToBottom = useCallback(() => {
     if (scrollAreaRef.current) {
       scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
@@ -428,7 +458,6 @@ export default function Chat() {
 
   const generateTitle = useCallback(
     async (id: string, userMessage: string, assistantMessage: string) => {
-      setIsGeneratingTitle(true);
       try {
         const response = await fetch("/api/generate-title", {
           method: "POST",
@@ -437,10 +466,7 @@ export default function Chat() {
         });
 
         if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(
-            `Failed to generate title: ${response.status} ${errorText}`
-          );
+          throw new Error(`Failed to generate title: ${response.status}`);
         }
 
         const data = await response.json();
@@ -451,63 +477,59 @@ export default function Chat() {
               conv.id === id ? { ...conv, title: data.title } : conv
             )
           );
-
-          // Update localStorage
-          localStorage.setItem(
-            "conversations",
-            JSON.stringify(
-              conversations.map((conv) =>
-                conv.id === id ? { ...conv, title: data.title } : conv
-              )
-            )
-          );
         } else {
           console.error("No title in response:", data);
         }
       } catch (error) {
         console.error("Error generating title:", error);
-        toast({
-          description: "Failed to generate title. Using default.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsGeneratingTitle(false);
       }
     },
-    [conversations, toast]
+    [setConversations]
   );
 
   const updateConversation = useCallback(
     (id: string, message: Message) => {
       setConversations((prev) => {
-        const updatedConversations = prev.map((conv) => {
-          if (conv.id === id) {
-            const updatedMessages = [...conv.messages, message];
-            const shouldGenerateTitle =
-              message.role === "assistant" &&
-              updatedMessages.filter((m) => m.role === "assistant").length ===
-                1;
+        const existingConv = prev.find((conv) => conv.id === id);
+        if (!existingConv) return prev;
 
-            if (shouldGenerateTitle) {
-              setTimeout(
-                () =>
-                  generateTitle(id, message.content, conv.messages[0].content),
-                0
-              );
-            }
+        const updatedMessage = {
+          ...message,
+          requestId: lastRequestId,
+        };
 
-            return {
-              ...conv,
-              messages: updatedMessages,
-            };
+        const updatedMessages = [...existingConv.messages, updatedMessage];
+
+        // Only consider title generation for assistant messages
+        if (
+          message.role === "assistant" &&
+          !titleGenerationTriggeredRef.current[id]
+        ) {
+          const isFirstAssistantMessage =
+            updatedMessages.filter((m) => m.role === "assistant").length === 1;
+          if (isFirstAssistantMessage) {
+            titleGenerationTriggeredRef.current[id] = true;
+            const userMessage =
+              updatedMessages.find((m) => m.role === "user")?.content || "";
+            setTimeout(
+              () => generateTitle(id, userMessage, message.content),
+              0
+            );
           }
-          return conv;
-        });
+        }
 
-        return updatedConversations;
+        return prev.map((conv) =>
+          conv.id === id
+            ? {
+                ...conv,
+                messages: updatedMessages,
+                createdAt: new Date(),
+              }
+            : conv
+        );
       });
     },
-    [generateTitle]
+    [generateTitle, lastRequestId]
   );
 
   const deleteConversation = useCallback(
@@ -618,8 +640,14 @@ export default function Chat() {
   };
 
   const handleFeedback = useCallback(
-    async (isPositive: boolean) => {
-      if (!lastRequestId) {
+    async (messageId: string, isPositive: boolean) => {
+      const message = messages.find(
+        (m) => m.id === messageId
+      ) as ExtendedMessage;
+      
+      const requestId = message.requestId || lastRequestId;
+
+      if (!requestId) {
         console.error("No request ID available for feedback");
         toast({
           description: "Unable to submit feedback at this time",
@@ -628,38 +656,59 @@ export default function Chat() {
         return;
       }
 
-      toast({
-        description: `${
-          isPositive ? "Positive" : "Negative"
-        } feedback submitted`,
+      const feedbackType = isPositive ? "thumbsUp" : "thumbsDown";
+
+      setMessageFeedback((prev) => {
+        const currentFeedback = prev[messageId];
+        
+        // If the same feedback type is clicked again, remove the feedback
+        if (currentFeedback?.feedbackType === feedbackType) {
+          const { [messageId]: _, ...rest } = prev;
+          return rest;
+        } else {
+          // Otherwise, set or update the feedback
+          return {
+            ...prev,
+            [messageId]: { messageId, requestId, feedbackType },
+          };
+        }
       });
 
-      try {
-        const response = await fetch("/api/feedback", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            requestId: lastRequestId,
-            score: isPositive ? 1 : 0,
-            comment: "",
-            userId: userName || "anonymous",
-          }),
+      // Only show toast and submit to API if feedback is being set, not removed
+      if (!messageFeedback[messageId] || messageFeedback[messageId].feedbackType !== feedbackType) {
+        toast({
+          description: `${
+            isPositive ? "Positive" : "Negative"
+          } feedback submitted`,
         });
 
-        if (!response.ok) {
-          throw new Error("Failed to submit feedback");
+        try {
+          const response = await fetch("/api/feedback", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              requestId,
+              score: isPositive ? 1 : 0,
+              comment: "",
+              userId: userName || "anonymous",
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error("Failed to submit feedback");
+          }
+        } catch (error) {
+          console.error("Error submitting feedback:", error);
+          toast({
+            description: "Failed to submit feedback",
+            variant: "destructive",
+          });
         }
-      } catch (error) {
-        console.error("Error submitting feedback:", error);
-        toast({
-          description: "Failed to submit feedback",
-          variant: "destructive",
-        });
       }
     },
-    [lastRequestId, userName, toast]
+    [messages, lastRequestId, userName, toast, messageFeedback]
   );
 
   const toggleSidebar = () => {
@@ -700,6 +749,7 @@ export default function Chat() {
     }
   };
 
+  // Group conversations by date for sidebar
   const groupedConversations = useMemo(() => {
     const groups = [
       { title: "Today", conversations: [] as Conversation[] },
@@ -710,33 +760,93 @@ export default function Chat() {
     ];
 
     conversations.forEach((conv) => {
-      const lastMessageDate =
+      // Get the timestamp of the last message or use the conversation creation time
+      const lastMessageTimestamp =
         conv.messages.length > 0
           ? new Date(
               conv.messages[conv.messages.length - 1].createdAt ||
                 conv.createdAt
-            )
-          : conv.createdAt;
+            ).getTime()
+          : conv.createdAt.getTime();
+
+      const lastMessageDate = new Date(lastMessageTimestamp);
 
       if (isToday(lastMessageDate)) {
-        groups[0].conversations.push(conv);
+        groups[0].conversations.push({ ...conv, lastMessageTimestamp });
       } else if (isYesterday(lastMessageDate)) {
-        groups[1].conversations.push(conv);
+        groups[1].conversations.push({ ...conv, lastMessageTimestamp });
       } else if (isThisWeek(lastMessageDate)) {
-        groups[2].conversations.push(conv);
+        groups[2].conversations.push({ ...conv, lastMessageTimestamp });
       } else if (isThisMonth(lastMessageDate)) {
-        groups[3].conversations.push(conv);
+        groups[3].conversations.push({ ...conv, lastMessageTimestamp });
       } else {
-        groups[4].conversations.push(conv);
+        groups[4].conversations.push({ ...conv, lastMessageTimestamp });
       }
     });
 
-    groups.forEach(group => {
-      group.conversations.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    // Sort conversations within each group
+    groups.forEach((group) => {
+      group.conversations.sort((a, b) => {
+        const aTimestamp = a.lastMessageTimestamp ?? 0;
+        const bTimestamp = b.lastMessageTimestamp ?? 0;
+        return bTimestamp - aTimestamp;
+      });
     });
 
-    return groups.filter(group => group.conversations.length > 0);
+    return groups.filter((group) => group.conversations.length > 0);
   }, [conversations]);
+
+  // Calculate remaining messages
+  const remainingMessages =
+    messageCount !== null ? Math.max(10 - messageCount, 0) : null;
+
+  // Determine if the banner should be shown
+  const showBanner = !userApiKey && remainingMessages !== null;
+
+  // Also reset titleGenerationTriggeredRef when the conversation changes
+  useEffect(() => {
+    titleGenerationTriggeredRef.current = {};
+  }, [currentConversationId]);
+
+  const animateIcon = (iconName: string) => {
+    setAnimatedIcon(iconName);
+    setTimeout(() => setAnimatedIcon(null), 500); // Reset after animation
+  };
+
+  // Handle prompt click for new chat
+  const handlePromptClick = (prompt: string) => {
+    handleInputChange({
+      target: { value: prompt },
+    } as React.ChangeEvent<HTMLInputElement>);
+    // Focus the input immediately after setting the value
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 0);
+  };
+
+  // Load message feedback from localStorage
+  useEffect(() => {
+    const storedFeedback = localStorage.getItem("messageFeedback");
+    if (storedFeedback) {
+      const parsedFeedback = JSON.parse(storedFeedback);
+      setMessageFeedback(parsedFeedback);
+    }
+
+    const storedLastRequestId = localStorage.getItem("lastRequestId");
+    if (storedLastRequestId) {
+      setLastRequestId(storedLastRequestId);
+    }
+  }, []);
+
+  // Save message feedback to localStorage whenever it changes
+  useEffect(() => {
+    if (Object.keys(messageFeedback).length > 0) {
+      localStorage.setItem("messageFeedback", JSON.stringify(messageFeedback));
+    }
+    if (lastRequestId) {
+      localStorage.setItem("lastRequestId", lastRequestId);
+    }
+  }, [messageFeedback, lastRequestId]);
 
   // Render
   return (
@@ -757,6 +867,7 @@ export default function Chat() {
           onNewChat={startNewChat}
           onToggleSidebar={toggleSidebar}
           onOpenSettings={() => setIsSettingsOpen(true)}
+          isLoading={isLoadingSidebar}
         />
       )}
       <div className="flex-1 flex flex-col">
@@ -772,10 +883,10 @@ export default function Chat() {
                       onClick={toggleSidebar}
                       aria-label="Open sidebar"
                     >
-                      <Columns2 className="h-5 w-5" />
+                      <PanelLeftOpen className="h-5 w-5" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>
+                  <TooltipContent side="bottom" align="start">
                     <p>Open sidebar</p>
                   </TooltipContent>
                 </Tooltip>
@@ -787,7 +898,7 @@ export default function Chat() {
               </h1>
             )}
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 mr-1">
             {!isSidebarOpen && (
               <>
                 <TooltipProvider>
@@ -802,26 +913,39 @@ export default function Chat() {
                         <PenSquare className="h-5 w-5" />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>
+                    <TooltipContent side="bottom">
                       <p>New chat</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setIsSettingsOpen(true)}
-                >
-                  <Settings className="h-5 w-5" />
-                </Button>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setIsSettingsOpen(true)}
+                        aria-label="Open settings"
+                      >
+                        <Settings className="h-5 w-5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" align="end">
+                      <p>Open settings</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </>
             )}
           </div>
         </div>
-
         <div className="flex-1 flex flex-col overflow-hidden">
           {pinnedDocuments.length > 0 && (
-            <div className="bg-muted p-2 m-2 flex flex-col space-y-2 rounded-md sticky top-0 z-10">
+            <div
+              className={`bg-muted p-2 m-2 flex flex-col space-y-2 rounded-md sticky top-0 z-10 ${
+                messages.length === 0 ? "mb-4" : ""
+              }`}
+            >
               <div className="flex items-center text-center space-x-2">
                 <span className="text-sm font-medium">Pinned Documents</span>
               </div>
@@ -841,9 +965,10 @@ export default function Chat() {
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button
-                            variant="ghost"
+                            variant="ghost-no-hover"
                             size="sm"
                             onClick={() => removeDocument(doc.id)}
+                            className="hover:text-red-500"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -858,17 +983,90 @@ export default function Chat() {
               </div>
             </div>
           )}
-          <div className="flex-1 overflow-y-auto" ref={scrollAreaRef}>
-            {messages.length === 0 ? (
-              <div className="flex-1 flex items-center justify-center p-20 pt-32">
+          <div className="flex-1 overflow-y-auto p-4" ref={scrollAreaRef}>
+            {isLoadingSidebar ? (
+              <div className="flex flex-col h-screen bg-background p-4 space-y-6 overflow-y-auto">
+                {[...Array(10)].map((_, index) => {
+                  const heightClass =
+                    skeletonHeights[index % skeletonHeights.length];
+                  return (
+                    <div
+                      key={index}
+                      className={`flex ${
+                        index % 2 === 0 ? "justify-start" : "justify-end"
+                      }`}
+                    >
+                      <div
+                        className={`flex ${
+                          index % 2 === 0 ? "flex-row" : "flex-row-reverse"
+                        } items-start w-4/5`}
+                      >
+                        <Skeleton className="h-8 w-8 rounded-full flex-shrink-0" />
+                        <Skeleton
+                          className={`${heightClass} w-full max-w-[calc(100%-2rem)] rounded-lg ${
+                            index % 2 === 0
+                              ? "ml-2 rounded-tl-none"
+                              : "mr-2 rounded-tr-none"
+                          }`}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : messages.length === 0 ? (
+              <div className="flex-1 flex items-center justify-center min-h-[calc(100vh-14.5rem)] w-full">
                 <div className="text-center max-w-md mx-auto">
                   <h2 className="text-2xl font-semibold mb-2">
-                    Welcome to the Legal Assistant
+                    Welcome to Briefcase
                   </h2>
                   <p className="text-muted-foreground mb-4">
-                    Start a conversation or upload a document to get legal
-                    advice
+                    Ask basic legal questions, summarize documents, and get a
+                    quote for more complex legal inquiries
                   </p>
+                  <div className="flex flex-wrap justify-center gap-2 mb-8">
+                    <Badge
+                      variant="outline"
+                      className="bg-muted text-foreground hover:bg-[#3675F1] hover:text-white px-3 py-1 text-xs cursor-pointer flex items-center justify-between"
+                      onClick={() =>
+                        handlePromptClick(
+                          "Explain the difference between a valuation cap and discount"
+                        )
+                      }
+                    >
+                      <span>
+                        Explain the difference between a valuation cap and
+                        discount
+                      </span>
+                      <ArrowUpRight className="h-3 w-3 ml-1" />
+                    </Badge>
+                    <Badge
+                      variant="outline"
+                      className="bg-muted text-foreground hover:bg-[#3675F1] hover:text-white px-3 py-1 text-xs cursor-pointer flex items-center justify-between"
+                      onClick={() =>
+                        handlePromptClick(
+                          "Summarize the terms of this SAFE agreement"
+                        )
+                      }
+                    >
+                      <span>Summarize the terms of this SAFE agreement</span>
+                      <ArrowUpRight className="h-3 w-3 ml-1" />
+                    </Badge>
+                    <Badge
+                      variant="outline"
+                      className="bg-muted text-foreground hover:bg-[#3675F1] hover:text-white px-3 py-1 text-xs cursor-pointer flex items-center justify-between"
+                      onClick={() =>
+                        handlePromptClick(
+                          "What are the common fees/carry for a venture capital firm in year one"
+                        )
+                      }
+                    >
+                      <span>
+                        What are the common fees/carry for a venture firm
+                      </span>
+                      <ArrowUpRight className="h-3 w-3 ml-1" />
+                    </Badge>
+                  </div>
                 </div>
               </div>
             ) : (
@@ -924,11 +1122,15 @@ export default function Chat() {
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      onClick={() =>
-                                        handleCopy(message.content)
-                                      }
+                                      onClick={() => {
+                                        handleCopy(message.content);
+                                        animateIcon('copy');
+                                      }}
                                     >
-                                      <Copy className="h-4 w-4" />
+                                      <Copy className={cn(
+                                        "h-4 w-4",
+                                        animatedIcon === 'copy' && "animate-shake"
+                                      )} />
                                     </Button>
                                   </TooltipTrigger>
                                   <TooltipContent>
@@ -942,9 +1144,15 @@ export default function Chat() {
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      onClick={handleRetry}
+                                      onClick={() => {
+                                        handleRetry();
+                                        animateIcon('regenerate');
+                                      }}
                                     >
-                                      <RefreshCw className="h-4 w-4" />
+                                      <RefreshCw className={cn(
+                                        "h-4 w-4",
+                                        animatedIcon === 'regenerate' && "animate-shake"
+                                      )} />
                                     </Button>
                                   </TooltipTrigger>
                                   <TooltipContent>
@@ -958,9 +1166,18 @@ export default function Chat() {
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      onClick={() => handleFeedback(true)}
+                                      onClick={() => {
+                                        handleFeedback(message.id, true);
+                                        animateIcon('thumbsUp');
+                                      }}
                                     >
-                                      <ThumbsUp className="h-4 w-4" />
+                                      <ThumbsUp
+                                        className={cn(
+                                          "h-4 w-4",
+                                          messageFeedback[message.id]?.feedbackType === "thumbsUp" ? "text-green-500" : "",
+                                          animatedIcon === 'thumbsUp' && "animate-shake"
+                                        )}
+                                      />
                                     </Button>
                                   </TooltipTrigger>
                                   <TooltipContent>
@@ -974,9 +1191,18 @@ export default function Chat() {
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      onClick={() => handleFeedback(false)}
+                                      onClick={() => {
+                                        handleFeedback(message.id, false);
+                                        animateIcon('thumbsDown');
+                                      }}
                                     >
-                                      <ThumbsDown className="h-4 w-4" />
+                                      <ThumbsDown
+                                        className={cn(
+                                          "h-4 w-4",
+                                          messageFeedback[message.id]?.feedbackType === "thumbsDown" ? "text-red-500" : "",
+                                          animatedIcon === 'thumbsDown' && "animate-shake"
+                                        )}
+                                      />
                                     </Button>
                                   </TooltipTrigger>
                                   <TooltipContent>
@@ -1006,14 +1232,22 @@ export default function Chat() {
                 )}
               </div>
             )}
-            {isLoading && !isStreamStarted && (
+            {isChatLoading && !isStreamStarted && (
               <div className="flex justify-center p-4">
-                <Loader2 className="h-6 w-6 animate-spin" />
+                <AnimatedBriefcase />
               </div>
             )}
           </div>
         </div>
-
+        <div className={`min-h-10 ${showBanner ? "bg-muted flex items-center" : ""}`}>
+          {showBanner && (
+            <div className="text-sm text-muted-foreground px-4 py-2 w-full">
+              You have {remainingMessages} message
+              {remainingMessages !== 1 ? "s" : ""} remaining. To send more
+              messages, please add your OpenAI API key in settings.
+            </div>
+          )}
+        </div>
         <div className="p-4 border-t bg-background">
           <form onSubmit={handleSend} className="flex flex-col space-y-2">
             <div className="flex items-center space-x-2">
@@ -1025,6 +1259,7 @@ export default function Chat() {
                 ref={inputRef}
                 autoFocus
                 disabled={isLimitReached && !userApiKey}
+                aria-hidden="false"
               />
               <input
                 type="file"
@@ -1033,22 +1268,40 @@ export default function Chat() {
                 onChange={handleFileUpload}
                 accept=".pdf,.docx,.txt,.md"
               />
-              <Button
-                type="button"
-                size="icon"
-                variant="outline"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Paperclip className="h-4 w-4" />
-              </Button>
-              <Button
-                type="submit"
-                size="icon"
-                className="bg-[#3675F1] hover:bg-[#2556E4]"
-                disabled={isLimitReached && !userApiKey}
-              >
-                <Send className="h-4 w-4 text-white" />
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="outline"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Paperclip className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" align="end">
+                    <p>Attach document</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="submit"
+                      size="icon"
+                      className="bg-[#3675F1] hover:bg-[#2556E4]"
+                      disabled={isLimitReached && !userApiKey}
+                    >
+                      <Send className="h-4 w-4 text-white" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" align="end">
+                    <p>Send message</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </form>
           <div className="mt-2 text-xs text-muted-foreground text-center">
@@ -1061,7 +1314,10 @@ export default function Chat() {
         <DialogContent className="sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>Get Quote</DialogTitle>
-            <DialogDescription>Submit a question to see how much it would cost to consult a lawyer</DialogDescription>
+            <DialogDescription>
+              Submit a question to see how much it would cost to consult a
+              lawyer
+            </DialogDescription>
           </DialogHeader>
           <FeeCalculator
             summary={messages[messages.length - 1]?.content || ""}
@@ -1088,14 +1344,16 @@ export default function Chat() {
             localStorage.setItem("openaiApiKey", apiKey);
           } else {
             localStorage.removeItem("openaiApiKey");
-            if (messageCount >= 10) {
+            if (messageCount !== null && messageCount >= 10) {
               setIsLimitReached(true);
             }
           }
         }}
       />
       <KeyboardShortcuts
-        sortedConversations={groupedConversations.flatMap(group => group.conversations)}
+        sortedConversations={groupedConversations.flatMap(
+          (group) => group.conversations
+        )}
         currentConversationId={currentConversationId}
         onConversationSelect={(id) => {
           setCurrentConversationId(id);
@@ -1106,6 +1364,17 @@ export default function Chat() {
           }
         }}
         isSidebarOpen={isSidebarOpen}
+        isCommandMenuOpen={isCommandMenuOpen}
+      />
+      <CommandMenu
+        onSettingsOpen={() => setIsSettingsOpen(true)}
+        onThemeToggle={() => setTheme(theme === "light" ? "dark" : "light")}
+        onNewChat={startNewChat}
+        onToggleSidebar={toggleSidebar}
+        isSidebarOpen={isSidebarOpen}
+        currentTheme={theme}
+        isOpen={isCommandMenuOpen}
+        onOpenChange={setIsCommandMenuOpen}
       />
     </div>
   );

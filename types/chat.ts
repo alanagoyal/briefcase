@@ -7,6 +7,7 @@ export interface Conversation {
   createdAt: Date;
   documentContext?: string;
   documents?: Document[];
+  lastMessageTimestamp?: number;
 }
 
 export interface Document {
@@ -20,5 +21,16 @@ export interface Document {
 
 export interface ConversationGroup {
     title: string;
-    conversations: Conversation[];
-  }
+}
+
+// Add these new types
+export interface MessageFeedback {
+  messageId: string;
+  requestId: string;
+  feedbackType: 'thumbsUp' | 'thumbsDown' | null;
+}
+
+export interface ExtendedMessage extends Message {
+  requestId?: string;
+  feedback?: MessageFeedback;
+}
