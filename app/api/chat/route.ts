@@ -7,7 +7,8 @@ export async function POST(req: Request) {
   const { messages, documentContext, userApiKey } = await req.json();
 
   const apiKey = userApiKey || process.env.OPENAI_API_KEY;
-  const customOpenAI = wrapOpenAI(new OpenAI({ apiKey }));
+
+  const customOpenAI = wrapOpenAI(new OpenAI({ apiKey, baseURL: "https://api.braintrust.dev/v1/proxy" }));
 
   return await logger.traced(
     async (span) => {
@@ -31,6 +32,7 @@ export async function POST(req: Request) {
       try {
         const response = await customOpenAI.chat.completions.create({
           model: "gpt-4o-mini",
+          temperature: 0,
           stream: true,
           messages: apiMessages,
         });
