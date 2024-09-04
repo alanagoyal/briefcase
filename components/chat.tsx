@@ -545,24 +545,90 @@ export default function Chat() {
     [generateTitle, lastRequestId]
   );
 
+  // Group conversations by date for sidebar
+  const groupedConversations = useMemo(() => {
+    const groups = [
+      { title: "Today", conversations: [] as Conversation[] },
+      { title: "Yesterday", conversations: [] as Conversation[] },
+      { title: "This Week", conversations: [] as Conversation[] },
+      { title: "This Month", conversations: [] as Conversation[] },
+      { title: "Older", conversations: [] as Conversation[] },
+    ];
+
+    conversations.forEach((conv) => {
+      // Get the timestamp of the last message or use the conversation creation time
+      const lastMessageTimestamp =
+        conv.messages.length > 0
+          ? new Date(
+              conv.messages[conv.messages.length - 1].createdAt ||
+                conv.createdAt
+            ).getTime()
+          : conv.createdAt.getTime();
+
+      const lastMessageDate = new Date(lastMessageTimestamp);
+
+      if (isToday(lastMessageDate)) {
+        groups[0].conversations.push({ ...conv, lastMessageTimestamp });
+      } else if (isYesterday(lastMessageDate)) {
+        groups[1].conversations.push({ ...conv, lastMessageTimestamp });
+      } else if (isThisWeek(lastMessageDate)) {
+        groups[2].conversations.push({ ...conv, lastMessageTimestamp });
+      } else if (isThisMonth(lastMessageDate)) {
+        groups[3].conversations.push({ ...conv, lastMessageTimestamp });
+      } else {
+        groups[4].conversations.push({ ...conv, lastMessageTimestamp });
+      }
+    });
+
+    // Sort conversations within each group
+    groups.forEach((group) => {
+      group.conversations.sort((a, b) => {
+        const aTimestamp = a.lastMessageTimestamp ?? 0;
+        const bTimestamp = b.lastMessageTimestamp ?? 0;
+        return bTimestamp - aTimestamp;
+      });
+    });
+
+    return groups.filter((group) => group.conversations.length > 0);
+  }, [conversations]);
+
   const deleteConversation = useCallback(
     (id: string) => {
       setConversations((prev) => {
-        const index = prev.findIndex((conv) => conv.id === id);
+        const flatConversations = groupedConversations.flatMap(
+          (group) => group.conversations
+        );
+        const index = flatConversations.findIndex((conv) => conv.id === id);
         const updatedConversations = prev.filter((conv) => conv.id !== id);
 
         if (currentConversationId === id) {
           let newSelectedId = null;
-          if (index > 0) {
-            // Select the conversation above
-            newSelectedId = updatedConversations[index - 1].id;
-          } else if (updatedConversations.length > 0) {
-            // Select the first conversation (which was below the deleted one)
-            newSelectedId = updatedConversations[0].id;
+          if (flatConversations.length > 1) {
+            if (index > 0) {
+              // Select the conversation above
+              newSelectedId = flatConversations[index - 1].id;
+            } else {
+              // Select the first conversation (which was below the deleted one)
+              newSelectedId = flatConversations[1].id;
+            }
           }
 
           // Update the currentConversationId
           setCurrentConversationId(newSelectedId);
+
+          // If there's a new selected conversation, set its messages
+          if (newSelectedId) {
+            const newSelectedConversation = updatedConversations.find(
+              (conv) => conv.id === newSelectedId
+            );
+            if (newSelectedConversation) {
+              setMessages(newSelectedConversation.messages);
+            }
+          } else {
+            // If no conversations left, clear messages and reset the URL
+            setMessages([]);
+            router.push("/");
+          }
         }
 
         // Update localStorage
@@ -574,7 +640,13 @@ export default function Chat() {
         return updatedConversations;
       });
     },
-    [currentConversationId, setCurrentConversationId]
+    [
+      currentConversationId,
+      setCurrentConversationId,
+      setMessages,
+      groupedConversations,
+      router,
+    ]
   );
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -641,7 +713,7 @@ export default function Chat() {
 
   const handleRetry = useCallback(
     async (messageIndex: number) => {
-      animateIcon('regenerate')
+      animateIcon("regenerate");
       if (isLimitReached && !userApiKey) {
         showToast(
           "You've reached the message limit. Please set your OpenAI API key for unlimited use.",
@@ -651,7 +723,9 @@ export default function Chat() {
       }
 
       if (messageIndex < 1 || messageIndex >= messages.length) {
-        console.error(`[${new Date().toISOString()}] Invalid message index for regeneration`);
+        console.error(
+          `[${new Date().toISOString()}] Invalid message index for regeneration`
+        );
         return;
       }
 
@@ -814,53 +888,6 @@ export default function Chat() {
       setDocumentContext(updatedContext);
     }
   };
-
-  // Group conversations by date for sidebar
-  const groupedConversations = useMemo(() => {
-    const groups = [
-      { title: "Today", conversations: [] as Conversation[] },
-      { title: "Yesterday", conversations: [] as Conversation[] },
-      { title: "This Week", conversations: [] as Conversation[] },
-      { title: "This Month", conversations: [] as Conversation[] },
-      { title: "Older", conversations: [] as Conversation[] },
-    ];
-
-    conversations.forEach((conv) => {
-      // Get the timestamp of the last message or use the conversation creation time
-      const lastMessageTimestamp =
-        conv.messages.length > 0
-          ? new Date(
-              conv.messages[conv.messages.length - 1].createdAt ||
-                conv.createdAt
-            ).getTime()
-          : conv.createdAt.getTime();
-
-      const lastMessageDate = new Date(lastMessageTimestamp);
-
-      if (isToday(lastMessageDate)) {
-        groups[0].conversations.push({ ...conv, lastMessageTimestamp });
-      } else if (isYesterday(lastMessageDate)) {
-        groups[1].conversations.push({ ...conv, lastMessageTimestamp });
-      } else if (isThisWeek(lastMessageDate)) {
-        groups[2].conversations.push({ ...conv, lastMessageTimestamp });
-      } else if (isThisMonth(lastMessageDate)) {
-        groups[3].conversations.push({ ...conv, lastMessageTimestamp });
-      } else {
-        groups[4].conversations.push({ ...conv, lastMessageTimestamp });
-      }
-    });
-
-    // Sort conversations within each group
-    groups.forEach((group) => {
-      group.conversations.sort((a, b) => {
-        const aTimestamp = a.lastMessageTimestamp ?? 0;
-        const bTimestamp = b.lastMessageTimestamp ?? 0;
-        return bTimestamp - aTimestamp;
-      });
-    });
-
-    return groups.filter((group) => group.conversations.length > 0);
-  }, [conversations]);
 
   // Calculate remaining messages
   const remainingMessages =
@@ -1311,12 +1338,11 @@ export default function Chat() {
                 )}
               </div>
             )}
-            {isChatLoading &&
-              !isStreamStarted && (
-                <div className="flex justify-center p-4">
-                  <AnimatedBriefcase />
-                </div>
-              )}
+            {isChatLoading && !isStreamStarted && (
+              <div className="flex justify-center p-4">
+                <AnimatedBriefcase />
+              </div>
+            )}
           </div>
         </div>
         <div
