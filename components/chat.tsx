@@ -494,26 +494,10 @@ export default function Chat() {
           requestId: lastRequestId,
         };
 
-        let updatedMessages;
-        if (message.role === "assistant" && existingConv.messages.length > 0) {
-          // If it's an assistant message, replace the last assistant message or add it
-          const lastAssistantIndex = existingConv.messages.findLastIndex(
-            (m) => m.role === "assistant"
-          );
-          if (lastAssistantIndex !== -1) {
-            updatedMessages = [
-              ...existingConv.messages.slice(0, lastAssistantIndex),
-              updatedMessage,
-              ...existingConv.messages.slice(lastAssistantIndex + 1),
-            ];
-          } else {
-            updatedMessages = [...existingConv.messages, updatedMessage];
-          }
-        } else {
-          updatedMessages = [...existingConv.messages, updatedMessage];
-        }
+        // Always append the new message, regardless of its role
+        const updatedMessages = [...existingConv.messages, updatedMessage];
 
-        // Only consider title generation for assistant messages
+        // Only consider title generation for the first assistant message
         if (
           message.role === "assistant" &&
           !titleGenerationTriggeredRef.current[id]
