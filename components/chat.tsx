@@ -96,6 +96,7 @@ export default function Chat() {
   const [regeneratingIndex, setRegeneratingIndex] = useState<number | null>(
     null
   );
+  const [seed, setSeed] = useState<number>(Math.floor(Math.random() * 1000000));
 
   // useChat hook
   const {
@@ -120,13 +121,14 @@ export default function Chat() {
     body: {
       documentContext: documentContext,
       userApiKey: userApiKey,
+      seed: seed,
     },
     onResponse: (response) => {
       const spanId = response.headers.get("x-braintrust-span-id");
       if (spanId) {
         setLastRequestId(spanId);
       } else {
-        console.warn(`[${new Date().toISOString()}] No x-braintrust-span-id found in response headers`);
+        console.warn("No x-braintrust-span-id found in response headers");
       }
       setIsStreamStarted(true);
       setRegeneratingIndex(null);
@@ -638,7 +640,7 @@ export default function Chat() {
   };
 
   const handleRetry = useCallback(
-    (messageIndex: number) => {
+    async (messageIndex: number) => {
       animateIcon('regenerate')
       if (isLimitReached && !userApiKey) {
         showToast(
@@ -655,6 +657,10 @@ export default function Chat() {
 
       // Set regeneratingIndex immediately to start the spinning animation
       setRegeneratingIndex(messageIndex);
+
+      // Generate a new seed for regeneration
+      const newSeed = Math.floor(Math.random() * 1000000);
+      setSeed(newSeed);
 
       // Introduce a delay before removing the message and starting regeneration
       setTimeout(() => {
@@ -673,8 +679,12 @@ export default function Chat() {
           );
         }
 
-        // Call reload to regenerate the response
-        reload();
+        // Call reload with the new seed
+        reload({
+          options: {
+            body: { seed: newSeed },
+          },
+        });
         incrementMessageCount();
       }, 500);
     },
@@ -688,6 +698,7 @@ export default function Chat() {
       reload,
       incrementMessageCount,
       showToast,
+      seed,
     ]
   );
 

@@ -4,7 +4,7 @@ import OpenAI from "openai";
 import { logger } from "../logger";
 
 export async function POST(req: Request) {
-  const { messages, documentContext, userApiKey } = await req.json();
+  const { messages, documentContext, userApiKey, seed } = await req.json();
 
   const apiKey = userApiKey || process.env.OPENAI_API_KEY;
 
@@ -35,6 +35,7 @@ export async function POST(req: Request) {
           temperature: 0,
           stream: true,
           messages: apiMessages,
+          seed: seed,
         });
 
         const stream = OpenAIStream(response);
@@ -50,7 +51,10 @@ export async function POST(req: Request) {
     {
       name: "Chat",
       event: {
-        input: messages,
+        input: {
+          messages,
+          seed,
+        },
       },
     }
   );
