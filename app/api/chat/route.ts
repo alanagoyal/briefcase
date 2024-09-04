@@ -1,6 +1,6 @@
-import { OpenAIStream, StreamingTextResponse } from "ai";
-import { wrapOpenAI } from "braintrust";
-import OpenAI from "openai";
+import { streamText } from "ai";
+import { createOpenAI } from "@ai-sdk/openai";
+import { wrapAISDKModel } from "braintrust";
 import { logger } from "../logger";
 
 export async function POST(req: Request) {
@@ -8,7 +8,12 @@ export async function POST(req: Request) {
 
   const apiKey = userApiKey || process.env.OPENAI_API_KEY;
 
-  const customOpenAI = wrapOpenAI(new OpenAI({ apiKey, baseURL: "https://api.braintrust.dev/v1/proxy" }));
+  const openai = createOpenAI({
+    apiKey,
+    baseURL: "https://api.braintrust.dev/v1/proxy",
+  });
+
+  const customOpenAI = wrapAISDKModel(openai("gpt-4o-mini"));
 
   return await logger.traced(
     async (span) => {
@@ -30,20 +35,17 @@ export async function POST(req: Request) {
       ];
 
       try {
-        const response = await customOpenAI.chat.completions.create({
-          model: "gpt-4o-mini",
+        const response = await streamText({
+          model: customOpenAI,
           temperature: 0,
-          stream: true,
           messages: apiMessages,
           seed: seed,
         });
 
-        const stream = OpenAIStream(response);
-
         const headers = new Headers();
         headers.set("x-braintrust-span-id", span.id);
 
-        return new StreamingTextResponse(stream, { headers });
+        return response.toDataStreamResponse({ headers });
       } catch (error) {
         return new Response("Error processing your request", { status: 500 });
       }
@@ -56,6 +58,6 @@ export async function POST(req: Request) {
           seed,
         },
       },
-    }
+    },
   );
 }
