@@ -96,7 +96,7 @@ export default function Chat() {
   const [regeneratingIndex, setRegeneratingIndex] = useState<number | null>(
     null
   );
-  const [seed, setSeed] = useState<number>(Math.floor(Math.random() * 1000000));
+  const [seed, setSeed] = useState<number>(123);
 
   // useChat hook
   const {
