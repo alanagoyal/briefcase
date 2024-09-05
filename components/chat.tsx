@@ -85,7 +85,6 @@ export default function Chat() {
   const [messageCount, setMessageCount] = useState<number | null>(null);
   const [isLimitReached, setIsLimitReached] = useState(false);
   const [isStreamStarted, setIsStreamStarted] = useState(false);
-  const [lastRequestId, setLastRequestId] = useState<string | null>(null);
   const titleGenerationTriggeredRef = useRef<{ [key: string]: boolean }>({});
   const [isCommandMenuOpen, setIsCommandMenuOpen] = useState(false);
   const [isLoadingSidebar, setIsLoadingSidebar] = useState(true);
@@ -97,6 +96,15 @@ export default function Chat() {
     null
   );
   const [seed, setSeed] = useState<number>(123);
+
+    // Refs
+    const inputRef = useRef<HTMLInputElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const scrollAreaRef = useRef<HTMLDivElement>(null);
+    const latestRequestIdRef = useRef<string | null>(null);
+    const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
+    const [quoteQuestion, setQuoteQuestion] = useState<string>("");
+    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   // useChat hook
   const {
@@ -120,7 +128,7 @@ export default function Chat() {
     onResponse: (response) => {
       const spanId = response.headers.get("x-braintrust-span-id");
       if (spanId) {
-        setLastRequestId(spanId);
+        latestRequestIdRef.current = spanId;
       } else {
         console.warn("No x-braintrust-span-id found in response headers");
       }
@@ -129,19 +137,11 @@ export default function Chat() {
     },
     onFinish: (message) => {
       if (currentConversationId) {
-        updateConversation(currentConversationId, message);
+        updateConversation(currentConversationId, message, latestRequestIdRef.current);
       }
       setIsStreamStarted(false);
     },
   });
-
-  // Refs
-  const inputRef = useRef<HTMLInputElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
-  const [quoteQuestion, setQuoteQuestion] = useState<string>("");
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   // useEffects
 
@@ -447,7 +447,7 @@ export default function Chat() {
     }
 
     const userMessage: Message = { id: uuidv4(), role: "user", content: input };
-    updateConversation(currentId, userMessage);
+    updateConversation(currentId, userMessage, latestRequestIdRef.current);
     incrementMessageCount();
     handleSubmit(e);
   };
@@ -484,14 +484,14 @@ export default function Chat() {
   );
 
   const updateConversation = useCallback(
-    (id: string, message: Message) => {
+    (id: string, message: Message, currentRequestId: string | null) => {
       setConversations((prev) => {
         const existingConv = prev.find((conv) => conv.id === id);
         if (!existingConv) return prev;
 
         const updatedMessage = {
           ...message,
-          requestId: lastRequestId,
+          requestId: currentRequestId,
         };
 
         // Always append the new message, regardless of its role
@@ -526,7 +526,7 @@ export default function Chat() {
         );
       });
     },
-    [generateTitle, lastRequestId]
+    [generateTitle]
   );
 
   // Group conversations by date for sidebar
@@ -766,7 +766,7 @@ export default function Chat() {
         (m) => m.id === messageId
       ) as ExtendedMessage;
 
-      const requestId = message.requestId || lastRequestId;
+      const requestId = message.requestId || latestRequestIdRef.current;
 
       if (!requestId) {
         console.error("No request ID available for feedback");
@@ -832,7 +832,7 @@ export default function Chat() {
         }
       }
     },
-    [messages, lastRequestId, userName, toast, messageFeedback]
+    [messages, userName, toast, messageFeedback]
   );
 
   const toggleSidebar = () => {
@@ -919,7 +919,7 @@ export default function Chat() {
 
     const storedLastRequestId = localStorage.getItem("lastRequestId");
     if (storedLastRequestId) {
-      setLastRequestId(storedLastRequestId);
+      latestRequestIdRef.current = storedLastRequestId;
     }
   }, []);
 
@@ -928,10 +928,10 @@ export default function Chat() {
     if (Object.keys(messageFeedback).length > 0) {
       localStorage.setItem("messageFeedback", JSON.stringify(messageFeedback));
     }
-    if (lastRequestId) {
-      localStorage.setItem("lastRequestId", lastRequestId);
+    if (latestRequestIdRef.current) {
+      localStorage.setItem("lastRequestId", latestRequestIdRef.current);
     }
-  }, [messageFeedback, lastRequestId]);
+  }, [messageFeedback]);
 
   // Render
   return (
