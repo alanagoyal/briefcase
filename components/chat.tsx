@@ -92,7 +92,7 @@ export default function Chat() {
   const [messageFeedback, setMessageFeedback] = useState<{
     [key: string]: MessageFeedback;
   }>({});
-  const [animatedIcon, setAnimatedIcon] = useState<string | null>(null);
+  const [animatedIcons, setAnimatedIcons] = useState<{ [key: string]: string | null }>({});
   const [regeneratingIndex, setRegeneratingIndex] = useState<number | null>(
     null
   );
@@ -697,7 +697,7 @@ export default function Chat() {
 
   const handleRetry = useCallback(
     async (messageIndex: number) => {
-      animateIcon("regenerate");
+      animateIcon("regenerate", messages[messageIndex].id);
       if (isLimitReached && !userApiKey) {
         showToast(
           "You've reached the message limit. Please set your OpenAI API key for unlimited use.",
@@ -885,9 +885,17 @@ export default function Chat() {
     titleGenerationTriggeredRef.current = {};
   }, [currentConversationId]);
 
-  const animateIcon = (iconName: string) => {
-    setAnimatedIcon(iconName);
-    setTimeout(() => setAnimatedIcon(null), 500); // Reset after animation
+  const animateIcon = (iconName: string, messageId: string) => {
+    setAnimatedIcons(prev => ({
+      ...prev,
+      [messageId]: iconName
+    }));
+    setTimeout(() => {
+      setAnimatedIcons(prev => ({
+        ...prev,
+        [messageId]: null
+      }));
+    }, 500);
   };
 
   // Handle prompt click for new chat
@@ -1201,13 +1209,13 @@ export default function Chat() {
                                       size="sm"
                                       onClick={() => {
                                         handleCopy(message.content);
-                                        animateIcon("copy");
+                                        animateIcon("copy", message.id);
                                       }}
                                     >
                                       <Copy
                                         className={cn(
                                           "h-4 w-4",
-                                          animatedIcon === "copy" &&
+                                          animatedIcons[message.id] === "copy" &&
                                             "animate-shake text-[#8EC5FC]"
                                         )}
                                       />
@@ -1231,7 +1239,7 @@ export default function Chat() {
                                       <RefreshCw
                                         className={cn(
                                           "h-4 w-4",
-                                          animatedIcon === "regenerate" &&
+                                          animatedIcons[message.id] === "regenerate" &&
                                             "animate-spin text-[#3675F1]"
                                         )}
                                       />
@@ -1250,7 +1258,7 @@ export default function Chat() {
                                       size="sm"
                                       onClick={() => {
                                         handleFeedback(message.id, true);
-                                        animateIcon("thumbsUp");
+                                        animateIcon("thumbsUp", message.id);
                                       }}
                                     >
                                       <ThumbsUp
@@ -1260,7 +1268,7 @@ export default function Chat() {
                                             ?.feedbackType === "thumbsUp"
                                             ? "text-green-500"
                                             : "",
-                                          animatedIcon === "thumbsUp" &&
+                                          animatedIcons[message.id] === "thumbsUp" &&
                                             "animate-shake"
                                         )}
                                       />
@@ -1279,7 +1287,7 @@ export default function Chat() {
                                       size="sm"
                                       onClick={() => {
                                         handleFeedback(message.id, false);
-                                        animateIcon("thumbsDown");
+                                        animateIcon("thumbsDown", message.id);
                                       }}
                                     >
                                       <ThumbsDown
@@ -1289,7 +1297,7 @@ export default function Chat() {
                                             ?.feedbackType === "thumbsDown"
                                             ? "text-red-500"
                                             : "",
-                                          animatedIcon === "thumbsDown" &&
+                                          animatedIcons[message.id] === "thumbsDown" &&
                                             "animate-shake"
                                         )}
                                       />
