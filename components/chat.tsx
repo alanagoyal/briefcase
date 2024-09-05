@@ -104,7 +104,7 @@ export default function Chat() {
     input,
     handleInputChange,
     handleSubmit,
-    isLoading: isChatLoading,
+    isLoading,
     reload,
     setMessages,
   } = useChat({
@@ -112,12 +112,6 @@ export default function Chat() {
     id: currentConversationId || undefined,
     initialMessages:
       conversations.find((c) => c.id === currentConversationId)?.messages || [],
-    onFinish: (message) => {
-      if (currentConversationId) {
-        updateConversation(currentConversationId, message);
-      }
-      setIsStreamStarted(false);
-    },
     body: {
       documentContext: documentContext,
       userApiKey: userApiKey,
@@ -132,6 +126,12 @@ export default function Chat() {
       }
       setIsStreamStarted(true);
       setRegeneratingIndex(null);
+    },
+    onFinish: (message) => {
+      if (currentConversationId) {
+        updateConversation(currentConversationId, message);
+      }
+      setIsStreamStarted(false);
     },
   });
 
@@ -1330,7 +1330,7 @@ export default function Chat() {
                 )}
               </div>
             )}
-            {isChatLoading && !isStreamStarted && (
+            {isLoading && !isStreamStarted && (
               <div className="flex justify-center p-4">
                 <AnimatedBriefcase />
               </div>
