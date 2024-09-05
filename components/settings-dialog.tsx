@@ -1,5 +1,6 @@
 "use client";
 
+import { useI18n } from "@quetzallabs/i18n";
 import { useState, useEffect } from "react";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
@@ -20,26 +21,24 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "./ui/tooltip";
-
 interface SettingsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onNameChange: (name: string) => void;
   onApiKeyChange: (apiKey: string) => void;
 }
-
 export default function SettingsDialog({
   open,
   onOpenChange,
   onNameChange,
   onApiKeyChange,
 }: SettingsDialogProps) {
+  const { t } = useI18n();
   const [name, setName] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [initialApiKey, setInitialApiKey] = useState("");
   const [isClient, setIsClient] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-
   useEffect(() => {
     setIsClient(true);
     const storedName = localStorage.getItem("userName");
@@ -56,12 +55,15 @@ export default function SettingsDialog({
   // Validate API key
   const validateApiKey = async (apiKey: string): Promise<boolean> => {
     try {
-      const response = await fetch('/api/validate-api-key', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ apiKey }),
+      const response = await fetch("/api/validate-api-key", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          apiKey,
+        }),
       });
-      
       if (response.ok) {
         const data = await response.json();
         return data.valid;
@@ -72,12 +74,11 @@ export default function SettingsDialog({
       return false;
     }
   };
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (name.trim()) {
       localStorage.setItem("userName", name);
-      
+
       // Check if the API key has changed
       if (apiKey !== initialApiKey) {
         if (apiKey) {
@@ -88,12 +89,12 @@ export default function SettingsDialog({
             localStorage.setItem("openaiApiKey", apiKey);
             onApiKeyChange(apiKey);
             toast({
-              description: "Settings saved successfully",
+              description: t("Settings saved successfully"),
             });
             onOpenChange(false);
           } else {
             toast({
-              description: "Invalid API key. Please check and try again.",
+              description: t("Invalid API key. Please check and try again."),
               variant: "destructive",
             });
             return; // Don't close the dialog if the API key is invalid
@@ -104,60 +105,64 @@ export default function SettingsDialog({
           onApiKeyChange("");
         }
       }
-      
       onNameChange(name);
       toast({
-        description: "Settings saved successfully",
+        description: t("Settings saved successfully"),
       });
       onOpenChange(false);
     } else {
       toast({
-        description: "Please enter a name",
+        description: t("Please enter a name"),
         variant: "destructive",
       });
     }
   };
-
   if (!isClient) {
     return null;
   }
-
   return (
-    <Dialog open={open} onOpenChange={(newOpen: boolean) => {
-      if (!newOpen && !name.trim()) {
-        toast({
-          description: "Please enter a name before closing",
-          variant: "destructive",
-        });
-      } else {
-        onOpenChange(newOpen);
-      }
-    }}>
+    <Dialog
+      open={open}
+      onOpenChange={(newOpen: boolean) => {
+        if (!newOpen && !name.trim()) {
+          toast({
+            description: t("Please enter a name before closing"),
+            variant: "destructive",
+          });
+        } else {
+          onOpenChange(newOpen);
+        }
+      }}
+    >
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>{localStorage.getItem("userName") ? "Settings" : "Welcome to Briefcase"}</DialogTitle>
+          <DialogTitle>
+            {localStorage.getItem("userName")
+              ? t("Settings")
+              : t("Welcome to Briefcase")}
+          </DialogTitle>
           <DialogDescription>
             {localStorage.getItem("userName")
-              ? "Update your information below"
-              : "Please enter your name to get started"}
+              ? t("Update your information below")
+              : t("Please enter your name to get started")}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Name</Label>
+            <Label htmlFor="name">{t("Name")}</Label>
             <Input
               id="name"
               value={name}
               onChange={(e) => {
                 setName(e.target.value);
               }}
-              placeholder="Enter your name"
+              placeholder={t("Enter your name")}
               required
             />
           </div>
           <div className="space-y-2">
             <div className="flex items-center space-x-2">
-              <Label htmlFor="apiKey">OpenAI API Key</Label>
+              <Label htmlFor="apiKey">{t("OpenAI API Key")}</Label>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger>
@@ -165,8 +170,9 @@ export default function SettingsDialog({
                   </TooltipTrigger>
                   <TooltipContent side="right" align="center">
                     <p className="max-w-[300px]">
-                      Briefcase has a limit of 10 messages per day. 
-                      For unlimited access, please enter your OpenAI Key.
+                      {t(
+                        "Briefcase has a limit of 10 messages per day. For unlimited access, please enter your OpenAI Key."
+                      )}
                     </p>
                   </TooltipContent>
                 </Tooltip>
@@ -179,9 +185,13 @@ export default function SettingsDialog({
                 setApiKey(e.target.value);
               }}
               type="password"
-              placeholder="Enter your OpenAI API Key"
+              placeholder={t("Enter your OpenAI API Key")}
             />
-            <p className="text-muted-foreground text-xs">Your API key will not be stored on our servers. It is only used to authenticate your requests to the OpenAI API.</p>
+            <p className="text-muted-foreground text-xs">
+              {t(
+                "Your API key will not be stored on our servers. It is only used to authenticate your requests to the OpenAI API."
+              )}
+            </p>
           </div>
           <DialogFooter>
             <Button
@@ -192,10 +202,12 @@ export default function SettingsDialog({
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
+                  t("Saving...")
                 </>
+              ) : localStorage.getItem("userName") ? (
+                t("Save Settings")
               ) : (
-                localStorage.getItem("userName") ? "Save Settings" : "Start Chatting"
+                t("Start Chatting")
               )}
             </Button>
           </DialogFooter>

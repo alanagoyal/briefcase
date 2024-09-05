@@ -57,7 +57,7 @@ import {
   MessageFeedback,
 } from "../types/chat";
 import AnimatedBriefcase from "./animation";
-import { CommandMenu } from "./command-menu";
+import CommandMenu from "./command-menu";
 import { useTheme } from "next-themes";
 import { Badge } from "./ui/badge";
 import { Skeleton } from "./ui/skeleton";

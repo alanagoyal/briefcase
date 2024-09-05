@@ -1,13 +1,9 @@
-"use client"
+"use client";
 
+import { useI18n } from "@quetzallabs/i18n";
 import { useState } from "react";
 import { Button } from "./ui/button";
-import {
-  Settings,
-  Trash2,
-  PenSquare,
-  PanelLeftClose,
-} from "lucide-react";
+import { Settings, Trash2, PenSquare, PanelLeftClose } from "lucide-react";
 import { ThemeToggle } from "./theme-toggle";
 import {
   Tooltip,
@@ -18,18 +14,19 @@ import {
 import { Conversation } from "../types/chat";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "./ui/skeleton";
-
 interface SidebarProps {
-  groupedConversations: { title: string; conversations: Conversation[] }[];
+  groupedConversations: {
+    title: string;
+    conversations: Conversation[];
+  }[];
   currentConversationId: string | null;
   onConversationSelect: (id: string) => void;
   onConversationDelete: (id: string) => void;
   onNewChat: () => void;
   onToggleSidebar: () => void;
   onOpenSettings: () => void;
-  isLoading: boolean; // Add this new prop
+  isLoading: boolean;
 }
-
 export default function Sidebar({
   groupedConversations,
   currentConversationId,
@@ -38,10 +35,12 @@ export default function Sidebar({
   onNewChat,
   onToggleSidebar,
   onOpenSettings,
-  isLoading, // Add this new prop
+  isLoading,
 }: SidebarProps) {
-  const [hoveredConversationId, setHoveredConversationId] = useState<string | null>(null);
-
+  const { t } = useI18n();
+  const [hoveredConversationId, setHoveredConversationId] = useState<
+    string | null
+  >(null);
   return (
     <div className="w-64 flex flex-col h-full border">
       <div className="p-2 flex justify-between items-center">
@@ -52,13 +51,13 @@ export default function Sidebar({
                 variant="ghost"
                 size="icon"
                 onClick={onToggleSidebar}
-                aria-label="Close sidebar"
+                aria-label={t("Close sidebar")}
               >
                 <PanelLeftClose className="h-5 w-5" />
               </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom" align="start">
-              <p>Close sidebar</p>
+              <p>{t("Close sidebar")}</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -69,20 +68,20 @@ export default function Sidebar({
                 variant="ghost"
                 size="icon"
                 onClick={onNewChat}
-                aria-label="New chat"
+                aria-label={t("New chat")}
               >
                 <PenSquare className="h-5 w-5" />
               </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom">
-              <p>New chat</p>
+              <p>{t("New chat")}</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
       </div>
       <div className="flex-grow overflow-y-auto">
         <h1 className="text-2xl font-bold mb-4 text-[#3675F1] font-['Avenir'] flex items-center px-2">
-          Briefcase
+          {t("Briefcase")}
         </h1>
         {isLoading ? (
           // Skeleton loader
@@ -129,7 +128,10 @@ export default function Sidebar({
                           size="icon"
                           className={cn(
                             "h-6 w-6",
-                            conv.id === currentConversationId || conv.id === hoveredConversationId ? "opacity-100" : "opacity-0",
+                            conv.id === currentConversationId ||
+                              conv.id === hoveredConversationId
+                              ? "opacity-100"
+                              : "opacity-0",
                             "transition-opacity hover:text-red-500"
                           )}
                           onClick={(e) => {
@@ -155,7 +157,8 @@ export default function Sidebar({
           className="justify-start"
           onClick={onOpenSettings}
         >
-          <Settings className="mr-2 h-5 w-5" /> Settings
+          <Settings className="mr-2 h-5 w-5" />
+          {t("Settings")}
         </Button>
       </div>
     </div>
