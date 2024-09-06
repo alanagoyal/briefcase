@@ -1,13 +1,9 @@
-"use client"
+"use client";
 
+import { useI18n } from "@quetzallabs/i18n";
 import { useState } from "react";
 import { Button } from "./ui/button";
-import {
-  Settings,
-  Trash2,
-  PenSquare,
-  PanelLeftClose,
-} from "lucide-react";
+import { Settings, Trash2, PenSquare, PanelLeftClose } from "lucide-react";
 import { ThemeToggle } from "./theme-toggle";
 import {
   Tooltip,
@@ -19,20 +15,21 @@ import { Conversation } from "../types/chat";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "./ui/skeleton";
 import { Header } from "./header";
-
 interface SidebarProps {
-  groupedConversations: { title: string; conversations: Conversation[] }[];
+  groupedConversations: {
+    title: string;
+    conversations: Conversation[];
+  }[];
   currentConversationId: string | null;
   onConversationSelect: (id: string) => void;
   onConversationDelete: (id: string) => void;
   onNewChat: () => void;
   onToggleSidebar: () => void;
   onOpenSettings: () => void;
-  isLoading: boolean; 
+  isLoading: boolean;
   isMobile: boolean | null;
   closeSidebar: () => void; // Add this new prop
 }
-
 export default function Sidebar({
   groupedConversations,
   currentConversationId,
@@ -45,17 +42,22 @@ export default function Sidebar({
   isMobile,
   closeSidebar, // Add this new prop
 }: SidebarProps) {
-  const [hoveredConversationId, setHoveredConversationId] = useState<string | null>(null);
-
+  const { t } = useI18n();
+  const [hoveredConversationId, setHoveredConversationId] = useState<
+    string | null
+  >(null);
   const handleNewChat = () => {
     onNewChat();
     if (isMobile) {
       closeSidebar(); // Close the sidebar on mobile when starting a new chat
     }
   };
-
   return (
-    <div className={`${isMobile ? 'w-full' : 'w-64 border-r'} flex flex-col h-full bg-background`}>
+    <div
+      className={`${
+        isMobile ? "w-full" : "w-64 border-r"
+      } flex flex-col h-full bg-background`}
+    >
       <Header
         toggleSidebar={onToggleSidebar}
         startNewChat={handleNewChat}
@@ -65,7 +67,7 @@ export default function Sidebar({
       <div className="flex-1 overflow-y-auto">
         {!isMobile && (
           <h1 className="text-2xl font-bold mb-4 text-[#3675F1] font-['Avenir'] flex items-center px-4 pt-2">
-            Briefcase
+            {t("Briefcase")}
           </h1>
         )}
         {isLoading ? (
@@ -113,7 +115,10 @@ export default function Sidebar({
                           size="icon"
                           className={cn(
                             "h-6 w-6",
-                            conv.id === currentConversationId || conv.id === hoveredConversationId ? "opacity-100" : "opacity-0",
+                            conv.id === currentConversationId ||
+                              conv.id === hoveredConversationId
+                              ? "opacity-100"
+                              : "opacity-0",
                             "transition-opacity hover:text-red-500"
                           )}
                           onClick={(e) => {
@@ -139,7 +144,8 @@ export default function Sidebar({
           className="justify-start"
           onClick={onOpenSettings}
         >
-          <Settings className="mr-2 h-5 w-5" /> Settings
+          <Settings className="mr-2 h-5 w-5" />
+          {t("Settings")}
         </Button>
       </div>
     </div>

@@ -1,4 +1,10 @@
-import { PanelLeftClose, PanelLeftOpen, PenSquare, Settings } from "lucide-react";
+import { useI18n } from "@quetzallabs/i18n";
+import {
+  PanelLeftClose,
+  PanelLeftOpen,
+  PenSquare,
+  Settings,
+} from "lucide-react";
 import { Button } from "./ui/button";
 import {
   Tooltip,
@@ -6,7 +12,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "./ui/tooltip";
-
 export const Header = ({
   toggleSidebar,
   startNewChat,
@@ -18,6 +23,7 @@ export const Header = ({
   isMobile: boolean;
   isSidebarOpen: boolean;
 }) => {
+  const { t } = useI18n();
   return (
     <div className="p-2 bg-background flex items-center justify-between">
       <div className="flex items-center">
@@ -28,7 +34,9 @@ export const Header = ({
                 variant="ghost"
                 size="icon"
                 onClick={toggleSidebar}
-                aria-label={isSidebarOpen ? "Close sidebar" : "Open sidebar"}
+                aria-label={
+                  isSidebarOpen ? t("Close sidebar") : t("Open sidebar")
+                }
               >
                 {isSidebarOpen ? (
                   <PanelLeftClose className="h-5 w-5" />
@@ -38,13 +46,13 @@ export const Header = ({
               </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom" align="start">
-              <p>{isSidebarOpen ? "Close sidebar" : "Open sidebar"}</p>
+              <p>{isSidebarOpen ? t("Close sidebar") : t("Open sidebar")}</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
         {(isMobile || (!isMobile && !isSidebarOpen)) && (
           <h1 className="text-2xl font-bold text-[#3675F1] font-['Avenir'] flex items-center">
-            Briefcase
+            {t("Briefcase")}
           </h1>
         )}
       </div>
@@ -56,13 +64,13 @@ export const Header = ({
                 variant="ghost"
                 size="icon"
                 onClick={startNewChat}
-                aria-label="New chat"
+                aria-label={t("New chat")}
               >
                 <PenSquare className="h-5 w-5" />
               </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom">
-              <p>New chat</p>
+              <p>{t("New chat")}</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
