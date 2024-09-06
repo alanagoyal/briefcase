@@ -55,7 +55,7 @@ export default function Sidebar({
   };
 
   return (
-    <div className={`${isMobile ? 'w-full' : 'w-64'} flex flex-col h-full bg-background border-r`}>
+    <div className={`${isMobile ? 'w-full' : 'w-64 border-r'} flex flex-col h-full bg-background`}>
       <Header
         toggleSidebar={onToggleSidebar}
         startNewChat={handleNewChat}
