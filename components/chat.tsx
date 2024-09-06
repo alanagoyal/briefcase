@@ -1,5 +1,6 @@
 "use client";
 
+import { useI18n } from "@quetzallabs/i18n";
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -56,13 +57,13 @@ import {
   MessageFeedback,
 } from "../types/chat";
 import AnimatedBriefcase from "./animation";
-import { CommandMenu } from "./command-menu";
+import CommandMenu from "./command-menu";
 import { useTheme } from "next-themes";
 import { Badge } from "./ui/badge";
 import { Skeleton } from "./ui/skeleton";
 import { cn } from "@/lib/utils";
-
 export default function Chat() {
+  const { t } = useI18n();
   // Constants
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -85,26 +86,30 @@ export default function Chat() {
   const [messageCount, setMessageCount] = useState<number | null>(null);
   const [isLimitReached, setIsLimitReached] = useState(false);
   const [isStreamStarted, setIsStreamStarted] = useState(false);
-  const titleGenerationTriggeredRef = useRef<{ [key: string]: boolean }>({});
+  const titleGenerationTriggeredRef = useRef<{
+    [key: string]: boolean;
+  }>({});
   const [isCommandMenuOpen, setIsCommandMenuOpen] = useState(false);
   const [isLoadingSidebar, setIsLoadingSidebar] = useState(true);
   const [messageFeedback, setMessageFeedback] = useState<{
     [key: string]: MessageFeedback;
   }>({});
-  const [animatedIcons, setAnimatedIcons] = useState<{ [key: string]: string | null }>({});
+  const [animatedIcons, setAnimatedIcons] = useState<{
+    [key: string]: string | null;
+  }>({});
   const [regeneratingIndex, setRegeneratingIndex] = useState<number | null>(
     null
   );
   const [seed, setSeed] = useState<number>(123);
 
-    // Refs
-    const inputRef = useRef<HTMLInputElement>(null);
-    const fileInputRef = useRef<HTMLInputElement>(null);
-    const scrollAreaRef = useRef<HTMLDivElement>(null);
-    const latestRequestIdRef = useRef<string | null>(null);
-    const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
-    const [quoteQuestion, setQuoteQuestion] = useState<string>("");
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  // Refs
+  const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const latestRequestIdRef = useRef<string | null>(null);
+  const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
+  const [quoteQuestion, setQuoteQuestion] = useState<string>("");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   // useChat hook
   const {
@@ -137,7 +142,11 @@ export default function Chat() {
     },
     onFinish: (message) => {
       if (currentConversationId) {
-        updateConversation(currentConversationId, message, latestRequestIdRef.current);
+        updateConversation(
+          currentConversationId,
+          message,
+          latestRequestIdRef.current
+        );
       }
       setIsStreamStarted(false);
     },
@@ -161,12 +170,10 @@ export default function Chat() {
         })),
       }));
       setConversations(parsedConversations);
-
       const storedDocuments = JSON.parse(
         localStorage.getItem("documents") || "[]"
       );
       setDocuments(storedDocuments);
-
       if (conversationId) {
         const conversation = parsedConversations.find(
           (conv: Conversation) => conv.id === conversationId
@@ -179,7 +186,6 @@ export default function Chat() {
       }
       setIsLoadingSidebar(false);
     };
-
     loadConversations();
   }, [conversationId, setMessages]);
 
@@ -197,7 +203,6 @@ export default function Chat() {
           console.error(`Invalid date for conversation ${conv.id}:`, error);
           createdAtString = new Date().toISOString();
         }
-
         return {
           ...conv,
           createdAt: createdAtString,
@@ -214,7 +219,6 @@ export default function Chat() {
               );
               msgCreatedAtString = undefined;
             }
-
             return {
               ...msg,
               createdAt: msgCreatedAtString,
@@ -224,7 +228,6 @@ export default function Chat() {
           documents: conv.documents,
         };
       });
-
       localStorage.setItem(
         "conversations",
         JSON.stringify(serializedConversations)
@@ -247,7 +250,6 @@ export default function Chat() {
     } else {
       setIsSettingsOpen(true);
     }
-
     const storedApiKey = localStorage.getItem("openaiApiKey");
     if (storedApiKey) {
       setUserApiKey(storedApiKey);
@@ -298,13 +300,11 @@ export default function Chat() {
   useEffect(() => {
     const storedCount = localStorage.getItem("messageCount");
     const storedApiKey = localStorage.getItem("openaiApiKey");
-
     if (storedCount) {
       setMessageCount(parseInt(storedCount, 10));
     } else {
       setMessageCount(0);
     }
-
     if (storedApiKey) {
       setUserApiKey(storedApiKey);
     }
@@ -346,7 +346,9 @@ export default function Chat() {
   useEffect(() => {
     if (isLimitReached && !userApiKey) {
       showToast(
-        "You've reached the message limit. Please set your OpenAI API key for unlimited use.",
+        t(
+          "You've reached the message limit. Please set your OpenAI API key for unlimited use."
+        ),
         "destructive"
       );
     }
@@ -360,7 +362,7 @@ export default function Chat() {
         localStorage.setItem("messageCount", newCount.toString());
         if (newCount === 9 && !userApiKey) {
           showToast(
-            "You have 1 message left before reaching the limit.",
+            t("You have 1 message left before reaching the limit."),
             "destructive"
           );
         }
@@ -376,18 +378,17 @@ export default function Chat() {
       scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
     }
   }, []);
-
   useEffect(() => {
     scrollToBottom();
   }, [messages, scrollToBottom]);
-
   useEffect(() => {
     const scrollArea = scrollAreaRef.current;
     if (!scrollArea) return;
-
     const observer = new MutationObserver(scrollToBottom);
-    observer.observe(scrollArea, { childList: true, subtree: true });
-
+    observer.observe(scrollArea, {
+      childList: true,
+      subtree: true,
+    });
     return () => observer.disconnect();
   }, [scrollToBottom]);
 
@@ -395,16 +396,17 @@ export default function Chat() {
   const startNewChat = () => {
     if (isLimitReached && !userApiKey) {
       showToast(
-        "You've reached the message limit. Please set your OpenAI API key for unlimited use.",
+        t(
+          "You've reached the message limit. Please set your OpenAI API key for unlimited use."
+        ),
         "destructive"
       );
       return;
     }
-
     const newId = uuidv4();
     const newConversation: Conversation = {
       id: newId,
-      title: "New Chat",
+      title: t("New Chat"),
       messages: [],
       createdAt: new Date(),
     };
@@ -412,12 +414,10 @@ export default function Chat() {
     setCurrentConversationId(newId);
     setMessages([]);
     router.push(`/?id=${newId}`);
-
     setTimeout(() => {
       inputRef.current?.focus();
     }, 0);
   };
-
   const handleSend = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!input.trim()) {
@@ -425,14 +425,14 @@ export default function Chat() {
     }
     if (isLimitReached && !userApiKey) {
       showToast(
-        "You've reached the message limit. Please set your OpenAI API key for unlimited use.",
+        t(
+          "You've reached the message limit. Please set your OpenAI API key for unlimited use."
+        ),
         "destructive"
       );
       return;
     }
-
     let currentId = currentConversationId || uuidv4();
-
     if (!currentConversationId) {
       const newConversation: Conversation = {
         id: currentId,
@@ -445,32 +445,41 @@ export default function Chat() {
       setCurrentConversationId(currentId);
       router.push(`/?id=${currentId}`);
     }
-
-    const userMessage: Message = { id: uuidv4(), role: "user", content: input };
+    const userMessage: Message = {
+      id: uuidv4(),
+      role: "user",
+      content: input,
+    };
     updateConversation(currentId, userMessage, latestRequestIdRef.current);
     incrementMessageCount();
     handleSubmit(e);
   };
-
   const generateTitle = useCallback(
     async (id: string, userMessage: string, assistantMessage: string) => {
       try {
         const response = await fetch("/api/generate-title", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userMessage, assistantMessage }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            userMessage,
+            assistantMessage,
+          }),
         });
-
         if (!response.ok) {
           throw new Error(`Failed to generate title: ${response.status}`);
         }
-
         const data = await response.json();
-
         if (data.title) {
           setConversations((prev) =>
             prev.map((conv) =>
-              conv.id === id ? { ...conv, title: data.title } : conv
+              conv.id === id
+                ? {
+                    ...conv,
+                    title: data.title,
+                  }
+                : conv
             )
           );
         } else {
@@ -482,13 +491,11 @@ export default function Chat() {
     },
     [setConversations]
   );
-
   const updateConversation = useCallback(
     (id: string, message: Message, currentRequestId: string | null) => {
       setConversations((prev) => {
         const existingConv = prev.find((conv) => conv.id === id);
         if (!existingConv) return prev;
-
         const updatedMessage = {
           ...message,
           requestId: currentRequestId,
@@ -514,7 +521,6 @@ export default function Chat() {
             );
           }
         }
-
         return prev.map((conv) =>
           conv.id === id
             ? {
@@ -532,13 +538,27 @@ export default function Chat() {
   // Group conversations by date for sidebar
   const groupedConversations = useMemo(() => {
     const groups = [
-      { title: "Today", conversations: [] as Conversation[] },
-      { title: "Yesterday", conversations: [] as Conversation[] },
-      { title: "This Week", conversations: [] as Conversation[] },
-      { title: "This Month", conversations: [] as Conversation[] },
-      { title: "Older", conversations: [] as Conversation[] },
+      {
+        title: t("Today"),
+        conversations: [] as Conversation[],
+      },
+      {
+        title: t("Yesterday"),
+        conversations: [] as Conversation[],
+      },
+      {
+        title: t("This Week"),
+        conversations: [] as Conversation[],
+      },
+      {
+        title: t("This Month"),
+        conversations: [] as Conversation[],
+      },
+      {
+        title: t("Older"),
+        conversations: [] as Conversation[],
+      },
     ];
-
     conversations.forEach((conv) => {
       // Get the timestamp of the last message or use the conversation creation time
       const lastMessageTimestamp =
@@ -548,19 +568,32 @@ export default function Chat() {
                 conv.createdAt
             ).getTime()
           : conv.createdAt.getTime();
-
       const lastMessageDate = new Date(lastMessageTimestamp);
-
       if (isToday(lastMessageDate)) {
-        groups[0].conversations.push({ ...conv, lastMessageTimestamp });
+        groups[0].conversations.push({
+          ...conv,
+          lastMessageTimestamp,
+        });
       } else if (isYesterday(lastMessageDate)) {
-        groups[1].conversations.push({ ...conv, lastMessageTimestamp });
+        groups[1].conversations.push({
+          ...conv,
+          lastMessageTimestamp,
+        });
       } else if (isThisWeek(lastMessageDate)) {
-        groups[2].conversations.push({ ...conv, lastMessageTimestamp });
+        groups[2].conversations.push({
+          ...conv,
+          lastMessageTimestamp,
+        });
       } else if (isThisMonth(lastMessageDate)) {
-        groups[3].conversations.push({ ...conv, lastMessageTimestamp });
+        groups[3].conversations.push({
+          ...conv,
+          lastMessageTimestamp,
+        });
       } else {
-        groups[4].conversations.push({ ...conv, lastMessageTimestamp });
+        groups[4].conversations.push({
+          ...conv,
+          lastMessageTimestamp,
+        });
       }
     });
 
@@ -572,10 +605,8 @@ export default function Chat() {
         return bTimestamp - aTimestamp;
       });
     });
-
     return groups.filter((group) => group.conversations.length > 0);
   }, [conversations]);
-
   const deleteConversation = useCallback(
     (id: string) => {
       setConversations((prev) => {
@@ -584,7 +615,6 @@ export default function Chat() {
         );
         const index = flatConversations.findIndex((conv) => conv.id === id);
         const updatedConversations = prev.filter((conv) => conv.id !== id);
-
         if (currentConversationId === id) {
           let newSelectedId = null;
           if (flatConversations.length > 1) {
@@ -620,7 +650,6 @@ export default function Chat() {
           "conversations",
           JSON.stringify(updatedConversations)
         );
-
         return updatedConversations;
       });
     },
@@ -632,13 +661,11 @@ export default function Chat() {
       router,
     ]
   );
-
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && currentConversationId) {
       const file = e.target.files[0];
       try {
         const text = await readFileAsText(file);
-
         const newDocument: Document = {
           id: uuidv4(),
           name: file.name,
@@ -647,10 +674,8 @@ export default function Chat() {
           content: text,
           conversationId: currentConversationId,
         };
-
         const newDocumentContext = (documentContext || "") + "\n\n" + text;
         setDocumentContext(newDocumentContext);
-
         setConversations((prev) =>
           prev.map((conv) =>
             conv.id === currentConversationId
@@ -662,7 +687,6 @@ export default function Chat() {
               : conv
           )
         );
-
         setDocuments((prev) => [...prev, newDocument]);
         setPinnedDocuments((prev) => [...prev, newDocument]);
 
@@ -673,13 +697,12 @@ export default function Chat() {
       } catch (error) {
         console.error("Error reading file:", error);
         toast({
-          description: "Error uploading document. Please try again.",
+          description: t("Error uploading document. Please try again."),
           variant: "destructive",
         });
       }
     }
   };
-
   const handleGetQuote = (index: number) => {
     if (index > 0 && messages[index - 1].role === "user") {
       const question = messages[index - 1].content;
@@ -687,25 +710,24 @@ export default function Chat() {
     }
     setIsQuoteDialogOpen(true);
   };
-
   const handleCopy = (content: string) => {
     navigator.clipboard.writeText(content);
     toast({
-      description: "Message copied to clipboard",
+      description: t("Message copied to clipboard"),
     });
   };
-
   const handleRetry = useCallback(
     async (messageIndex: number) => {
       animateIcon("regenerate", messages[messageIndex].id);
       if (isLimitReached && !userApiKey) {
         showToast(
-          "You've reached the message limit. Please set your OpenAI API key for unlimited use.",
+          t(
+            "You've reached the message limit. Please set your OpenAI API key for unlimited use."
+          ),
           "destructive"
         );
         return;
       }
-
       if (messageIndex < 1 || messageIndex >= messages.length) {
         console.error(
           `[${new Date().toISOString()}] Invalid message index for regeneration`
@@ -731,7 +753,10 @@ export default function Chat() {
           setConversations((prev) =>
             prev.map((conv) =>
               conv.id === currentConversationId
-                ? { ...conv, messages: updatedMessages }
+                ? {
+                    ...conv,
+                    messages: updatedMessages,
+                  }
                 : conv
             )
           );
@@ -740,7 +765,9 @@ export default function Chat() {
         // Call reload with the new seed
         reload({
           options: {
-            body: { seed: newSeed },
+            body: {
+              seed: newSeed,
+            },
           },
         });
         incrementMessageCount();
@@ -759,26 +786,21 @@ export default function Chat() {
       seed,
     ]
   );
-
   const handleFeedback = useCallback(
     async (messageId: string, isPositive: boolean) => {
       const message = messages.find(
         (m) => m.id === messageId
       ) as ExtendedMessage;
-
       const requestId = message.requestId || latestRequestIdRef.current;
-
       if (!requestId) {
         console.error("No request ID available for feedback");
         toast({
-          description: "Unable to submit feedback at this time",
+          description: t("Unable to submit feedback at this time"),
           variant: "destructive",
         });
         return;
       }
-
       const feedbackType = isPositive ? "thumbsUp" : "thumbsDown";
-
       setMessageFeedback((prev) => {
         const currentFeedback = prev[messageId];
 
@@ -790,7 +812,11 @@ export default function Chat() {
           // Otherwise, set or update the feedback
           return {
             ...prev,
-            [messageId]: { messageId, requestId, feedbackType },
+            [messageId]: {
+              messageId,
+              requestId,
+              feedbackType,
+            },
           };
         }
       });
@@ -801,11 +827,10 @@ export default function Chat() {
         messageFeedback[messageId].feedbackType !== feedbackType
       ) {
         toast({
-          description: `${
-            isPositive ? "Positive" : "Negative"
-          } feedback submitted`,
+          description: t(`{dynamic1} feedback submitted`, {
+            dynamic1: isPositive ? "Positive" : "Negative",
+          }),
         });
-
         try {
           const response = await fetch("/api/feedback", {
             method: "POST",
@@ -819,14 +844,13 @@ export default function Chat() {
               userId: userName || "anonymous",
             }),
           });
-
           if (!response.ok) {
             throw new Error("Failed to submit feedback");
           }
         } catch (error) {
           console.error("Error submitting feedback:", error);
           toast({
-            description: "Failed to submit feedback",
+            description: t("Failed to submit feedback"),
             variant: "destructive",
           });
         }
@@ -834,17 +858,14 @@ export default function Chat() {
     },
     [messages, userName, toast, messageFeedback]
   );
-
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
-
   const removeDocument = (docId: string) => {
     setDocuments((prevDocs) => prevDocs.filter((doc) => doc.id !== docId));
     setPinnedDocuments((prevPinned) =>
       prevPinned.filter((doc) => doc.id !== docId)
     );
-
     if (currentConversationId) {
       setConversations((prevConvs) =>
         prevConvs.map((conv) => {
@@ -884,16 +905,15 @@ export default function Chat() {
   useEffect(() => {
     titleGenerationTriggeredRef.current = {};
   }, [currentConversationId]);
-
   const animateIcon = (iconName: string, messageId: string) => {
-    setAnimatedIcons(prev => ({
+    setAnimatedIcons((prev) => ({
       ...prev,
-      [messageId]: iconName
+      [messageId]: iconName,
     }));
     setTimeout(() => {
-      setAnimatedIcons(prev => ({
+      setAnimatedIcons((prev) => ({
         ...prev,
-        [messageId]: null
+        [messageId]: null,
       }));
     }, 500);
   };
@@ -901,7 +921,9 @@ export default function Chat() {
   // Handle prompt click for new chat
   const handlePromptClick = (prompt: string) => {
     handleInputChange({
-      target: { value: prompt },
+      target: {
+        value: prompt,
+      },
     } as React.ChangeEvent<HTMLInputElement>);
     // Focus the input immediately after setting the value
     setTimeout(() => {
@@ -916,7 +938,6 @@ export default function Chat() {
       const parsedFeedback = JSON.parse(storedFeedback);
       setMessageFeedback(parsedFeedback);
     }
-
     const storedLastRequestId = localStorage.getItem("lastRequestId");
     if (storedLastRequestId) {
       latestRequestIdRef.current = storedLastRequestId;
@@ -966,20 +987,20 @@ export default function Chat() {
                       variant="ghost"
                       size="icon"
                       onClick={toggleSidebar}
-                      aria-label="Open sidebar"
+                      aria-label={t("Open sidebar")}
                     >
                       <PanelLeftOpen className="h-5 w-5" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="bottom" align="start">
-                    <p>Open sidebar</p>
+                    <p>{t("Open sidebar")}</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             )}
             {!isSidebarOpen && (
               <h1 className="text-2xl font-bold text-[#3675F1] font-['Avenir'] flex items-center">
-                Briefcase
+                {t("Briefcase")}
               </h1>
             )}
           </div>
@@ -993,13 +1014,13 @@ export default function Chat() {
                         variant="ghost"
                         size="icon"
                         onClick={startNewChat}
-                        aria-label="New chat"
+                        aria-label={t("New chat")}
                       >
                         <PenSquare className="h-5 w-5" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent side="bottom">
-                      <p>New chat</p>
+                      <p>{t("New chat")}</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -1010,13 +1031,13 @@ export default function Chat() {
                         variant="ghost"
                         size="icon"
                         onClick={() => setIsSettingsOpen(true)}
-                        aria-label="Open settings"
+                        aria-label={t("Open settings")}
                       >
                         <Settings className="h-5 w-5" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent side="bottom" align="end">
-                      <p>Open settings</p>
+                      <p>{t("Open settings")}</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -1032,7 +1053,9 @@ export default function Chat() {
               }`}
             >
               <div className="flex items-center text-center space-x-2">
-                <span className="text-sm font-medium">Pinned Documents</span>
+                <span className="text-sm font-medium">
+                  {t("Pinned Documents")}
+                </span>
               </div>
               <div className="flex flex-col space-y-1">
                 {pinnedDocuments.map((doc) => (
@@ -1059,7 +1082,7 @@ export default function Chat() {
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>Remove document</p>
+                          <p>{t("Remove document")}</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -1103,11 +1126,12 @@ export default function Chat() {
               <div className="flex-1 flex items-center justify-center min-h-[calc(100vh-14.5rem)] w-full">
                 <div className="text-center max-w-md mx-auto">
                   <h2 className="text-2xl font-semibold mb-2">
-                    Welcome to Briefcase
+                    {t("Welcome to Briefcase")}
                   </h2>
                   <p className="text-muted-foreground mb-4">
-                    Ask basic legal questions, summarize documents, and get a
-                    quote for more complex legal inquiries
+                    {t(
+                      "Ask basic legal questions, summarize documents, and get a quote for more complex legal inquiries"
+                    )}
                   </p>
                   <div className="flex flex-wrap justify-center gap-2 mb-8">
                     <Badge
@@ -1115,13 +1139,16 @@ export default function Chat() {
                       className="bg-muted text-foreground hover:bg-[#3675F1] hover:text-white px-3 py-1 text-xs cursor-pointer flex items-center justify-between"
                       onClick={() =>
                         handlePromptClick(
-                          "Explain the difference between a valuation cap and discount"
+                          t(
+                            "Explain the difference between a valuation cap and discount"
+                          )
                         )
                       }
                     >
                       <span>
-                        Explain the difference between a valuation cap and
-                        discount
+                        {t(
+                          "Explain the difference between a valuation cap and discount"
+                        )}
                       </span>
                       <ArrowUpRight className="h-3 w-3 ml-1" />
                     </Badge>
@@ -1130,11 +1157,13 @@ export default function Chat() {
                       className="bg-muted text-foreground hover:bg-[#3675F1] hover:text-white px-3 py-1 text-xs cursor-pointer flex items-center justify-between"
                       onClick={() =>
                         handlePromptClick(
-                          "Summarize the terms of this SAFE agreement"
+                          t("Summarize the terms of this SAFE agreement")
                         )
                       }
                     >
-                      <span>Summarize the terms of this SAFE agreement</span>
+                      <span>
+                        {t("Summarize the terms of this SAFE agreement")}
+                      </span>
                       <ArrowUpRight className="h-3 w-3 ml-1" />
                     </Badge>
                     <Badge
@@ -1142,12 +1171,14 @@ export default function Chat() {
                       className="bg-muted text-foreground hover:bg-[#3675F1] hover:text-white px-3 py-1 text-xs cursor-pointer flex items-center justify-between"
                       onClick={() =>
                         handlePromptClick(
-                          "What are the common fees/carry for a venture capital firm in year one"
+                          t(
+                            "What are the common fees/carry for a venture capital firm in year one"
+                          )
                         )
                       }
                     >
                       <span>
-                        What are the common fees/carry for a venture firm
+                        {t("What are the common fees/carry for a venture firm")}
                       </span>
                       <ArrowUpRight className="h-3 w-3 ml-1" />
                     </Badge>
@@ -1215,14 +1246,15 @@ export default function Chat() {
                                       <Copy
                                         className={cn(
                                           "h-4 w-4",
-                                          animatedIcons[message.id] === "copy" &&
+                                          animatedIcons[message.id] ===
+                                            "copy" &&
                                             "animate-shake text-[#8EC5FC]"
                                         )}
                                       />
                                     </Button>
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    <p>Copy</p>
+                                    <p>{t("Copy")}</p>
                                   </TooltipContent>
                                 </Tooltip>
                               </TooltipProvider>
@@ -1239,14 +1271,15 @@ export default function Chat() {
                                       <RefreshCw
                                         className={cn(
                                           "h-4 w-4",
-                                          animatedIcons[message.id] === "regenerate" &&
+                                          animatedIcons[message.id] ===
+                                            "regenerate" &&
                                             "animate-spin text-[#3675F1]"
                                         )}
                                       />
                                     </Button>
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    <p>Regenerate</p>
+                                    <p>{t("Regenerate")}</p>
                                   </TooltipContent>
                                 </Tooltip>
                               </TooltipProvider>
@@ -1268,14 +1301,14 @@ export default function Chat() {
                                             ?.feedbackType === "thumbsUp"
                                             ? "text-green-500"
                                             : "",
-                                          animatedIcons[message.id] === "thumbsUp" &&
-                                            "animate-shake"
+                                          animatedIcons[message.id] ===
+                                            "thumbsUp" && "animate-shake"
                                         )}
                                       />
                                     </Button>
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    <p>Good response</p>
+                                    <p>{t("Good response")}</p>
                                   </TooltipContent>
                                 </Tooltip>
                               </TooltipProvider>
@@ -1297,14 +1330,14 @@ export default function Chat() {
                                             ?.feedbackType === "thumbsDown"
                                             ? "text-red-500"
                                             : "",
-                                          animatedIcons[message.id] === "thumbsDown" &&
-                                            "animate-shake"
+                                          animatedIcons[message.id] ===
+                                            "thumbsDown" && "animate-shake"
                                         )}
                                       />
                                     </Button>
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    <p>Bad response</p>
+                                    <p>{t("Bad response")}</p>
                                   </TooltipContent>
                                 </Tooltip>
                               </TooltipProvider>
@@ -1313,7 +1346,7 @@ export default function Chat() {
                                 size="sm"
                                 onClick={() => handleGetQuote(index)}
                               >
-                                Get Quote
+                                {t("Get Quote")}
                               </Button>
                             </div>
                           )}
@@ -1344,9 +1377,13 @@ export default function Chat() {
         >
           {showBanner && (
             <div className="text-sm text-muted-foreground px-4 py-2 w-full">
-              You have {remainingMessages} message
-              {remainingMessages !== 1 ? "s" : ""} remaining. To send more
-              messages, please add your OpenAI API key in settings.
+              {t(
+                `You have {remainingMessages} message{pluralize} remaining. To send more messages, please add your OpenAI API key in settings.`,
+                {
+                  remainingMessages: remainingMessages,
+                  pluralize: remainingMessages !== 1 ? "s" : "",
+                }
+              )}
             </div>
           )}
         </div>
@@ -1354,7 +1391,7 @@ export default function Chat() {
           <form onSubmit={handleSend} className="flex flex-col space-y-2">
             <div className="flex items-center space-x-2">
               <Input
-                placeholder="Type your message..."
+                placeholder={t("Type your message...")}
                 value={input}
                 onChange={handleInputChange}
                 className="flex-1"
@@ -1383,7 +1420,7 @@ export default function Chat() {
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="top" align="end">
-                    <p>Attach document</p>
+                    <p>{t("Attach document")}</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -1400,25 +1437,27 @@ export default function Chat() {
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="top" align="end">
-                    <p>Send message</p>
+                    <p>{t("Send message")}</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             </div>
           </form>
           <div className="mt-2 text-xs text-muted-foreground text-center">
-            Briefcase can make mistakes. Please check important info with a
-            lawyer.
+            {t(
+              "Briefcase can make mistakes. Please check important info with a lawyer."
+            )}
           </div>
         </div>
       </div>
       <Dialog open={isQuoteDialogOpen} onOpenChange={setIsQuoteDialogOpen}>
         <DialogContent className="sm:max-w-xl">
           <DialogHeader>
-            <DialogTitle>Get Quote</DialogTitle>
+            <DialogTitle>{t("Get Quote")}</DialogTitle>
             <DialogDescription>
-              Submit a question to see how much it would cost to consult a
-              lawyer
+              {t(
+                "Submit a question to see how much it would cost to consult a lawyer"
+              )}
             </DialogDescription>
           </DialogHeader>
           <FeeCalculator
