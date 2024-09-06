@@ -56,30 +56,37 @@ export default function Sidebar({
   return (
     <div className={`${isMobile ? 'w-full' : 'w-64'} flex flex-col h-full border bg-background`}>
       <div className="p-2 flex justify-between items-center">
+        <div className="flex items-center">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onToggleSidebar}
+                  aria-label="Close sidebar"
+                >
+                  <PanelLeftClose className="h-5 w-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" align="start">
+                <p>Close sidebar</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          {isMobile && (
+            <h1 className="text-2xl font-bold text-[#3675F1] font-['Avenir'] ml-2">
+              Briefcase
+            </h1>
+          )}
+        </div>
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={onToggleSidebar}
-                aria-label="Close sidebar"
-              >
-                <PanelLeftClose className="h-5 w-5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" align="start">
-              <p>Close sidebar</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleNewChat} // Use the new handler
+                onClick={handleNewChat}
                 aria-label="New chat"
               >
                 <PenSquare className="h-5 w-5" />
@@ -92,9 +99,11 @@ export default function Sidebar({
         </TooltipProvider>
       </div>
       <div className="flex-grow overflow-y-auto">
-        <h1 className="text-2xl font-bold mb-4 text-[#3675F1] font-['Avenir'] flex items-center px-2">
-          Briefcase
-        </h1>
+        {!isMobile && (
+          <h1 className="text-2xl font-bold mb-4 text-[#3675F1] font-['Avenir'] flex items-center px-2">
+            Briefcase
+          </h1>
+        )}
         {isLoading ? (
           // Skeleton loader
           <div className="flex flex-col h-full space-y-4 p-2">
