@@ -14,6 +14,7 @@ import {
 import { Conversation } from "../types/chat";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "./ui/skeleton";
+import { Header } from "./header";
 interface SidebarProps {
   groupedConversations: {
     title: string;
@@ -26,6 +27,8 @@ interface SidebarProps {
   onToggleSidebar: () => void;
   onOpenSettings: () => void;
   isLoading: boolean;
+  isMobile: boolean | null;
+  closeSidebar: () => void; // Add this new prop
 }
 export default function Sidebar({
   groupedConversations,
@@ -36,53 +39,37 @@ export default function Sidebar({
   onToggleSidebar,
   onOpenSettings,
   isLoading,
+  isMobile,
+  closeSidebar, // Add this new prop
 }: SidebarProps) {
   const { t } = useI18n();
   const [hoveredConversationId, setHoveredConversationId] = useState<
     string | null
   >(null);
+  const handleNewChat = () => {
+    onNewChat();
+    if (isMobile) {
+      closeSidebar(); // Close the sidebar on mobile when starting a new chat
+    }
+  };
   return (
-    <div className="w-64 flex flex-col h-full border">
-      <div className="p-2 flex justify-between items-center">
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onToggleSidebar}
-                aria-label={t("Close sidebar")}
-              >
-                <PanelLeftClose className="h-5 w-5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" align="start">
-              <p>{t("Close sidebar")}</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onNewChat}
-                aria-label={t("New chat")}
-              >
-                <PenSquare className="h-5 w-5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">
-              <p>{t("New chat")}</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </div>
-      <div className="flex-grow overflow-y-auto">
-        <h1 className="text-2xl font-bold mb-4 text-[#3675F1] font-['Avenir'] flex items-center px-2">
-          {t("Briefcase")}
-        </h1>
+    <div
+      className={`${
+        isMobile ? "w-full" : "w-64 border-r"
+      } flex flex-col h-full bg-background`}
+    >
+      <Header
+        toggleSidebar={onToggleSidebar}
+        startNewChat={handleNewChat}
+        isMobile={isMobile ?? false}
+        isSidebarOpen={true}
+      />
+      <div className="flex-1 overflow-y-auto">
+        {!isMobile && (
+          <h1 className="text-2xl font-bold mb-4 text-[#3675F1] font-['Avenir'] flex items-center px-4 pt-2">
+            {t("Briefcase")}
+          </h1>
+        )}
         {isLoading ? (
           // Skeleton loader
           <div className="flex flex-col h-full space-y-4 p-2">
@@ -97,6 +84,11 @@ export default function Sidebar({
                 <Skeleton className="h-8 w-full" />
               </div>
             ))}
+          </div>
+        ) : groupedConversations.length === 0 ? (
+          // Empty state
+          <div className="flex items-center justify-center h-full">
+            <p className="text-gray-500">{t("No conversations")}</p>
           </div>
         ) : (
           // Actual conversations

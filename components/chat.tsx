@@ -62,6 +62,8 @@ import { useTheme } from "next-themes";
 import { Badge } from "./ui/badge";
 import { Skeleton } from "./ui/skeleton";
 import { cn } from "@/lib/utils";
+import { useMobileDetect } from "./mobile-detector";
+import { Header } from "./header";
 export default function Chat() {
   const { t } = useI18n();
   // Constants
@@ -110,6 +112,19 @@ export default function Chat() {
   const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
   const [quoteQuestion, setQuoteQuestion] = useState<string>("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const { isMobile, isLoading: isMobileLoading } = useMobileDetect();
+  const toggleSidebar = () => {
+    setIsSidebarOpen((prev) => !prev);
+  };
+  const closeSidebar = () => {
+    setIsSidebarOpen(false);
+  };
+  const handleNewChat = () => {
+    startNewChat();
+    if (isMobile) {
+      closeSidebar();
+    }
+  };
 
   // useChat hook
   const {
@@ -641,9 +656,9 @@ export default function Chat() {
           } else {
             // If no conversations left, clear messages and reset the URL
             setMessages([]);
-            router.push("/");
           }
         }
+
 
         // Update localStorage
         localStorage.setItem(
@@ -858,9 +873,6 @@ export default function Chat() {
     },
     [messages, userName, toast, messageFeedback]
   );
-  const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
-  };
   const removeDocument = (docId: string) => {
     setDocuments((prevDocs) => prevDocs.filter((doc) => doc.id !== docId));
     setPinnedDocuments((prevPinned) =>
@@ -954,97 +966,59 @@ export default function Chat() {
     }
   }, [messageFeedback]);
 
+  // Early return if still detecting mobile
+  if (isMobileLoading) {
+    return null;
+  }
+
   // Render
   return (
-    <div className="flex h-screen bg-background">
-      {isSidebarOpen && (
-        <Sidebar
-          groupedConversations={groupedConversations}
-          currentConversationId={currentConversationId}
-          onConversationSelect={(id) => {
-            setCurrentConversationId(id);
-            const conversation = conversations.find((conv) => conv.id === id);
-            if (conversation) {
-              setMessages(conversation.messages);
-              setFocusTrigger((prev) => prev + 1);
-            }
-          }}
-          onConversationDelete={deleteConversation}
-          onNewChat={startNewChat}
-          onToggleSidebar={toggleSidebar}
-          onOpenSettings={() => setIsSettingsOpen(true)}
-          isLoading={isLoadingSidebar}
-        />
-      )}
-      <div className="flex-1 flex flex-col">
-        <div className="p-2 bg-background flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            {!isSidebarOpen && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={toggleSidebar}
-                      aria-label={t("Open sidebar")}
-                    >
-                      <PanelLeftOpen className="h-5 w-5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" align="start">
-                    <p>{t("Open sidebar")}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
-            {!isSidebarOpen && (
-              <h1 className="text-2xl font-bold text-[#3675F1] font-['Avenir'] flex items-center">
-                {t("Briefcase")}
-              </h1>
-            )}
-          </div>
-          <div className="flex items-center space-x-2 mr-1">
-            {!isSidebarOpen && (
-              <>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={startNewChat}
-                        aria-label={t("New chat")}
-                      >
-                        <PenSquare className="h-5 w-5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom">
-                      <p>{t("New chat")}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setIsSettingsOpen(true)}
-                        aria-label={t("Open settings")}
-                      >
-                        <Settings className="h-5 w-5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" align="end">
-                      <p>{t("Open settings")}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </>
-            )}
-          </div>
+    <div
+      className={`flex h-screen bg-background ${isMobile ? "relative" : ""}`}
+    >
+      {((isMobile && isSidebarOpen) || !isMobile) && (
+        <div
+          className={`${isMobile ? "absolute inset-0 z-50" : ""} ${
+            isSidebarOpen ? "" : "hidden"
+          }`}
+        >
+          <Sidebar
+            groupedConversations={groupedConversations}
+            currentConversationId={currentConversationId}
+            onConversationSelect={(id) => {
+              setCurrentConversationId(id);
+              const conversation = conversations.find((conv) => conv.id === id);
+              if (conversation) {
+                setMessages(conversation.messages);
+                setFocusTrigger((prev) => prev + 1);
+              }
+              if (isMobile) {
+                closeSidebar();
+              }
+            }}
+            onConversationDelete={deleteConversation}
+            onNewChat={handleNewChat}
+            onToggleSidebar={toggleSidebar}
+            onOpenSettings={() => setIsSettingsOpen(true)}
+            isLoading={isLoadingSidebar}
+            isMobile={isMobile}
+            closeSidebar={closeSidebar}
+          />
         </div>
+      )}
+      <div
+        className={`flex-1 flex flex-col ${
+          isMobile && isSidebarOpen ? "hidden" : ""
+        }`}
+      >
+        {(isMobile || !isSidebarOpen) && (
+          <Header
+            toggleSidebar={toggleSidebar}
+            startNewChat={handleNewChat}
+            isMobile={isMobile ?? false}
+            isSidebarOpen={isSidebarOpen}
+          />
+        )}
         <div className="flex-1 flex flex-col overflow-hidden">
           {pinnedDocuments.length > 0 && (
             <div
