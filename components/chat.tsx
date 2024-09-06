@@ -62,6 +62,7 @@ import { Badge } from "./ui/badge";
 import { Skeleton } from "./ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useMobileDetect } from "./mobile-detector";
+import { Header } from "./header";
 
 export default function Chat() {
   // Constants
@@ -997,74 +998,14 @@ export default function Chat() {
           isMobile && isSidebarOpen ? "hidden" : ""
         }`}
       >
-        <div className="p-2 bg-background flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            {!isSidebarOpen && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={toggleSidebar}
-                      aria-label="Open sidebar"
-                    >
-                      <PanelLeftOpen className="h-5 w-5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" align="start">
-                    <p>Open sidebar</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
-            {!isSidebarOpen && (
-              <h1 className="text-2xl font-bold text-[#3675F1] font-['Avenir'] flex items-center">
-                Briefcase
-              </h1>
-            )}
-          </div>
-          <div className="flex items-center space-x-2 mr-1">
-            {!isSidebarOpen && (
-              <>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={startNewChat}
-                        aria-label="New chat"
-                      >
-                        <PenSquare className="h-5 w-5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom">
-                      <p>New chat</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setIsSettingsOpen(true)}
-                        aria-label="Open settings"
-                      >
-                        <Settings className="h-5 w-5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" align="end">
-                      <p>Open settings</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </>
-            )}
-          </div>
-        </div>
+        {(isMobile || !isSidebarOpen) && (
+          <Header
+            toggleSidebar={toggleSidebar}
+            startNewChat={handleNewChat}
+            isMobile={isMobile ?? false}
+            isSidebarOpen={isSidebarOpen}
+          />
+        )}
         <div className="flex-1 flex flex-col overflow-hidden">
           {pinnedDocuments.length > 0 && (
             <div
