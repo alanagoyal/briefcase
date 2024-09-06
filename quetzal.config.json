@@ -1,0 +1,6 @@
+{
+  "paths": [
+    "app/**/*.{js,tsx}",
+    "components/**/*.{js,tsx}"
+  ]
+}
