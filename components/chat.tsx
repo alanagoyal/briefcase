@@ -1139,7 +1139,9 @@ export default function Chat() {
                       className="bg-muted text-foreground hover:bg-[#3675F1] hover:text-white px-3 py-1 text-xs cursor-pointer flex items-center justify-between"
                       onClick={() =>
                         handlePromptClick(
-                          "Explain the difference between a valuation cap and discount"
+                          t(
+                            "Explain the difference between a valuation cap and discount"
+                          )
                         )
                       }
                     >
@@ -1155,7 +1157,7 @@ export default function Chat() {
                       className="bg-muted text-foreground hover:bg-[#3675F1] hover:text-white px-3 py-1 text-xs cursor-pointer flex items-center justify-between"
                       onClick={() =>
                         handlePromptClick(
-                          "Summarize the terms of this SAFE agreement"
+                          t("Summarize the terms of this SAFE agreement")
                         )
                       }
                     >
@@ -1169,7 +1171,9 @@ export default function Chat() {
                       className="bg-muted text-foreground hover:bg-[#3675F1] hover:text-white px-3 py-1 text-xs cursor-pointer flex items-center justify-between"
                       onClick={() =>
                         handlePromptClick(
-                          "What are the common fees/carry for a venture capital firm in year one"
+                          t(
+                            "What are the common fees/carry for a venture capital firm in year one"
+                          )
                         )
                       }
                     >
@@ -1374,9 +1378,10 @@ export default function Chat() {
           {showBanner && (
             <div className="text-sm text-muted-foreground px-4 py-2 w-full">
               {t(
-                `You have {remainingMessages} message {dynamic1} remaining. To send more messages, please add your OpenAI API key in settings.`,
+                `You have {remainingMessages} message{pluralize} remaining. To send more messages, please add your OpenAI API key in settings.`,
                 {
-                  dynamic1: remainingMessages !== 1 ? "s" : "",
+                  remainingMessages: remainingMessages,
+                  pluralize: remainingMessages !== 1 ? "s" : "",
                 }
               )}
             </div>

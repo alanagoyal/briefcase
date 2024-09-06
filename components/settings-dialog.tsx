@@ -202,7 +202,6 @@ export default function SettingsDialog({
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  t("Saving...")
                 </>
               ) : localStorage.getItem("userName") ? (
                 t("Save Settings")
