@@ -29,6 +29,7 @@ interface SidebarProps {
   onOpenSettings: () => void;
   isLoading: boolean; 
   isMobile: boolean | null;
+  closeSidebar: () => void; // Add this new prop
 }
 
 export default function Sidebar({
@@ -41,8 +42,16 @@ export default function Sidebar({
   onOpenSettings,
   isLoading,
   isMobile,
+  closeSidebar, // Add this new prop
 }: SidebarProps) {
   const [hoveredConversationId, setHoveredConversationId] = useState<string | null>(null);
+
+  const handleNewChat = () => {
+    onNewChat();
+    if (isMobile) {
+      closeSidebar(); // Close the sidebar on mobile when starting a new chat
+    }
+  };
 
   return (
     <div className={`${isMobile ? 'w-full' : 'w-64'} flex flex-col h-full border bg-background`}>
@@ -70,7 +79,7 @@ export default function Sidebar({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={onNewChat}
+                onClick={handleNewChat} // Use the new handler
                 aria-label="New chat"
               >
                 <PenSquare className="h-5 w-5" />

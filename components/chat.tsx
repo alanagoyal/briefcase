@@ -92,25 +92,37 @@ export default function Chat() {
   const [messageFeedback, setMessageFeedback] = useState<{
     [key: string]: MessageFeedback;
   }>({});
-  const [animatedIcons, setAnimatedIcons] = useState<{ [key: string]: string | null }>({});
+  const [animatedIcons, setAnimatedIcons] = useState<{
+    [key: string]: string | null;
+  }>({});
   const [regeneratingIndex, setRegeneratingIndex] = useState<number | null>(
     null
   );
   const [seed, setSeed] = useState<number>(123);
 
-    // Refs
-    const inputRef = useRef<HTMLInputElement>(null);
-    const fileInputRef = useRef<HTMLInputElement>(null);
-    const scrollAreaRef = useRef<HTMLDivElement>(null);
-    const latestRequestIdRef = useRef<string | null>(null);
-    const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
-    const [quoteQuestion, setQuoteQuestion] = useState<string>("");
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-
-  const isMobile = useMobileDetect();
+  // Refs
+  const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const latestRequestIdRef = useRef<string | null>(null);
+  const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
+  const [quoteQuestion, setQuoteQuestion] = useState<string>("");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const { isMobile, isLoading: isMobileLoading } = useMobileDetect();
 
   const toggleSidebar = () => {
     setIsSidebarOpen((prev) => !prev);
+  };
+
+  const closeSidebar = () => {
+    setIsSidebarOpen(false);
+  };
+
+  const handleNewChat = () => {
+    startNewChat();
+    if (isMobile) {
+      closeSidebar();
+    }
   };
 
   // useChat hook
@@ -144,7 +156,11 @@ export default function Chat() {
     },
     onFinish: (message) => {
       if (currentConversationId) {
-        updateConversation(currentConversationId, message, latestRequestIdRef.current);
+        updateConversation(
+          currentConversationId,
+          message,
+          latestRequestIdRef.current
+        );
       }
       setIsStreamStarted(false);
     },
@@ -889,14 +905,14 @@ export default function Chat() {
   }, [currentConversationId]);
 
   const animateIcon = (iconName: string, messageId: string) => {
-    setAnimatedIcons(prev => ({
+    setAnimatedIcons((prev) => ({
       ...prev,
-      [messageId]: iconName
+      [messageId]: iconName,
     }));
     setTimeout(() => {
-      setAnimatedIcons(prev => ({
+      setAnimatedIcons((prev) => ({
         ...prev,
-        [messageId]: null
+        [messageId]: null,
       }));
     }, 500);
   };
@@ -936,11 +952,22 @@ export default function Chat() {
     }
   }, [messageFeedback]);
 
+  // Early return if still detecting mobile
+  if (isMobileLoading) {
+    return null;
+  }
+
   // Render
   return (
-    <div className={`flex h-screen bg-background ${isMobile ? 'relative' : ''}`}>
+    <div
+      className={`flex h-screen bg-background ${isMobile ? "relative" : ""}`}
+    >
       {((isMobile && isSidebarOpen) || !isMobile) && (
-        <div className={`${isMobile ? 'absolute inset-0 z-50' : ''} ${isSidebarOpen ? '' : 'hidden'}`}>
+        <div
+          className={`${isMobile ? "absolute inset-0 z-50" : ""} ${
+            isSidebarOpen ? "" : "hidden"
+          }`}
+        >
           <Sidebar
             groupedConversations={groupedConversations}
             currentConversationId={currentConversationId}
@@ -952,19 +979,24 @@ export default function Chat() {
                 setFocusTrigger((prev) => prev + 1);
               }
               if (isMobile) {
-                setIsSidebarOpen(false);
+                closeSidebar();
               }
             }}
             onConversationDelete={deleteConversation}
-            onNewChat={startNewChat}
+            onNewChat={handleNewChat}
             onToggleSidebar={toggleSidebar}
             onOpenSettings={() => setIsSettingsOpen(true)}
             isLoading={isLoadingSidebar}
             isMobile={isMobile}
+            closeSidebar={closeSidebar}
           />
         </div>
       )}
-      <div className={`flex-1 flex flex-col ${isMobile && isSidebarOpen ? 'hidden' : ''}`}>
+      <div
+        className={`flex-1 flex flex-col ${
+          isMobile && isSidebarOpen ? "hidden" : ""
+        }`}
+      >
         <div className="p-2 bg-background flex items-center justify-between">
           <div className="flex items-center space-x-2">
             {!isSidebarOpen && (
@@ -1224,7 +1256,8 @@ export default function Chat() {
                                       <Copy
                                         className={cn(
                                           "h-4 w-4",
-                                          animatedIcons[message.id] === "copy" &&
+                                          animatedIcons[message.id] ===
+                                            "copy" &&
                                             "animate-shake text-[#8EC5FC]"
                                         )}
                                       />
@@ -1248,7 +1281,8 @@ export default function Chat() {
                                       <RefreshCw
                                         className={cn(
                                           "h-4 w-4",
-                                          animatedIcons[message.id] === "regenerate" &&
+                                          animatedIcons[message.id] ===
+                                            "regenerate" &&
                                             "animate-spin text-[#3675F1]"
                                         )}
                                       />
@@ -1277,8 +1311,8 @@ export default function Chat() {
                                             ?.feedbackType === "thumbsUp"
                                             ? "text-green-500"
                                             : "",
-                                          animatedIcons[message.id] === "thumbsUp" &&
-                                            "animate-shake"
+                                          animatedIcons[message.id] ===
+                                            "thumbsUp" && "animate-shake"
                                         )}
                                       />
                                     </Button>
@@ -1306,8 +1340,8 @@ export default function Chat() {
                                             ?.feedbackType === "thumbsDown"
                                             ? "text-red-500"
                                             : "",
-                                          animatedIcons[message.id] === "thumbsDown" &&
-                                            "animate-shake"
+                                          animatedIcons[message.id] ===
+                                            "thumbsDown" && "animate-shake"
                                         )}
                                       />
                                     </Button>
