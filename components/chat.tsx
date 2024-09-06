@@ -61,6 +61,7 @@ import { useTheme } from "next-themes";
 import { Badge } from "./ui/badge";
 import { Skeleton } from "./ui/skeleton";
 import { cn } from "@/lib/utils";
+import { useMobileDetect } from "./mobile-detector";
 
 export default function Chat() {
   // Constants
@@ -105,6 +106,12 @@ export default function Chat() {
     const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
     const [quoteQuestion, setQuoteQuestion] = useState<string>("");
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  const isMobile = useMobileDetect();
+
+  const toggleSidebar = () => {
+    setIsSidebarOpen((prev) => !prev);
+  };
 
   // useChat hook
   const {
@@ -835,10 +842,6 @@ export default function Chat() {
     [messages, userName, toast, messageFeedback]
   );
 
-  const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
-  };
-
   const removeDocument = (docId: string) => {
     setDocuments((prevDocs) => prevDocs.filter((doc) => doc.id !== docId));
     setPinnedDocuments((prevPinned) =>
@@ -935,27 +938,33 @@ export default function Chat() {
 
   // Render
   return (
-    <div className="flex h-screen bg-background">
-      {isSidebarOpen && (
-        <Sidebar
-          groupedConversations={groupedConversations}
-          currentConversationId={currentConversationId}
-          onConversationSelect={(id) => {
-            setCurrentConversationId(id);
-            const conversation = conversations.find((conv) => conv.id === id);
-            if (conversation) {
-              setMessages(conversation.messages);
-              setFocusTrigger((prev) => prev + 1);
-            }
-          }}
-          onConversationDelete={deleteConversation}
-          onNewChat={startNewChat}
-          onToggleSidebar={toggleSidebar}
-          onOpenSettings={() => setIsSettingsOpen(true)}
-          isLoading={isLoadingSidebar}
-        />
+    <div className={`flex h-screen bg-background ${isMobile ? 'relative' : ''}`}>
+      {((isMobile && isSidebarOpen) || !isMobile) && (
+        <div className={`${isMobile ? 'absolute inset-0 z-50' : ''} ${isSidebarOpen ? '' : 'hidden'}`}>
+          <Sidebar
+            groupedConversations={groupedConversations}
+            currentConversationId={currentConversationId}
+            onConversationSelect={(id) => {
+              setCurrentConversationId(id);
+              const conversation = conversations.find((conv) => conv.id === id);
+              if (conversation) {
+                setMessages(conversation.messages);
+                setFocusTrigger((prev) => prev + 1);
+              }
+              if (isMobile) {
+                setIsSidebarOpen(false);
+              }
+            }}
+            onConversationDelete={deleteConversation}
+            onNewChat={startNewChat}
+            onToggleSidebar={toggleSidebar}
+            onOpenSettings={() => setIsSettingsOpen(true)}
+            isLoading={isLoadingSidebar}
+            isMobile={isMobile}
+          />
+        </div>
       )}
-      <div className="flex-1 flex flex-col">
+      <div className={`flex-1 flex flex-col ${isMobile && isSidebarOpen ? 'hidden' : ''}`}>
         <div className="p-2 bg-background flex items-center justify-between">
           <div className="flex items-center space-x-2">
             {!isSidebarOpen && (

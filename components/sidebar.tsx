@@ -27,7 +27,8 @@ interface SidebarProps {
   onNewChat: () => void;
   onToggleSidebar: () => void;
   onOpenSettings: () => void;
-  isLoading: boolean; // Add this new prop
+  isLoading: boolean; 
+  isMobile: boolean | null;
 }
 
 export default function Sidebar({
@@ -38,12 +39,13 @@ export default function Sidebar({
   onNewChat,
   onToggleSidebar,
   onOpenSettings,
-  isLoading, // Add this new prop
+  isLoading,
+  isMobile,
 }: SidebarProps) {
   const [hoveredConversationId, setHoveredConversationId] = useState<string | null>(null);
 
   return (
-    <div className="w-64 flex flex-col h-full border">
+    <div className={`${isMobile ? 'w-full' : 'w-64'} flex flex-col h-full border bg-background`}>
       <div className="p-2 flex justify-between items-center">
         <TooltipProvider>
           <Tooltip>

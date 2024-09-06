@@ -2,8 +2,9 @@
 
 import { Textarea } from "./ui/textarea";
 import { useState } from "react";
-import { CircleDollarSign, Clock, DollarSign, Loader2 } from "lucide-react";
+import { CircleDollarSign, Clock, Loader2 } from "lucide-react";
 import { Button } from "./ui/button";
+import { useMobileDetect } from "./mobile-detector";
 
 // Define the interface for the API response
 interface FeeCalculationResponse {
@@ -22,6 +23,7 @@ export default function FeeCalculator({
   content,
   initialQuestion,
 }: FeeCalculatorProps) {
+  const isMobile = useMobileDetect();
   const [lawyerQuestion, setLawyerQuestion] = useState(initialQuestion);
   const [estimatedTime, setEstimatedTime] = useState(0);
   const [estimatedFee, setEstimatedFee] = useState(0);
@@ -109,7 +111,7 @@ export default function FeeCalculator({
       )}
       {showResults && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className={`flex ${isMobile ? 'flex-col' : 'items-center justify-between'} space-y-2 sm:space-y-0`}>
             <div className="flex items-center space-x-1 bg-muted/80 rounded-md p-2 hover:bg-muted transition-colors duration-200 cursor-arrow">
               <Clock className="w-4 h-4 text-[#3675F1]" />
               <span className="text-sm">
