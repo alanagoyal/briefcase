@@ -656,9 +656,9 @@ export default function Chat() {
           } else {
             // If no conversations left, clear messages and reset the URL
             setMessages([]);
-            router.push("/");
           }
         }
+
 
         // Update localStorage
         localStorage.setItem(

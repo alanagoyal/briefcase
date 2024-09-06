@@ -85,6 +85,11 @@ export default function Sidebar({
               </div>
             ))}
           </div>
+        ) : groupedConversations.length === 0 ? (
+          // Empty state
+          <div className="flex items-center justify-center h-full">
+            <p className="text-gray-500">{t("No conversations")}</p>
+          </div>
         ) : (
           // Actual conversations
           <div className="space-y-4 p-2">
