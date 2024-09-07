@@ -94,7 +94,7 @@ export default function Chat() {
   const [seed, setSeed] = useState<number>(123);
   const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
   const [quoteQuestion, setQuoteQuestion] = useState<string>("");
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   // Ref declarations
@@ -106,6 +106,13 @@ export default function Chat() {
   const latestRequestIdRef = useRef<string | null>(null);
 
   const { isMobile, isLoading: isMobileLoading } = useMobileDetect();
+
+  // Update the sidebar state based on mobile detection
+  useEffect(() => {
+    if (!isMobileLoading) {
+      setIsSidebarOpen(!isMobile);
+    }
+  }, [isMobile, isMobileLoading]);
 
   // Header functions
   const toggleSidebar = () => {
