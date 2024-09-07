@@ -39,10 +39,13 @@ export default function SettingsDialog({
   const [initialApiKey, setInitialApiKey] = useState("");
   const [isClient, setIsClient] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [newUser, setNewUser] = useState(true);
+
   useEffect(() => {
     setIsClient(true);
     const storedName = localStorage.getItem("userName");
     const storedApiKey = localStorage.getItem("openaiApiKey");
+    setNewUser(!storedName);
     if (storedName) {
       setName(storedName);
     }
@@ -55,18 +58,15 @@ export default function SettingsDialog({
   const handleCloseAttempt = (newOpen: boolean) => {
     if (!newOpen) {
       if (name.trim()) {
-        // Save the name if it's not empty
         localStorage.setItem("userName", name.trim());
         onNameChange(name.trim());
         onOpenChange(false);
-      } else if (!localStorage.getItem("userName")) {
-        // Prevent closing if it's the first time and name is empty
+      } else if (newUser) {
         toast({
           description: t("Please enter a name before closing"),
           variant: "destructive",
         });
       } else {
-        // Allow closing if it's not the first time, even if name is empty
         onOpenChange(false);
       }
     } else {
@@ -100,6 +100,7 @@ export default function SettingsDialog({
     e.preventDefault();
     if (name.trim()) {
       localStorage.setItem("userName", name);
+      setNewUser(false);
 
       // Check if the API key has changed
       if (apiKey !== initialApiKey) {
@@ -143,21 +144,14 @@ export default function SettingsDialog({
     return null;
   }
   return (
-    <Dialog
-      open={open}
-      onOpenChange={handleCloseAttempt}
-    >
-      <DialogContent className="sm:max-w-xl">
+    <Dialog open={open} onOpenChange={handleCloseAttempt}>
+      <DialogContent className="sm:max-w-xl" showCloseButton={!newUser}>
         <DialogHeader>
-          <DialogTitle>
-            {localStorage.getItem("userName")
-              ? t("Settings")
-              : t("Welcome to Briefcase")}
-          </DialogTitle>
+          <DialogTitle>{newUser ? t("Briefcase") : t("Settings")}</DialogTitle>
           <DialogDescription>
-            {localStorage.getItem("userName")
-              ? t("Update your information below")
-              : t("Please enter your name to get started")}
+            {newUser
+              ? t("The AI legal assistant for founders and investors")
+              : t("Update your information below")}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -172,40 +166,49 @@ export default function SettingsDialog({
               placeholder={t("Enter your name")}
               required
             />
+            {newUser && (
+              <p className="text-muted-foreground text-xs">
+                {t(
+                  "Your name will only be used for your avatar in the chat. It will not be stored anywhere."
+                )}
+              </p>
+            )}
           </div>
-          <div className="space-y-2">
-            <div className="flex items-center space-x-2">
-              <Label htmlFor="apiKey">{t("OpenAI API Key")}</Label>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <Info className="h-4 w-4 text-muted-foreground" />
-                  </TooltipTrigger>
-                  <TooltipContent side="right" align="center">
-                    <p className="max-w-[300px]">
-                      {t(
-                        "Briefcase has a limit of 10 messages per day. For unlimited access, please enter your OpenAI Key."
-                      )}
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+          {!newUser && (
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <Label htmlFor="apiKey">{t("OpenAI API Key")}</Label>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Info className="h-4 w-4 text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent side="right" align="center">
+                      <p className="max-w-[300px]">
+                        {t(
+                          "Briefcase has a limit of 10 messages per day. For unlimited access, please enter your OpenAI Key."
+                        )}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <Input
+                id="apiKey"
+                value={apiKey}
+                onChange={(e) => {
+                  setApiKey(e.target.value);
+                }}
+                type="password"
+                placeholder={t("Enter your OpenAI API Key")}
+              />
+              <p className="text-muted-foreground text-xs">
+                {t(
+                  "Your API key will not be stored on our servers. It is only used to authenticate your requests to the OpenAI API."
+                )}
+              </p>
             </div>
-            <Input
-              id="apiKey"
-              value={apiKey}
-              onChange={(e) => {
-                setApiKey(e.target.value);
-              }}
-              type="password"
-              placeholder={t("Enter your OpenAI API Key")}
-            />
-            <p className="text-muted-foreground text-xs">
-              {t(
-                "Your API key will not be stored on our servers. It is only used to authenticate your requests to the OpenAI API."
-              )}
-            </p>
-          </div>
+          )}
           <DialogFooter>
             <Button
               type="submit"
@@ -216,10 +219,10 @@ export default function SettingsDialog({
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 </>
-              ) : localStorage.getItem("userName") ? (
-                t("Save Settings")
-              ) : (
+              ) : newUser ? (
                 t("Start Chatting")
+              ) : (
+                t("Save Settings")
               )}
             </Button>
           </DialogFooter>
