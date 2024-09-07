@@ -1429,7 +1429,7 @@ export default function Chat() {
                 placeholder={t("Type your message...")}
                 value={input}
                 onChange={handleInputChange}
-                className="flex-1"
+                className="flex-1 text-base"
                 ref={inputRef}
                 autoFocus
                 disabled={isLimitReached && !userApiKey}
