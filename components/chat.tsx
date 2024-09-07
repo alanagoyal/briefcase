@@ -1037,7 +1037,6 @@ export default function Chat() {
           <Header
             toggleSidebar={toggleSidebar}
             startNewChat={handleNewChat}
-            isMobile={isMobile ?? false}
             isSidebarOpen={isSidebarOpen}
           />
         )}

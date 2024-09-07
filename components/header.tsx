@@ -15,12 +15,10 @@ import {
 export const Header = ({
   toggleSidebar,
   startNewChat,
-  isMobile,
   isSidebarOpen,
 }: {
   toggleSidebar: () => void;
   startNewChat: () => void;
-  isMobile: boolean;
   isSidebarOpen: boolean;
 }) => {
   const { t } = useI18n();
@@ -50,11 +48,9 @@ export const Header = ({
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
-        {(isMobile || (!isMobile && !isSidebarOpen)) && (
-          <h1 className="text-2xl font-bold text-[#3675F1] font-['Avenir'] flex items-center">
-            {t("Briefcase")}
-          </h1>
-        )}
+        <h1 className="text-2xl font-bold text-[#3675F1] font-['Avenir'] flex items-center">
+          {t("Briefcase")}
+        </h1>
       </div>
       <div className="flex items-center">
         <TooltipProvider>

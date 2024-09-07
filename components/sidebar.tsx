@@ -61,15 +61,9 @@ export default function Sidebar({
       <Header
         toggleSidebar={onToggleSidebar}
         startNewChat={handleNewChat}
-        isMobile={isMobile ?? false}
         isSidebarOpen={true}
       />
       <div className="flex-1 overflow-y-auto">
-        {!isMobile && (
-          <h1 className="text-2xl font-bold mb-4 text-[#3675F1] font-['Avenir'] flex items-center px-4 pt-2">
-            {t("Briefcase")}
-          </h1>
-        )}
         {isLoading ? (
           // Skeleton loader
           <div className="flex flex-col h-full space-y-4 p-2">
