@@ -52,6 +52,28 @@ export default function SettingsDialog({
     }
   }, [open]);
 
+  const handleCloseAttempt = (newOpen: boolean) => {
+    if (!newOpen) {
+      if (name.trim()) {
+        // Save the name if it's not empty
+        localStorage.setItem("userName", name.trim());
+        onNameChange(name.trim());
+        onOpenChange(false);
+      } else if (!localStorage.getItem("userName")) {
+        // Prevent closing if it's the first time and name is empty
+        toast({
+          description: t("Please enter a name before closing"),
+          variant: "destructive",
+        });
+      } else {
+        // Allow closing if it's not the first time, even if name is empty
+        onOpenChange(false);
+      }
+    } else {
+      onOpenChange(true);
+    }
+  };
+
   // Validate API key
   const validateApiKey = async (apiKey: string): Promise<boolean> => {
     try {
@@ -123,16 +145,7 @@ export default function SettingsDialog({
   return (
     <Dialog
       open={open}
-      onOpenChange={(newOpen: boolean) => {
-        if (!newOpen && !name.trim()) {
-          toast({
-            description: t("Please enter a name before closing"),
-            variant: "destructive",
-          });
-        } else {
-          onOpenChange(newOpen);
-        }
-      }}
+      onOpenChange={handleCloseAttempt}
     >
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
