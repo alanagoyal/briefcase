@@ -1111,7 +1111,7 @@ export default function Chat() {
                   );
                 })}
               </div>
-            ) : messages.length === 0 ? (
+            ) : (messages.length === 0 || conversations.length === 0) ? (
               <div className="flex-1 flex items-center justify-center min-h-[calc(100vh-14.5rem)] w-full">
                 <div className="text-center max-w-md mx-auto">
                   <h2 className="text-2xl font-semibold mb-2">
