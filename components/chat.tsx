@@ -1117,7 +1117,7 @@ export default function Chat() {
                   );
                 })}
               </div>
-            ) : (messages.length === 0 || conversations.length === 0) ? (
+            ) : messages.length === 0 || conversations.length === 0 ? (
               <div className="flex-1 flex items-center justify-center min-h-[calc(100vh-14.5rem)] w-full">
                 <div className="text-center max-w-md mx-auto">
                   <h2 className="text-2xl font-semibold mb-2">
@@ -1365,23 +1365,17 @@ export default function Chat() {
             )}
           </div>
         </div>
-        <div
-          className={`min-h-10 ${
-            showBanner ? "bg-muted flex items-center" : ""
-          }`}
-        >
-          {showBanner && (
-            <div className="text-sm text-muted-foreground px-4 py-2 w-full">
-              {t(
-                `You have {remainingMessages} message{pluralize} remaining. To send more messages, please add your OpenAI API key in settings.`,
-                {
-                  remainingMessages: remainingMessages,
-                  pluralize: remainingMessages !== 1 ? "s" : "",
-                }
-              )}
-            </div>
-          )}
-        </div>
+        {showBanner && (
+          <div className="text-sm text-muted-foreground px-4 py-2 w-full bg-muted flex items-center">
+            {t(
+              `You have {remainingMessages} message{pluralize} remaining. To send more messages, please add your OpenAI API key in settings.`,
+              {
+                remainingMessages: remainingMessages,
+                pluralize: remainingMessages !== 1 ? "s" : "",
+              }
+            )}
+          </div>
+        )}
         <div className="p-4 border-t bg-background">
           <form onSubmit={handleSend} className="flex flex-col space-y-2">
             <div className="flex items-center space-x-2">
