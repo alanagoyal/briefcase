@@ -169,7 +169,7 @@ export default function SettingsDialog({
             {newUser && (
               <p className="text-muted-foreground text-xs">
                 {t(
-                  "This is how we'll address you in the chat. Your name won't be stored anywhere and is only used to personalize your experience."
+                  "Your name will only be used for your avatar in the chat. It will not be stored anywhere."
                 )}
               </p>
             )}
