@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/theme-provider";
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
+import { siteConfig } from "@/config/site";
 
 const fontSans = FontSans({
   subsets: ["latin"],
@@ -13,8 +14,12 @@ const fontSans = FontSans({
 });
 
 export const metadata: Metadata = {
-  title: "Briefcase",
-  description: "A legal research tool for founders and investors",
+  metadataBase: new URL(siteConfig.url),
+  title: siteConfig.name,
+  description: siteConfig.description,
+  openGraph: {
+    images: [siteConfig.ogImage],
+  },
 };
 
 export default async function RootLayout({
