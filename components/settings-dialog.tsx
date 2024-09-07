@@ -147,17 +147,17 @@ export default function SettingsDialog({
       open={open}
       onOpenChange={handleCloseAttempt}
     >
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent className="sm:max-w-xl" showCloseButton={!!localStorage.getItem("userName")}>
         <DialogHeader>
           <DialogTitle>
             {localStorage.getItem("userName")
               ? t("Settings")
-              : t("Welcome to Briefcase")}
+              : t("Briefcase")}
           </DialogTitle>
           <DialogDescription>
             {localStorage.getItem("userName")
               ? t("Update your information below")
-              : t("Please enter your name to get started")}
+              : t("The AI legal assistant for founders and investors")}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
