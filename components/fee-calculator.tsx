@@ -109,11 +109,7 @@ export default function FeeCalculator({
       )}
       {showResults && (
         <div className="space-y-4">
-          <div
-            className={`flex ${
-              isMobile ? "flex-col" : "items-center justify-between"
-            } space-y-2 sm:space-y-0`}
-          >
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 sm:space-x-2">
             <div className="flex items-center space-x-1 bg-muted/80 rounded-md p-2 hover:bg-muted transition-colors duration-200 cursor-arrow">
               <Clock className="w-4 h-4 text-[#3675F1]" />
               <span className="text-sm">
