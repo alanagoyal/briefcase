@@ -3,14 +3,8 @@
 import { useI18n } from "@quetzallabs/i18n";
 import { useState } from "react";
 import { Button } from "./ui/button";
-import { Settings, Trash2, PenSquare, PanelLeftClose } from "lucide-react";
+import { Settings, Trash2 } from "lucide-react";
 import { ThemeToggle } from "./theme-toggle";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "./ui/tooltip";
 import { Conversation } from "../types/chat";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "./ui/skeleton";
@@ -28,7 +22,7 @@ interface SidebarProps {
   onOpenSettings: () => void;
   isLoading: boolean;
   isMobile: boolean | null;
-  closeSidebar: () => void; // Add this new prop
+  closeSidebar: () => void; 
 }
 export default function Sidebar({
   groupedConversations,
@@ -40,7 +34,7 @@ export default function Sidebar({
   onOpenSettings,
   isLoading,
   isMobile,
-  closeSidebar, // Add this new prop
+  closeSidebar, 
 }: SidebarProps) {
   const { t } = useI18n();
   const [hoveredConversationId, setHoveredConversationId] = useState<
@@ -49,7 +43,7 @@ export default function Sidebar({
   const handleNewChat = () => {
     onNewChat();
     if (isMobile) {
-      closeSidebar(); // Close the sidebar on mobile when starting a new chat
+      closeSidebar(); 
     }
   };
   return (
