@@ -3,15 +3,7 @@
 import { useI18n } from "@quetzallabs/i18n";
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  PenSquare,
-  FileText,
-  Briefcase,
-  Settings,
-  Trash2,
-  PanelLeftOpen,
-  ArrowUpRight,
-} from "lucide-react";
+import { FileText, Briefcase, Trash2, ArrowUpRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -64,9 +56,9 @@ import { Skeleton } from "./ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useMobileDetect } from "./mobile-detector";
 import { Header } from "./header";
+
 export default function Chat() {
   const { t } = useI18n();
-  // Constants
   const router = useRouter();
   const searchParams = useSearchParams();
   const conversationId = searchParams.get("id");
@@ -88,9 +80,6 @@ export default function Chat() {
   const [messageCount, setMessageCount] = useState<number | null>(null);
   const [isLimitReached, setIsLimitReached] = useState(false);
   const [isStreamStarted, setIsStreamStarted] = useState(false);
-  const titleGenerationTriggeredRef = useRef<{
-    [key: string]: boolean;
-  }>({});
   const [isCommandMenuOpen, setIsCommandMenuOpen] = useState(false);
   const [isLoadingSidebar, setIsLoadingSidebar] = useState(true);
   const [messageFeedback, setMessageFeedback] = useState<{
@@ -103,16 +92,22 @@ export default function Chat() {
     null
   );
   const [seed, setSeed] = useState<number>(123);
+  const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
+  const [quoteQuestion, setQuoteQuestion] = useState<string>("");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Refs
+  // Ref declarations
+  const latestConversationIdRef = useRef<string | null>(null);
+  const titleGenerationTriggeredRef = useRef<{ [key: string]: boolean }>({});
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const latestRequestIdRef = useRef<string | null>(null);
-  const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
-  const [quoteQuestion, setQuoteQuestion] = useState<string>("");
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
   const { isMobile, isLoading: isMobileLoading } = useMobileDetect();
+
+  // Header functions
   const toggleSidebar = () => {
     setIsSidebarOpen((prev) => !prev);
   };
@@ -132,7 +127,6 @@ export default function Chat() {
     input,
     handleInputChange,
     handleSubmit,
-    isLoading,
     reload,
     setMessages,
   } = useChat({
@@ -154,16 +148,18 @@ export default function Chat() {
       }
       setIsStreamStarted(true);
       setRegeneratingIndex(null);
+      setIsLoading(false);
     },
     onFinish: (message) => {
-      if (currentConversationId) {
-        updateConversation(
-          currentConversationId,
-          message,
-          latestRequestIdRef.current
-        );
+      const conversationId =
+        currentConversationId || latestConversationIdRef.current;
+      if (conversationId) {
+        updateConversation(conversationId, message, latestRequestIdRef.current);
+      } else {
+        console.warn("No conversation ID available in onFinish");
       }
       setIsStreamStarted(false);
+      setIsLoading(false);
     },
   });
 
@@ -393,9 +389,11 @@ export default function Chat() {
       scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
     }
   }, []);
+
   useEffect(() => {
     scrollToBottom();
   }, [messages, scrollToBottom]);
+
   useEffect(() => {
     const scrollArea = scrollAreaRef.current;
     if (!scrollArea) return;
@@ -435,9 +433,7 @@ export default function Chat() {
   };
   const handleSend = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!input.trim()) {
-      return;
-    }
+    if (!input.trim()) return;
     if (isLimitReached && !userApiKey) {
       showToast(
         t(
@@ -447,7 +443,10 @@ export default function Chat() {
       );
       return;
     }
+
     let currentId = currentConversationId || uuidv4();
+    latestConversationIdRef.current = currentId;
+
     if (!currentConversationId) {
       const newConversation: Conversation = {
         id: currentId,
@@ -456,10 +455,13 @@ export default function Chat() {
         messages: [],
         createdAt: new Date(),
       };
-      setConversations((prev) => [newConversation, ...prev]);
+      setConversations((prev) => {
+        return [newConversation, ...prev];
+      });
       setCurrentConversationId(currentId);
       router.push(`/?id=${currentId}`);
     }
+
     const userMessage: Message = {
       id: uuidv4(),
       role: "user",
@@ -467,6 +469,7 @@ export default function Chat() {
     };
     updateConversation(currentId, userMessage, latestRequestIdRef.current);
     incrementMessageCount();
+    setIsLoading(true);
     handleSubmit(e);
   };
   const generateTitle = useCallback(
@@ -510,16 +513,26 @@ export default function Chat() {
     (id: string, message: Message, currentRequestId: string | null) => {
       setConversations((prev) => {
         const existingConv = prev.find((conv) => conv.id === id);
-        if (!existingConv) return prev;
+
+        if (!existingConv) {
+          const newConv: Conversation = {
+            id,
+            title:
+              message.content.slice(0, 30) +
+              (message.content.length > 30 ? "..." : ""),
+            messages: [message],
+            createdAt: new Date(),
+          };
+          return [newConv, ...prev];
+        }
+
         const updatedMessage = {
           ...message,
           requestId: currentRequestId,
         };
 
-        // Always append the new message, regardless of its role
         const updatedMessages = [...existingConv.messages, updatedMessage];
 
-        // Only consider title generation for the first assistant message
         if (
           message.role === "assistant" &&
           !titleGenerationTriggeredRef.current[id]
@@ -536,6 +549,7 @@ export default function Chat() {
             );
           }
         }
+
         return prev.map((conv) =>
           conv.id === id
             ? {
@@ -622,6 +636,7 @@ export default function Chat() {
     });
     return groups.filter((group) => group.conversations.length > 0);
   }, [conversations]);
+
   const deleteConversation = useCallback(
     (id: string) => {
       setConversations((prev) => {
@@ -630,6 +645,7 @@ export default function Chat() {
         );
         const index = flatConversations.findIndex((conv) => conv.id === id);
         const updatedConversations = prev.filter((conv) => conv.id !== id);
+
         if (currentConversationId === id) {
           let newSelectedId = null;
           if (flatConversations.length > 1) {
@@ -654,11 +670,10 @@ export default function Chat() {
               setMessages(newSelectedConversation.messages);
             }
           } else {
-            // If no conversations left, clear messages and reset the URL
+            // If no conversations left, clear messages
             setMessages([]);
           }
         }
-
 
         // Update localStorage
         localStorage.setItem(
@@ -673,9 +688,9 @@ export default function Chat() {
       setCurrentConversationId,
       setMessages,
       groupedConversations,
-      router,
     ]
   );
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && currentConversationId) {
       const file = e.target.files[0];
