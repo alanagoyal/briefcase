@@ -155,7 +155,6 @@ export default function Chat() {
       }
       setIsStreamStarted(true);
       setRegeneratingIndex(null);
-      setIsLoading(false);
     },
     onFinish: (message) => {
       const conversationId =
@@ -1420,7 +1419,7 @@ export default function Chat() {
                       type="submit"
                       size="icon"
                       className="bg-[#3675F1] hover:bg-[#2556E4]"
-                      disabled={isLimitReached && !userApiKey}
+                      disabled={isLoading || (isLimitReached && !userApiKey)}
                     >
                       <Send className="h-4 w-4 text-white" />
                     </Button>
