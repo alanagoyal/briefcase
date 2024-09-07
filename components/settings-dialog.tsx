@@ -150,7 +150,7 @@ export default function SettingsDialog({
           <DialogTitle>{newUser ? t("Briefcase") : t("Settings")}</DialogTitle>
           <DialogDescription>
             {newUser
-              ? t("The AI legal assistant for founders and investors")
+              ? t("The AI legal assistant for fast-moving founders and investors")
               : t("Update your information below")}
           </DialogDescription>
         </DialogHeader>
