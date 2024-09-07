@@ -5,7 +5,6 @@ import { Textarea } from "./ui/textarea";
 import { useState } from "react";
 import { CircleDollarSign, Clock, Loader2 } from "lucide-react";
 import { Button } from "./ui/button";
-import { useMobileDetect } from "./mobile-detector";
 
 // Define the interface for the API response
 interface FeeCalculationResponse {
@@ -23,7 +22,6 @@ export default function FeeCalculator({
   initialQuestion,
 }: FeeCalculatorProps) {
   const { t } = useI18n();
-  const isMobile = useMobileDetect();
   const [lawyerQuestion, setLawyerQuestion] = useState(initialQuestion);
   const [estimatedTime, setEstimatedTime] = useState(0);
   const [estimatedFee, setEstimatedFee] = useState(0);
