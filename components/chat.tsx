@@ -136,6 +136,7 @@ export default function Chat() {
     handleSubmit,
     reload,
     setMessages,
+    append,
   } = useChat({
     api: "/api/chat",
     id: currentConversationId || undefined,
@@ -952,12 +953,58 @@ export default function Chat() {
   };
 
   // Handle prompt click for new chat
-  const handlePromptClick = (prompt: string) => {
-    handleInputChange({
-      target: {
-        value: prompt,
-      },
-    } as React.ChangeEvent<HTMLInputElement>);
+  const handlePromptClick = async (prompt: string) => {
+    if (isLimitReached && !userApiKey) {
+      showToast(
+        t(
+          "You've reached the message limit. Please set your OpenAI API key for unlimited use."
+        ),
+        "destructive"
+      );
+      return;
+    }
+
+    let currentId = currentConversationId || uuidv4();
+    latestConversationIdRef.current = currentId;
+
+    if (!currentConversationId) {
+      const newConversation: Conversation = {
+        id: currentId,
+        title: prompt.trim().slice(0, 30) + (prompt.trim().length > 30 ? "..." : ""),
+        messages: [],
+        createdAt: new Date(),
+      };
+      setConversations((prev) => [newConversation, ...prev]);
+      setCurrentConversationId(currentId);
+      router.push(`/?id=${currentId}`);
+    }
+
+    const userMessage: Message = {
+      id: uuidv4(),
+      role: "user",
+      content: prompt,
+    };
+    updateConversation(currentId, userMessage, latestRequestIdRef.current);
+    incrementMessageCount();
+    setIsLoading(true);
+
+    try {
+      await append(userMessage, {
+        options: {
+          body: {
+            documentContext: documentContext,
+            userApiKey: userApiKey,
+            seed: seed,
+          },
+        },
+      });
+    } catch (error) {
+      console.error("Error appending message:", error);
+      showToast(t("Failed to send message"), "destructive");
+    } finally {
+      setIsLoading(false);
+    }
+
     // Focus the input immediately after setting the value
     setTimeout(() => {
       inputRef.current?.focus();
@@ -1382,7 +1429,7 @@ export default function Chat() {
                 placeholder={t("Type your message...")}
                 value={input}
                 onChange={handleInputChange}
-                className="flex-1"
+                className="flex-1 text-base"
                 ref={inputRef}
                 autoFocus
                 disabled={isLimitReached && !userApiKey}
