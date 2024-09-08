@@ -1042,7 +1042,7 @@ export default function Chat() {
   // Render
   return (
     <div
-      className={`flex h-screen bg-background ${isMobile ? "flex-col" : ""}`}
+      className="flex min-h-dvh bg-background"
     >
       {((isMobile && isSidebarOpen) || !isMobile) && (
         <div
