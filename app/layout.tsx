@@ -19,6 +19,10 @@ export const metadata: Metadata = {
   description: siteConfig.description,
   openGraph: {
     images: [siteConfig.ogImage],
+    siteName: siteConfig.name,
+    title: siteConfig.name,
+    description: siteConfig.description,
+    url: siteConfig.url,
   },
 };
 
