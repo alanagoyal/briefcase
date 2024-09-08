@@ -24,7 +24,7 @@ export default function FeeCalculator({
   const { t } = useI18n();
   const [lawyerQuestion, setLawyerQuestion] = useState(initialQuestion);
   const [estimatedTime, setEstimatedTime] = useState(0);
-  const [estimatedFee, setEstimatedFee] = useState(0);
+  const [estimatedFee, setEstimatedFee] = useState("");
   const [rationale, setRationale] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
@@ -54,7 +54,7 @@ export default function FeeCalculator({
         if (result && typeof result === "object" && "hours" in result) {
           const { hours, rationale } = result;
           setEstimatedTime(hours);
-          setEstimatedFee(hours * 500);
+          setEstimatedFee(`$${(hours * 500).toFixed(2)}`);
           setRationale(rationale || "No rationale provided");
           setShowResults(true);
         } else {
@@ -120,7 +120,7 @@ export default function FeeCalculator({
               <CircleDollarSign className="w-4 h-4 text-[#3675F1]" />
               <span className="text-sm">
                 {t(`Estimated Cost: {dynamic1}`, {
-                  dynamic1: estimatedFee.toFixed(2),
+                  dynamic1: estimatedFee,
                 })}
               </span>
             </div>
