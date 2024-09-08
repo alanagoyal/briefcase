@@ -970,7 +970,8 @@ export default function Chat() {
     if (!currentConversationId) {
       const newConversation: Conversation = {
         id: currentId,
-        title: prompt.trim().slice(0, 30) + (prompt.trim().length > 30 ? "..." : ""),
+        title:
+          prompt.trim().slice(0, 30) + (prompt.trim().length > 30 ? "..." : ""),
         messages: [],
         createdAt: new Date(),
       };
@@ -1041,9 +1042,7 @@ export default function Chat() {
 
   // Render
   return (
-    <div
-      className="flex h-dvh bg-background"
-    >
+    <div className="flex h-dvh bg-background">
       {((isMobile && isSidebarOpen) || !isMobile) && (
         <div
           className={`${isMobile ? "absolute inset-0 z-50" : ""} ${
@@ -1466,7 +1465,11 @@ export default function Chat() {
                       type="submit"
                       size="icon"
                       className="bg-[#3675F1] hover:bg-[#2556E4]"
-                      disabled={isLoading || (isLimitReached && !userApiKey) || !input.trim()}
+                      disabled={
+                        isLoading ||
+                        (isLimitReached && !userApiKey) ||
+                        !input.trim()
+                      }
                     >
                       <Send className="h-4 w-4 text-white" />
                     </Button>
