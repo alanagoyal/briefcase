@@ -1042,7 +1042,7 @@ export default function Chat() {
   // Render
   return (
     <div
-      className={`flex h-screen bg-background ${isMobile ? "relative" : ""}`}
+      className={`flex h-dvh bg-background ${isMobile ? "relative" : ""}`}
     >
       {((isMobile && isSidebarOpen) || !isMobile) && (
         <div
@@ -1164,7 +1164,7 @@ export default function Chat() {
                 })}
               </div>
             ) : messages.length === 0 || conversations.length === 0 ? (
-              <div className="flex-1 flex items-center justify-center min-h-[calc(100vh-14.5rem)] w-full">
+              <div className="flex-1 flex items-center justify-center h-full w-full">
                 <div className="text-center max-w-md mx-auto">
                   <h2 className="text-2xl font-semibold mb-2">
                     {t("Welcome to Briefcase")}
