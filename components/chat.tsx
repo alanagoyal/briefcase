@@ -970,7 +970,8 @@ export default function Chat() {
     if (!currentConversationId) {
       const newConversation: Conversation = {
         id: currentId,
-        title: prompt.trim().slice(0, 30) + (prompt.trim().length > 30 ? "..." : ""),
+        title:
+          prompt.trim().slice(0, 30) + (prompt.trim().length > 30 ? "..." : ""),
         messages: [],
         createdAt: new Date(),
       };
@@ -1041,9 +1042,7 @@ export default function Chat() {
 
   // Render
   return (
-    <div
-      className={`flex h-dvh bg-background ${isMobile ? "relative" : ""}`}
-    >
+    <div className={`flex h-dvh bg-background ${isMobile ? "relative" : ""}`}>
       {((isMobile && isSidebarOpen) || !isMobile) && (
         <div
           className={`${isMobile ? "absolute inset-0 z-50" : ""} ${
@@ -1165,33 +1164,51 @@ export default function Chat() {
               </div>
             ) : messages.length === 0 || conversations.length === 0 ? (
               <div className="flex-1 flex items-center justify-center h-full w-full">
-                <div className="text-center max-w-md mx-auto">
+                <div className="text-center max-w-3xl mx-auto">
                   <h2 className="text-2xl font-semibold mb-2">
                     {t("Welcome to Briefcase")}
                   </h2>
-                  <p className="text-muted-foreground mb-4">
+                  <p className="text-muted-foreground mb-4 w-3/4 text-center mx-auto">
                     {t(
                       "Ask basic legal questions, summarize documents, and get a quote for more complex legal inquiries"
                     )}
                   </p>
-                  <div className="flex flex-wrap justify-center gap-2 mb-8">
+                  <div className="flex flex-col md:grid md:grid-cols-2 gap-2 mb-8">
                     <Badge
                       variant="outline"
                       className="bg-muted text-foreground hover:bg-[#3675F1] hover:text-white px-3 py-1 text-xs cursor-pointer flex items-center justify-between"
                       onClick={() =>
                         handlePromptClick(
                           t(
-                            "Explain the difference between a valuation cap and discount"
+                            "Explain the difference between RSUs and ISOs"
                           )
                         )
                       }
                     >
-                      <span>
+                      <span className="flex-grow text-center">
                         {t(
-                          "Explain the difference between a valuation cap and discount"
+                          "Explain the difference between RSUs and ISOs"
                         )}
                       </span>
-                      <ArrowUpRight className="h-3 w-3 ml-1" />
+                      <ArrowUpRight className="h-3 w-3 ml-1 flex-shrink-0" />
+                    </Badge>
+                    <Badge
+                      variant="outline"
+                      className="bg-muted text-foreground hover:bg-[#3675F1] hover:text-white px-3 py-1 text-xs cursor-pointer flex items-center justify-between"
+                      onClick={() =>
+                        handlePromptClick(
+                          t(
+                            "When is it better to form an LLC vs. a C-Corp"
+                          )
+                        )
+                      }
+                    >
+                      <span className="flex-grow text-center">
+                        {t(
+                          "When is it better to form an LLC vs. a C-Corp"
+                        )}
+                      </span>
+                      <ArrowUpRight className="h-3 w-3 ml-1 flex-shrink-0" />
                     </Badge>
                     <Badge
                       variant="outline"
@@ -1202,26 +1219,24 @@ export default function Chat() {
                         )
                       }
                     >
-                      <span>
+                      <span className="flex-grow text-center">
                         {t("Summarize the terms of this SAFE agreement")}
                       </span>
-                      <ArrowUpRight className="h-3 w-3 ml-1" />
+                      <ArrowUpRight className="h-3 w-3 ml-1 flex-shrink-0" />
                     </Badge>
                     <Badge
                       variant="outline"
                       className="bg-muted text-foreground hover:bg-[#3675F1] hover:text-white px-3 py-1 text-xs cursor-pointer flex items-center justify-between"
                       onClick={() =>
                         handlePromptClick(
-                          t(
-                            "What are the common fees/carry for a venture capital firm in year one"
-                          )
+                          t("How does non-solicitation work in California")
                         )
                       }
                     >
-                      <span>
-                        {t("What are the common fees/carry for a venture firm")}
+                      <span className="flex-grow text-center">
+                        {t("How does non-solicitation work in California")}
                       </span>
-                      <ArrowUpRight className="h-3 w-3 ml-1" />
+                      <ArrowUpRight className="h-3 w-3 ml-1 flex-shrink-0" />
                     </Badge>
                   </div>
                 </div>
@@ -1466,7 +1481,11 @@ export default function Chat() {
                       type="submit"
                       size="icon"
                       className="bg-[#3675F1] hover:bg-[#2556E4]"
-                      disabled={isLoading || (isLimitReached && !userApiKey) || !input.trim()}
+                      disabled={
+                        isLoading ||
+                        (isLimitReached && !userApiKey) ||
+                        !input.trim()
+                      }
                     >
                       <Send className="h-4 w-4 text-white" />
                     </Button>
