@@ -163,7 +163,7 @@ export default function SettingsDialog({
               onChange={(e) => {
                 setName(e.target.value);
               }}
-              className="text-base"
+              className="sm:text-sm text-base"
               placeholder={t("Enter your name")}
               required
             />

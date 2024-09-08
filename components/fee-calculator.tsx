@@ -88,7 +88,7 @@ export default function FeeCalculator({
             placeholder={t(
               "Type your specific question for the lawyer here..."
             )}
-            className="mb-4 text-base"
+            className="mb-4 sm:text-sm text-base"
           />
           <Button
             onClick={handleCalculateFee}
