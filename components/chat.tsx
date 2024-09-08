@@ -1042,7 +1042,7 @@ export default function Chat() {
   // Render
   return (
     <div
-      className="flex min-h-dvh bg-background"
+      className="flex h-dvh bg-background"
     >
       {((isMobile && isSidebarOpen) || !isMobile) && (
         <div
