@@ -305,7 +305,7 @@ export default function Chat() {
         setMessages(currentConversation.messages);
       }
     }
-  }, [currentConversationId, conversations]);
+  }, [currentConversationId, conversations, setMessages]);
 
   // Focus input when focusTrigger changes
   useEffect(() => {
