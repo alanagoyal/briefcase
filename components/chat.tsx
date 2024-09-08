@@ -1042,7 +1042,7 @@ export default function Chat() {
   // Render
   return (
     <div
-      className={`flex h-screen bg-background ${isMobile ? "relative" : ""}`}
+      className={`flex h-screen bg-background ${isMobile ? "flex-col" : ""}`}
     >
       {((isMobile && isSidebarOpen) || !isMobile) && (
         <div
