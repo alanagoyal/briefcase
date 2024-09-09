@@ -96,6 +96,7 @@ export default function Chat() {
   const [quoteQuestion, setQuoteQuestion] = useState<string>("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState(false);
 
   // Ref declarations
   const latestConversationIdRef = useRef<string | null>(null);
@@ -314,10 +315,12 @@ export default function Chat() {
     }
   }, [focusTrigger]);
 
-  // Load message count and API key from localStorage
+  // Update this useEffect to check for subscription status
   useEffect(() => {
     const storedCount = localStorage.getItem("messageCount");
     const storedApiKey = localStorage.getItem("openaiApiKey");
+    const subscriptionStatus = localStorage.getItem("subscriptionStatus");
+    
     if (storedCount) {
       setMessageCount(parseInt(storedCount, 10));
     } else {
@@ -326,26 +329,18 @@ export default function Chat() {
     if (storedApiKey) {
       setUserApiKey(storedApiKey);
     }
+    setIsSubscribed(subscriptionStatus === "active");
   }, []);
 
-  // Save message count to localStorage whenever it changes
+  // Update this useEffect to consider subscription status
   useEffect(() => {
     if (messageCount !== null) {
       localStorage.setItem("messageCount", messageCount.toString());
     }
     setIsLimitReached(
-      messageCount !== null && messageCount >= 10 && !userApiKey
+      messageCount !== null && messageCount >= 10 && !userApiKey && !isSubscribed
     );
-  }, [messageCount, userApiKey]);
-
-  // Handle API key changes
-  useEffect(() => {
-    if (userApiKey) {
-      setIsLimitReached(false);
-    } else {
-      setIsLimitReached(messageCount !== null && messageCount >= 10);
-    }
-  }, [userApiKey, messageCount]);
+  }, [messageCount, userApiKey, isSubscribed]);
 
   // Show toast function
   const showToast = useCallback(
@@ -441,10 +436,10 @@ export default function Chat() {
   const handleSend = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!input.trim()) return;
-    if (isLimitReached && !userApiKey) {
+    if (isLimitReached && !userApiKey && !isSubscribed) {
       showToast(
         t(
-          "You've reached the message limit. Please set your OpenAI API key for unlimited use."
+          "You've reached the message limit. Please upgrade to Pro or set your OpenAI API key for unlimited use."
         ),
         "destructive"
       );
@@ -756,10 +751,10 @@ export default function Chat() {
   const handleRetry = useCallback(
     async (messageIndex: number) => {
       animateIcon("regenerate", messages[messageIndex].id);
-      if (isLimitReached && !userApiKey) {
+      if (isLimitReached && !userApiKey && !isSubscribed) {
         showToast(
           t(
-            "You've reached the message limit. Please set your OpenAI API key for unlimited use."
+            "You've reached the message limit. Please upgrade to Pro or set your OpenAI API key for unlimited use."
           ),
           "destructive"
         );
@@ -821,6 +816,7 @@ export default function Chat() {
       incrementMessageCount,
       showToast,
       seed,
+      isSubscribed,
     ]
   );
   const handleFeedback = useCallback(
@@ -933,7 +929,7 @@ export default function Chat() {
     messageCount !== null ? Math.max(10 - messageCount, 0) : null;
 
   // Determine if the banner should be shown
-  const showBanner = !userApiKey && remainingMessages !== null;
+  const showBanner = !userApiKey && !isSubscribed && remainingMessages !== null;
 
   // Also reset titleGenerationTriggeredRef when the conversation changes
   useEffect(() => {
@@ -954,10 +950,10 @@ export default function Chat() {
 
   // Handle prompt click for new chat
   const handlePromptClick = async (prompt: string) => {
-    if (isLimitReached && !userApiKey) {
+    if (isLimitReached && !userApiKey && !isSubscribed) {
       showToast(
         t(
-          "You've reached the message limit. Please set your OpenAI API key for unlimited use."
+          "You've reached the message limit. Please upgrade to Pro or set your OpenAI API key for unlimited use."
         ),
         "destructive"
       );
@@ -1429,7 +1425,7 @@ export default function Chat() {
         {showBanner && (
           <div className="text-sm text-muted-foreground px-4 py-2 w-full bg-muted flex items-center">
             {t(
-              `You have {remainingMessages} message{pluralize} remaining. To send more messages, please add your OpenAI API key in settings.`,
+              `You have {remainingMessages} message{pluralize} remaining. To send more messages, please upgrade to Pro or add your OpenAI API key in settings.`,
               {
                 remainingMessages: remainingMessages,
                 pluralize: remainingMessages !== 1 ? "s" : "",
@@ -1447,7 +1443,7 @@ export default function Chat() {
                 className="flex-1 sm:text-sm text-base"
                 ref={inputRef}
                 autoFocus
-                disabled={isLimitReached && !userApiKey}
+                disabled={isLimitReached && !userApiKey && !isSubscribed}
                 aria-hidden="false"
               />
               <input
@@ -1483,7 +1479,7 @@ export default function Chat() {
                       className="bg-[#3675F1] hover:bg-[#2556E4]"
                       disabled={
                         isLoading ||
-                        (isLimitReached && !userApiKey) ||
+                        (isLimitReached && !userApiKey && !isSubscribed) ||
                         !input.trim()
                       }
                     >
@@ -1539,6 +1535,17 @@ export default function Chat() {
             localStorage.setItem("openaiApiKey", apiKey);
           } else {
             localStorage.removeItem("openaiApiKey");
+            if (messageCount !== null && messageCount >= 10 && !isSubscribed) {
+              setIsLimitReached(true);
+            }
+          }
+        }}
+        isSubscribed={isSubscribed}
+        onSubscriptionChange={(subscribed) => {
+          setIsSubscribed(subscribed);
+          if (subscribed) {
+            setIsLimitReached(false);
+          } else {
             if (messageCount !== null && messageCount >= 10) {
               setIsLimitReached(true);
             }

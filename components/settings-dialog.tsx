@@ -21,17 +21,24 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "./ui/tooltip";
+import { SubscriptionManager } from '@/components/subscription-manager';
+
 interface SettingsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onNameChange: (name: string) => void;
   onApiKeyChange: (apiKey: string) => void;
+  isSubscribed: boolean;
+  onSubscriptionChange: (isSubscribed: boolean) => void;
 }
+
 export default function SettingsDialog({
   open,
   onOpenChange,
   onNameChange,
   onApiKeyChange,
+  isSubscribed,
+  onSubscriptionChange,
 }: SettingsDialogProps) {
   const { t } = useI18n();
   const [name, setName] = useState("");
@@ -176,6 +183,15 @@ export default function SettingsDialog({
             )}
           </div>
           {!newUser && (
+            <div className="space-y-2">
+              <Label>{t("Subscription")}</Label>
+              <SubscriptionManager
+                isSubscribed={isSubscribed}
+                onSubscriptionChange={onSubscriptionChange}
+              />
+            </div>
+          )}
+          {!newUser && !isSubscribed && (
             <div className="space-y-2">
               <div className="flex items-center space-x-2">
                 <Label htmlFor="apiKey">{t("OpenAI API Key")}</Label>
