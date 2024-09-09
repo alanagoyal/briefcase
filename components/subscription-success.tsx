@@ -10,13 +10,13 @@ export default function SubscriptionSuccessClient() {
     localStorage.setItem('subscriptionStatus', 'active');
     setTimeout(() => {
       router.push('/');
-    }, 5000);
+    }, 3000);
   }, [router]);
 
   return (
-    <div>
-      <h1>Subscription Successful!</h1>
-      <p>You will be redirected to the main page in 5 seconds...</p>
+    <div className="flex flex-col items-center justify-center h-screen">
+      <h1 className="text-2xl font-bold">Subscription Successful</h1>
+      <p className="text-sm text-muted-foreground">You will be redirected back to Briefcase in a few seconds...</p>
     </div>
   );
 }
