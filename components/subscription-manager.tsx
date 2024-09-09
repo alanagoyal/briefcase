@@ -11,11 +11,14 @@ interface SubscriptionManagerProps {
 
 export function SubscriptionManager({ onSubscriptionChange, isSubscribed: initialIsSubscribed }: SubscriptionManagerProps) {
   const [isSubscribed, setIsSubscribed] = useState(initialIsSubscribed);
+  const [sessionId, setSessionId] = useState<string | null>(null);
 
   useEffect(() => {
+    const storedSessionId = localStorage.getItem('sessionId');
     const subscriptionStatus = localStorage.getItem('subscriptionStatus');
     const newSubscriptionStatus = subscriptionStatus === 'active';
     setIsSubscribed(newSubscriptionStatus);
+    setSessionId(storedSessionId);
     onSubscriptionChange(newSubscriptionStatus);
   }, [onSubscriptionChange]);
 
@@ -39,10 +42,40 @@ export function SubscriptionManager({ onSubscriptionChange, isSubscribed: initia
     }
   };
 
-  const handleUnsubscribe = () => {
-    localStorage.setItem('subscriptionStatus', 'inactive');
-    setIsSubscribed(false);
-    onSubscriptionChange(false);
+  const handleUnsubscribe = async () => {
+    if (!sessionId) {
+      console.error('No session ID found');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/cancel-subscription', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ sessionId }),
+      });
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        console.error('Server response:', responseData);
+        throw new Error(`Failed to cancel subscription: ${responseData.error}`);
+      }
+
+      if (responseData.subscription.status === 'canceled') {
+        localStorage.setItem('subscriptionStatus', 'inactive');
+        localStorage.removeItem('sessionId');
+        setIsSubscribed(false);
+        setSessionId(null);
+        onSubscriptionChange(false);
+      } else {
+        console.error('Unexpected cancellation status:', responseData.subscription.status);
+      }
+    } catch (error) {
+      console.error('Error canceling subscription:', error);
+    }
   };
 
   return (

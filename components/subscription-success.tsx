@@ -3,15 +3,20 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-export default function SubscriptionSuccessClient() {
+export default function SubscriptionSuccessClient({ session_id }: { session_id: string }) {
   const router = useRouter();
 
   useEffect(() => {
-    localStorage.setItem('subscriptionStatus', 'active');
+    if (session_id) {
+      localStorage.setItem('subscriptionStatus', 'active');
+      localStorage.setItem('sessionId', session_id);
+    } else {
+      console.error('No session_id provided');
+    }
     setTimeout(() => {
       router.push('/');
     }, 3000);
-  }, [router]);
+  }, [router, session_id]);
 
   return (
     <div className="flex flex-col items-center justify-center h-screen">
