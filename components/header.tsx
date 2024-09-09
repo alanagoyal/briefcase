@@ -49,7 +49,7 @@ export const Header = ({
           </Tooltip>
         </TooltipProvider>
         <h1 className="text-2xl font-bold text-[#3675F1] font-['Avenir'] flex items-center">
-          {t("Briefcase")}
+          Briefcase
         </h1>
       </div>
       <div className="flex items-center">
