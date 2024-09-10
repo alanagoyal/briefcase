@@ -26,12 +26,6 @@ export default function SubscriptionManager({
     setIsSubscribed(newSubscriptionStatus);
     setSessionId(storedSessionId);
     onSubscriptionChange(newSubscriptionStatus);
-    console.log(
-      "Subscription Manager - Status:",
-      subscriptionStatus,
-      "Session ID:",
-      storedSessionId
-    );
   }, [onSubscriptionChange]);
 
   const handleSubscribe = async () => {
@@ -43,10 +37,6 @@ export default function SubscriptionManager({
         },
       });
       const { sessionId } = await response.json();
-      console.log(
-        "Subscription Manager - Created checkout session. Session ID:",
-        sessionId
-      );
       const stripe = await stripePromise;
       const { error } = await stripe!.redirectToCheckout({
         sessionId,
@@ -65,7 +55,6 @@ export default function SubscriptionManager({
       return;
     }
     try {
-      console.log("Sending cancellation request for session:", sessionId);
       const response = await fetch("/api/cancel-subscription", {
         method: "POST",
         headers: {
@@ -85,9 +74,6 @@ export default function SubscriptionManager({
         );
       }
       if (responseData.subscription.status === "canceled") {
-        console.log(
-          "Subscription Manager - Subscription canceled successfully."
-        );
         localStorage.setItem("subscriptionStatus", "inactive");
         localStorage.removeItem("sessionId");
         setIsSubscribed(false);

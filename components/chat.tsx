@@ -182,23 +182,8 @@ export default function Chat() {
       localStorage.setItem("subscriptionStatus", "active");
       localStorage.setItem("sessionId", session_id);
       setIsSubscribed(true);
-      console.log(
-        "Subscription successful. Status: active, Session ID:",
-        session_id
-      );
-      toast({
-        description: t(
-          "Subscription successful! You now have unlimited access."
-        ),
-      });
-      // Optionally, update the URL to remove the session_id
       router.replace("/", undefined);
     } else if (canceled) {
-      // Handle canceled subscription
-      console.log("Subscription canceled.");
-      toast({
-        description: t("Subscription canceled. You can try again anytime."),
-      });
       // Optionally, update the URL to remove the canceled parameter
       router.replace("/", undefined);
     }
@@ -349,7 +334,6 @@ export default function Chat() {
   // Load message count and API key from localStorage
   useEffect(() => {
     const subscriptionStatus = localStorage.getItem("subscriptionStatus");
-    console.log("Subscription status:", subscriptionStatus);
     if (subscriptionStatus) {
       setIsSubscribed(subscriptionStatus === "active");
     }
@@ -1478,8 +1462,7 @@ export default function Chat() {
                   remainingMessages: remainingMessages,
                   pluralize: remainingMessages !== 1 ? "s" : "",
                 }
-              )}
-              {' '}
+              )}{" "}
               <a
                 href="#"
                 onClick={(e) => {

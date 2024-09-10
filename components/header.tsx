@@ -3,7 +3,6 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   PenSquare,
-  Settings,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import {
