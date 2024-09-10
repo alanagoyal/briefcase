@@ -72,5 +72,18 @@
   "k70": "L'assistant juridique IA pour les fondateurs et investisseurs dynamiques",
   "k71": "Expliquez la différence entre les RSU et les ISO",
   "k72": "Quand est-il préférable de former une SARL par rapport à une SA ?",
-  "k73": "Comment fonctionne la non-sollicitation en Californie"
+  "k73": "Comment fonctionne la non-sollicitation en Californie",
+  "k74": "Abonnement réussi ! Vous avez maintenant un accès illimité.",
+  "k75": "Abonnement annulé. Vous pouvez réessayer à tout moment.",
+  "k76": "Vous avez atteint la limite de messages. Veuillez passer à la version Pro ou configurer votre clé API OpenAI pour une utilisation illimitée.",
+  "k77": "Il vous reste {remainingMessages} message{pluralize}. Pour envoyer plus de messages, veuillez passer à Pro ou configurer votre clé API OpenAI dans",
+  "k78": "paramètres",
+  "k79": "Abonnement",
+  "k85": "Il vous reste {remainingMessages} message{pluralize}. Pour envoyer plus de messages, veuillez passer à Pro ou ajouter votre clé API OpenAI dans les paramètres.",
+  "k86": "Vous avez {remainingMessages} message{pluralize} restant{pluralize}. Pour envoyer plus de messages, veuillez passer à Pro ou définir votre clé API OpenAI dans les paramètres.",
+  "k80": "Vous bénéficiez d'un accès illimité avec votre abonnement Pro. Vous pouvez",
+  "k81": "annuler votre abonnement",
+  "k82": "à tout moment.",
+  "k83": "Passer à la version Pro",
+  "k84": "pour un accès aux messages illimités et aux fonctionnalités avancées."
 }

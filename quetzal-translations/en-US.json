@@ -72,5 +72,18 @@
   "k70": "The AI legal assistant for fast-moving founders and investors",
   "k71": "Explain the difference between RSUs and ISOs",
   "k72": "When is it better to form an LLC vs. a C-Corp",
-  "k73": "How does non-solicitation work in California"
+  "k73": "How does non-solicitation work in California",
+  "k74": "Subscription successful! You now have unlimited access.",
+  "k75": "Subscription canceled. You can try again anytime.",
+  "k76": "You've reached the message limit. Please upgrade to Pro or set your OpenAI API key for unlimited use.",
+  "k77": "You have {remainingMessages} message{pluralize} remaining. To send more messages, please upgrade to Pro or set your OpenAI API key in",
+  "k78": "settings",
+  "k79": "Subscription",
+  "k80": "You have unlimited access with your Pro subscription. You may",
+  "k81": "cancel your subscription",
+  "k82": "at any time.",
+  "k83": "Upgrade to Pro",
+  "k84": "for access to unlimited messages and advanced features.",
+  "k85": "You have {remainingMessages} message{pluralize} remaining. To send more messages, please upgrade to Pro or add your OpenAI API key in settings.",
+  "k86": "You have {remainingMessages} message{pluralize} remaining. To send more messages, please upgrade to Pro or set your OpenAI API key in settings."
 }

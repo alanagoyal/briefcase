@@ -21,7 +21,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "./ui/tooltip";
-import { SubscriptionManager } from '@/components/subscription-manager';
+import SubscriptionManager from '@/components/subscription-manager';
 
 interface SettingsDialogProps {
   open: boolean;
