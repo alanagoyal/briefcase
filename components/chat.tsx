@@ -96,6 +96,7 @@ export default function Chat() {
   const [quoteQuestion, setQuoteQuestion] = useState<string>("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState<boolean>(false);
 
   // Ref declarations
   const latestConversationIdRef = useRef<string | null>(null);
@@ -106,27 +107,6 @@ export default function Chat() {
   const latestRequestIdRef = useRef<string | null>(null);
 
   const { isMobile, isLoading: isMobileLoading } = useMobileDetect();
-
-  // Update the sidebar state based on mobile detection
-  useEffect(() => {
-    if (!isMobileLoading) {
-      setIsSidebarOpen(!isMobile);
-    }
-  }, [isMobile, isMobileLoading]);
-
-  // Header functions
-  const toggleSidebar = () => {
-    setIsSidebarOpen((prev) => !prev);
-  };
-  const closeSidebar = () => {
-    setIsSidebarOpen(false);
-  };
-  const handleNewChat = () => {
-    startNewChat();
-    if (isMobile) {
-      closeSidebar();
-    }
-  };
 
   // useChat hook
   const {
@@ -171,6 +151,71 @@ export default function Chat() {
   });
 
   // useEffects
+
+  // Update the sidebar state based on mobile detection
+  useEffect(() => {
+    if (!isMobileLoading) {
+      setIsSidebarOpen(!isMobile);
+    }
+  }, [isMobile, isMobileLoading]);
+
+  // Header functions
+  const toggleSidebar = () => {
+    setIsSidebarOpen((prev) => !prev);
+  };
+  const closeSidebar = () => {
+    setIsSidebarOpen(false);
+  };
+  const handleNewChat = () => {
+    startNewChat();
+    if (isMobile) {
+      closeSidebar();
+    }
+  };
+
+  // Handle subscription status
+  useEffect(() => {
+    const storedEmail = localStorage.getItem("userEmail");
+    if (storedEmail) {
+      verifySubscription(storedEmail);
+    } else {
+      setIsSubscribed(false);
+      localStorage.setItem("subscriptionStatus", "inactive");
+    }
+  }, []);
+
+  const verifySubscription = useCallback(async (email: string) => {
+    try {
+      const response = await fetch(
+        `/api/verify-subscription?email=${encodeURIComponent(email)}`
+      );
+      const data = await response.json();
+      setIsSubscribed(data.isSubscribed);
+
+      // Update local storage
+      localStorage.setItem(
+        "subscriptionStatus",
+        data.isSubscribed ? "active" : "inactive"
+      );
+
+    } catch (error) {
+      console.error("Error verifying subscription:", error);
+    }
+  }, []);
+
+  // Add this effect to handle the success parameter
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const success = urlParams.get("success");
+    if (success === "true") {
+      const storedEmail = localStorage.getItem("userEmail");
+      if (storedEmail) {
+        verifySubscription(storedEmail);
+      }
+      // Remove the success parameter from the URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [verifySubscription]);
 
   // Load conversations and documents from localStorage
   useEffect(() => {
@@ -317,15 +362,23 @@ export default function Chat() {
   // Load message count and API key from localStorage
   useEffect(() => {
     const storedCount = localStorage.getItem("messageCount");
-    const storedApiKey = localStorage.getItem("openaiApiKey");
     if (storedCount) {
       setMessageCount(parseInt(storedCount, 10));
     } else {
       setMessageCount(0);
     }
+
+    const storedApiKey = localStorage.getItem("openaiApiKey");
     if (storedApiKey) {
       setUserApiKey(storedApiKey);
     }
+
+    // Set isLimitReached based on the loaded values
+    setIsLimitReached(
+      parseInt(storedCount || "0", 10) >= 10 &&
+        !storedApiKey &&
+        !isSubscribed
+    );
   }, []);
 
   // Save message count to localStorage whenever it changes
@@ -334,18 +387,22 @@ export default function Chat() {
       localStorage.setItem("messageCount", messageCount.toString());
     }
     setIsLimitReached(
-      messageCount !== null && messageCount >= 10 && !userApiKey
+      messageCount !== null &&
+        messageCount >= 10 &&
+        !userApiKey &&
+        !isSubscribed
     );
-  }, [messageCount, userApiKey]);
+  }, [messageCount, userApiKey, isSubscribed]);
 
   // Handle API key changes
   useEffect(() => {
-    if (userApiKey) {
-      setIsLimitReached(false);
-    } else {
-      setIsLimitReached(messageCount !== null && messageCount >= 10);
-    }
-  }, [userApiKey, messageCount]);
+    setIsLimitReached(
+      messageCount !== null &&
+        messageCount >= 10 &&
+        !userApiKey &&
+        !isSubscribed
+    );
+  }, [userApiKey, messageCount, isSubscribed]);
 
   // Show toast function
   const showToast = useCallback(
@@ -362,23 +419,27 @@ export default function Chat() {
 
   // Effect to show toast when limit is reached
   useEffect(() => {
-    if (isLimitReached && !userApiKey) {
+    if (isLimitReached && !userApiKey && !isSubscribed) {
       showToast(
         t(
-          "You've reached the message limit. Please set your OpenAI API key for unlimited use."
+          "You've reached the message limit. Please upgrade to Pro or set your OpenAI API key for unlimited use."
         ),
         "destructive"
       );
     }
-  }, [isLimitReached, userApiKey, showToast]);
+  }, [isLimitReached, userApiKey, isSubscribed, showToast]);
 
   // Increment message count
   const incrementMessageCount = useCallback(() => {
+    if (isSubscribed || userApiKey) {
+      // Don't increment if subscribed or using API key
+      return;
+    }
     setMessageCount((prevCount) => {
       if (prevCount !== null) {
         const newCount = prevCount + 1;
         localStorage.setItem("messageCount", newCount.toString());
-        if (newCount === 9 && !userApiKey) {
+        if (newCount === 9) {
           showToast(
             t("You have 1 message left before reaching the limit."),
             "destructive"
@@ -388,7 +449,7 @@ export default function Chat() {
       }
       return prevCount;
     });
-  }, [userApiKey, showToast]);
+  }, [isSubscribed, userApiKey, showToast]);
 
   // Automatically scroll to bottom of chat
   const scrollToBottom = useCallback(() => {
@@ -414,10 +475,10 @@ export default function Chat() {
 
   // Helper functions
   const startNewChat = () => {
-    if (isLimitReached && !userApiKey) {
+    if (isLimitReached && !userApiKey && !isSubscribed) {
       showToast(
         t(
-          "You've reached the message limit. Please set your OpenAI API key for unlimited use."
+          "You've reached the message limit. Please upgrade to Pro or set your OpenAI API key for unlimited use."
         ),
         "destructive"
       );
@@ -441,10 +502,10 @@ export default function Chat() {
   const handleSend = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!input.trim()) return;
-    if (isLimitReached && !userApiKey) {
+    if (isLimitReached && !userApiKey && !isSubscribed) {
       showToast(
         t(
-          "You've reached the message limit. Please set your OpenAI API key for unlimited use."
+          "You've reached the message limit. Please upgrade to Pro or set your OpenAI API key for unlimited use."
         ),
         "destructive"
       );
@@ -756,10 +817,10 @@ export default function Chat() {
   const handleRetry = useCallback(
     async (messageIndex: number) => {
       animateIcon("regenerate", messages[messageIndex].id);
-      if (isLimitReached && !userApiKey) {
+      if (isLimitReached && !userApiKey && !isSubscribed) {
         showToast(
           t(
-            "You've reached the message limit. Please set your OpenAI API key for unlimited use."
+            "You've reached the message limit. Please upgrade to Pro or set your OpenAI API key for unlimited use."
           ),
           "destructive"
         );
@@ -821,6 +882,7 @@ export default function Chat() {
       incrementMessageCount,
       showToast,
       seed,
+      isSubscribed,
     ]
   );
   const handleFeedback = useCallback(
@@ -933,7 +995,7 @@ export default function Chat() {
     messageCount !== null ? Math.max(10 - messageCount, 0) : null;
 
   // Determine if the banner should be shown
-  const showBanner = !userApiKey && remainingMessages !== null;
+  const showBanner = !userApiKey && !isSubscribed && remainingMessages !== null;
 
   // Also reset titleGenerationTriggeredRef when the conversation changes
   useEffect(() => {
@@ -954,10 +1016,10 @@ export default function Chat() {
 
   // Handle prompt click for new chat
   const handlePromptClick = async (prompt: string) => {
-    if (isLimitReached && !userApiKey) {
+    if (isLimitReached && !userApiKey && !isSubscribed) {
       showToast(
         t(
-          "You've reached the message limit. Please set your OpenAI API key for unlimited use."
+          "You've reached the message limit. Please upgrade to Pro or set your OpenAI API key for unlimited use."
         ),
         "destructive"
       );
@@ -1179,16 +1241,12 @@ export default function Chat() {
                       className="bg-muted text-foreground hover:bg-[#3675F1] hover:text-white px-3 py-1 text-xs cursor-pointer flex items-center justify-between"
                       onClick={() =>
                         handlePromptClick(
-                          t(
-                            "Explain the difference between RSUs and ISOs"
-                          )
+                          t("Explain the difference between RSUs and ISOs")
                         )
                       }
                     >
                       <span className="flex-grow text-center">
-                        {t(
-                          "Explain the difference between RSUs and ISOs"
-                        )}
+                        {t("Explain the difference between RSUs and ISOs")}
                       </span>
                       <ArrowUpRight className="h-3 w-3 ml-1 flex-shrink-0" />
                     </Badge>
@@ -1197,16 +1255,12 @@ export default function Chat() {
                       className="bg-muted text-foreground hover:bg-[#3675F1] hover:text-white px-3 py-1 text-xs cursor-pointer flex items-center justify-between"
                       onClick={() =>
                         handlePromptClick(
-                          t(
-                            "When is it better to form an LLC vs. a C-Corp"
-                          )
+                          t("When is it better to form an LLC vs. a C-Corp")
                         )
                       }
                     >
                       <span className="flex-grow text-center">
-                        {t(
-                          "When is it better to form an LLC vs. a C-Corp"
-                        )}
+                        {t("When is it better to form an LLC vs. a C-Corp")}
                       </span>
                       <ArrowUpRight className="h-3 w-3 ml-1 flex-shrink-0" />
                     </Badge>
@@ -1427,14 +1481,27 @@ export default function Chat() {
           </div>
         </div>
         {showBanner && (
-          <div className="text-sm text-muted-foreground px-4 py-2 w-full bg-muted flex items-center">
-            {t(
-              `You have {remainingMessages} message{pluralize} remaining. To send more messages, please add your OpenAI API key in settings.`,
-              {
-                remainingMessages: remainingMessages,
-                pluralize: remainingMessages !== 1 ? "s" : "",
-              }
-            )}
+          <div className="text-sm text-muted-foreground px-4 py-2 w-full bg-muted">
+            <p className="inline">
+              {t(
+                `You have {remainingMessages} message{pluralize} remaining. To send more messages, please upgrade to Pro or set your OpenAI API key in`,
+                {
+                  remainingMessages: remainingMessages,
+                  pluralize: remainingMessages !== 1 ? "s" : "",
+                }
+              )}{" "}
+              <a
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setIsSettingsOpen(true);
+                }}
+                className="font-bold hover:underline focus:outline-none"
+              >
+                {t("settings")}
+              </a>
+              .
+            </p>
           </div>
         )}
         <div className="p-4 border-t bg-background">
@@ -1447,7 +1514,7 @@ export default function Chat() {
                 className="flex-1 sm:text-sm text-base"
                 ref={inputRef}
                 autoFocus
-                disabled={isLimitReached && !userApiKey}
+                disabled={isLimitReached && !userApiKey && !isSubscribed}
                 aria-hidden="false"
               />
               <input
@@ -1483,7 +1550,7 @@ export default function Chat() {
                       className="bg-[#3675F1] hover:bg-[#2556E4]"
                       disabled={
                         isLoading ||
-                        (isLimitReached && !userApiKey) ||
+                        (isLimitReached && !userApiKey && !isSubscribed) ||
                         !input.trim()
                       }
                     >
@@ -1539,6 +1606,17 @@ export default function Chat() {
             localStorage.setItem("openaiApiKey", apiKey);
           } else {
             localStorage.removeItem("openaiApiKey");
+            if (messageCount !== null && messageCount >= 10 && !isSubscribed) {
+              setIsLimitReached(true);
+            }
+          }
+        }}
+        isSubscribed={isSubscribed}
+        onSubscriptionChange={(subscribed) => {
+          setIsSubscribed(subscribed);
+          if (subscribed) {
+            setIsLimitReached(false);
+          } else {
             if (messageCount !== null && messageCount >= 10) {
               setIsLimitReached(true);
             }
