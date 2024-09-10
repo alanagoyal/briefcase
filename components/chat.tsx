@@ -61,6 +61,8 @@ export default function Chat() {
   const { t } = useI18n();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const session_id = searchParams.get("session_id");
+  const canceled = searchParams.get("canceled");
   const conversationId = searchParams.get("id");
   const skeletonHeights = ["h-16", "h-24", "h-32", "h-40", "h-48"];
 
@@ -96,7 +98,7 @@ export default function Chat() {
   const [quoteQuestion, setQuoteQuestion] = useState<string>("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState<boolean>(false);
 
   // Ref declarations
   const latestConversationIdRef = useRef<string | null>(null);
@@ -107,27 +109,6 @@ export default function Chat() {
   const latestRequestIdRef = useRef<string | null>(null);
 
   const { isMobile, isLoading: isMobileLoading } = useMobileDetect();
-
-  // Update the sidebar state based on mobile detection
-  useEffect(() => {
-    if (!isMobileLoading) {
-      setIsSidebarOpen(!isMobile);
-    }
-  }, [isMobile, isMobileLoading]);
-
-  // Header functions
-  const toggleSidebar = () => {
-    setIsSidebarOpen((prev) => !prev);
-  };
-  const closeSidebar = () => {
-    setIsSidebarOpen(false);
-  };
-  const handleNewChat = () => {
-    startNewChat();
-    if (isMobile) {
-      closeSidebar();
-    }
-  };
 
   // useChat hook
   const {
@@ -172,6 +153,53 @@ export default function Chat() {
   });
 
   // useEffects
+
+  // Update the sidebar state based on mobile detection
+  useEffect(() => {
+    if (!isMobileLoading) {
+      setIsSidebarOpen(!isMobile);
+    }
+  }, [isMobile, isMobileLoading]);
+
+  // Header functions
+  const toggleSidebar = () => {
+    setIsSidebarOpen((prev) => !prev);
+  };
+  const closeSidebar = () => {
+    setIsSidebarOpen(false);
+  };
+  const handleNewChat = () => {
+    startNewChat();
+    if (isMobile) {
+      closeSidebar();
+    }
+  };
+
+  // Handle subscription status
+  useEffect(() => {
+    if (session_id) {
+      // Handle successful subscription
+      localStorage.setItem("subscriptionStatus", "active");
+      localStorage.setItem("sessionId", session_id);
+      setIsSubscribed(true);
+      console.log("Subscription successful. Status: active, Session ID:", session_id);
+      toast({
+        description: t(
+          "Subscription successful! You now have unlimited access."
+        ),
+      });
+      // Optionally, update the URL to remove the session_id
+      router.replace("/", undefined);
+    } else if (canceled) {
+      // Handle canceled subscription
+      console.log("Subscription canceled.");
+      toast({
+        description: t("Subscription canceled. You can try again anytime."),
+      });
+      // Optionally, update the URL to remove the canceled parameter
+      router.replace("/", undefined);
+    }
+  }, [session_id, canceled, router]);
 
   // Load conversations and documents from localStorage
   useEffect(() => {
@@ -315,24 +343,33 @@ export default function Chat() {
     }
   }, [focusTrigger]);
 
-  // Update this useEffect to check for subscription status
+  // Load message count and API key from localStorage
   useEffect(() => {
-    const storedCount = localStorage.getItem("messageCount");
-    const storedApiKey = localStorage.getItem("openaiApiKey");
     const subscriptionStatus = localStorage.getItem("subscriptionStatus");
-    
+    console.log("Subscription status:", subscriptionStatus);
+    if (subscriptionStatus) {
+      setIsSubscribed(subscriptionStatus === "active");
+    }
+
+    const storedCount = localStorage.getItem("messageCount");
     if (storedCount) {
       setMessageCount(parseInt(storedCount, 10));
     } else {
       setMessageCount(0);
     }
+    
+    const storedApiKey = localStorage.getItem("openaiApiKey");
     if (storedApiKey) {
       setUserApiKey(storedApiKey);
     }
-    setIsSubscribed(subscriptionStatus === "active");
+    
+    // Set isLimitReached based on the loaded values
+    setIsLimitReached(
+      parseInt(storedCount || "0", 10) >= 10 && !storedApiKey && subscriptionStatus !== "active"
+    );
   }, []);
 
-  // Update this useEffect to consider subscription status
+  // Save message count to localStorage whenever it changes
   useEffect(() => {
     if (messageCount !== null) {
       localStorage.setItem("messageCount", messageCount.toString());
@@ -341,6 +378,13 @@ export default function Chat() {
       messageCount !== null && messageCount >= 10 && !userApiKey && !isSubscribed
     );
   }, [messageCount, userApiKey, isSubscribed]);
+
+  // Handle API key changes
+  useEffect(() => {
+    setIsLimitReached(
+      messageCount !== null && messageCount >= 10 && !userApiKey && !isSubscribed
+    );
+  }, [userApiKey, messageCount, isSubscribed]);
 
   // Show toast function
   const showToast = useCallback(
@@ -357,15 +401,15 @@ export default function Chat() {
 
   // Effect to show toast when limit is reached
   useEffect(() => {
-    if (isLimitReached && !userApiKey) {
+    if (isLimitReached && !userApiKey && !isSubscribed) {
       showToast(
         t(
-          "You've reached the message limit. Please set your OpenAI API key for unlimited use."
+          "You've reached the message limit. Please upgrade to Pro or set your OpenAI API key for unlimited use."
         ),
         "destructive"
       );
     }
-  }, [isLimitReached, userApiKey, showToast]);
+  }, [isLimitReached, userApiKey, isSubscribed, showToast]);
 
   // Increment message count
   const incrementMessageCount = useCallback(() => {
@@ -373,7 +417,7 @@ export default function Chat() {
       if (prevCount !== null) {
         const newCount = prevCount + 1;
         localStorage.setItem("messageCount", newCount.toString());
-        if (newCount === 9 && !userApiKey) {
+        if (newCount === 9 && !userApiKey && !isSubscribed) {
           showToast(
             t("You have 1 message left before reaching the limit."),
             "destructive"
@@ -383,7 +427,7 @@ export default function Chat() {
       }
       return prevCount;
     });
-  }, [userApiKey, showToast]);
+  }, [userApiKey, isSubscribed, showToast]);
 
   // Automatically scroll to bottom of chat
   const scrollToBottom = useCallback(() => {
@@ -409,10 +453,10 @@ export default function Chat() {
 
   // Helper functions
   const startNewChat = () => {
-    if (isLimitReached && !userApiKey) {
+    if (isLimitReached && !userApiKey && !isSubscribed) {
       showToast(
         t(
-          "You've reached the message limit. Please set your OpenAI API key for unlimited use."
+          "You've reached the message limit. Please upgrade to Pro or set your OpenAI API key for unlimited use."
         ),
         "destructive"
       );
@@ -1175,16 +1219,12 @@ export default function Chat() {
                       className="bg-muted text-foreground hover:bg-[#3675F1] hover:text-white px-3 py-1 text-xs cursor-pointer flex items-center justify-between"
                       onClick={() =>
                         handlePromptClick(
-                          t(
-                            "Explain the difference between RSUs and ISOs"
-                          )
+                          t("Explain the difference between RSUs and ISOs")
                         )
                       }
                     >
                       <span className="flex-grow text-center">
-                        {t(
-                          "Explain the difference between RSUs and ISOs"
-                        )}
+                        {t("Explain the difference between RSUs and ISOs")}
                       </span>
                       <ArrowUpRight className="h-3 w-3 ml-1 flex-shrink-0" />
                     </Badge>
@@ -1193,16 +1233,12 @@ export default function Chat() {
                       className="bg-muted text-foreground hover:bg-[#3675F1] hover:text-white px-3 py-1 text-xs cursor-pointer flex items-center justify-between"
                       onClick={() =>
                         handlePromptClick(
-                          t(
-                            "When is it better to form an LLC vs. a C-Corp"
-                          )
+                          t("When is it better to form an LLC vs. a C-Corp")
                         )
                       }
                     >
                       <span className="flex-grow text-center">
-                        {t(
-                          "When is it better to form an LLC vs. a C-Corp"
-                        )}
+                        {t("When is it better to form an LLC vs. a C-Corp")}
                       </span>
                       <ArrowUpRight className="h-3 w-3 ml-1 flex-shrink-0" />
                     </Badge>
@@ -1425,7 +1461,7 @@ export default function Chat() {
         {showBanner && (
           <div className="text-sm text-muted-foreground px-4 py-2 w-full bg-muted flex items-center">
             {t(
-              `You have {remainingMessages} message{pluralize} remaining. To send more messages, please upgrade to Pro or add your OpenAI API key in settings.`,
+              `You have {remainingMessages} message{pluralize} remaining. To send more messages, please upgrade to Pro or set your OpenAI API key in settings.`,
               {
                 remainingMessages: remainingMessages,
                 pluralize: remainingMessages !== 1 ? "s" : "",
