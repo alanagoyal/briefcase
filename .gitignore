@@ -40,3 +40,6 @@ next-env.d.ts
 .freestylebuild
 freestylebuild
 freestylenext
+
+# quetzal-translations
+quetzal-translations/
