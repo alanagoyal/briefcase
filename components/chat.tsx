@@ -180,6 +180,7 @@ export default function Chat() {
       verifySubscription(storedEmail);
     } else {
       setIsSubscribed(false);
+      localStorage.setItem("subscriptionStatus", "inactive");
     }
   }, []);
 
@@ -360,11 +361,6 @@ export default function Chat() {
 
   // Load message count and API key from localStorage
   useEffect(() => {
-    const subscriptionStatus = localStorage.getItem("subscriptionStatus");
-    if (subscriptionStatus) {
-      setIsSubscribed(subscriptionStatus === "active");
-    }
-
     const storedCount = localStorage.getItem("messageCount");
     if (storedCount) {
       setMessageCount(parseInt(storedCount, 10));
@@ -381,7 +377,7 @@ export default function Chat() {
     setIsLimitReached(
       parseInt(storedCount || "0", 10) >= 10 &&
         !storedApiKey &&
-        subscriptionStatus !== "active"
+        !isSubscribed
     );
   }, []);
 
