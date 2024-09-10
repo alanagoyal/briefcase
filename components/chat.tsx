@@ -97,7 +97,6 @@ export default function Chat() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState<boolean>(false);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
 
   // Ref declarations
   const latestConversationIdRef = useRef<string | null>(null);
@@ -178,30 +177,25 @@ export default function Chat() {
   useEffect(() => {
     const storedEmail = localStorage.getItem("userEmail");
     const storedSubscriptionStatus = localStorage.getItem("subscriptionStatus");
-    console.log("Initial local storage state:", { storedEmail, storedSubscriptionStatus });
-    
     if (storedEmail) {
-      setUserEmail(storedEmail);
-      if (storedSubscriptionStatus === "active") {
-        setIsSubscribed(true);
-      } else {
-        verifySubscription(storedEmail);
-      }
+      verifySubscription(storedEmail);
     }
   }, []);
 
   const verifySubscription = useCallback(async (email: string) => {
     try {
-      console.log("Verifying subscription for email:", email);
-      const response = await fetch(`/api/verify-subscription?email=${encodeURIComponent(email)}`);
+      const response = await fetch(
+        `/api/verify-subscription?email=${encodeURIComponent(email)}`
+      );
       const data = await response.json();
-      console.log("Subscription verification response:", data);
       setIsSubscribed(data.isSubscribed);
-      console.log("Updated isSubscribed state:", data.isSubscribed);
-      
+
       // Update local storage
-      localStorage.setItem("subscriptionStatus", data.isSubscribed ? "active" : "inactive");
-      console.log("Updated local storage subscriptionStatus:", data.isSubscribed ? "active" : "inactive");
+      localStorage.setItem(
+        "subscriptionStatus",
+        data.isSubscribed ? "active" : "inactive"
+      );
+
     } catch (error) {
       console.error("Error verifying subscription:", error);
     }
@@ -210,8 +204,8 @@ export default function Chat() {
   // Add this effect to handle the success parameter
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const success = urlParams.get('success');
-    if (success === 'true') {
+    const success = urlParams.get("success");
+    if (success === "true") {
       const storedEmail = localStorage.getItem("userEmail");
       if (storedEmail) {
         verifySubscription(storedEmail);

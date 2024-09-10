@@ -6,9 +6,8 @@ import { loadStripe } from "@stripe/stripe-js";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { toast } from "./ui/use-toast";
-import { Switch } from "./ui/switch";
 import { MouseEvent } from 'react';
-import { Loader2 } from "lucide-react"; // Make sure to import this
+import { Loader2 } from "lucide-react"; 
 
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
@@ -30,40 +29,33 @@ export default function SubscriptionManager({
   const [email, setEmail] = useState("");
   const [isCheckingMode, setIsCheckingMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
 
-  const logState = useCallback(() => {
-    console.log("SubscriptionManager state:", {
-      isSubscribed,
-      email,
-      isCheckingMode,
-      isLoading,
-      localStorageSubscriptionStatus: localStorage.getItem("subscriptionStatus"),
-      localStorageUserEmail: localStorage.getItem("userEmail"),
-    });
-  }, [isSubscribed, email, isCheckingMode, isLoading]);
+  const verifySubscription = useCallback(async (email: string) => {
+    if (!email) return;
+    setIsVerifying(true);
+    try {
+      const response = await fetch(`/api/verify-subscription?email=${encodeURIComponent(email)}`);
+      const data = await response.json();
+      setIsSubscribed(data.isSubscribed);
+      onSubscriptionChange(data.isSubscribed);
+      localStorage.setItem("subscriptionStatus", data.isSubscribed ? "active" : "inactive");
+    } catch (error) {
+      console.error("Error verifying subscription:", error);
+    } finally {
+      setIsVerifying(false);
+    }
+  }, [onSubscriptionChange]);
 
   useEffect(() => {
-    const subscriptionStatus = localStorage.getItem("subscriptionStatus");
-    const subscribedEmail = localStorage.getItem("userEmail");
-    const newSubscriptionStatus = subscriptionStatus === "active";
-    
-    console.log("SubscriptionManager initial load:", {
-      subscriptionStatus,
-      subscribedEmail,
-      newSubscriptionStatus,
-    });
-
-    setIsSubscribed(newSubscriptionStatus);
-    if (subscribedEmail) {
-      setEmail(subscribedEmail);
+    const storedEmail = localStorage.getItem("userEmail");
+    if (storedEmail) {
+      setEmail(storedEmail);
+      verifySubscription(storedEmail);
     }
-    onSubscriptionChange(newSubscriptionStatus);
-
-    logState();
-  }, [onSubscriptionChange, logState]);
+  }, [verifySubscription]);
 
   const handleSubscribe = async () => {
-    console.log("handleSubscribe called with email:", email);
     setIsLoading(true);
     try {
       const response = await fetch("/api/create-checkout-session", {
@@ -74,13 +66,10 @@ export default function SubscriptionManager({
         body: JSON.stringify({ email }),
       });
       const { sessionId } = await response.json();
-      console.log("Received sessionId from create-checkout-session:", sessionId);
 
       localStorage.setItem("userEmail", email);
-      console.log("Stored userEmail in localStorage:", email);
 
       const stripe = await stripePromise;
-      console.log("Redirecting to Stripe checkout...");
       const { error } = await stripe!.redirectToCheckout({
         sessionId,
       });
@@ -91,25 +80,20 @@ export default function SubscriptionManager({
       console.error("Error creating checkout session:", err);
     } finally {
       setIsLoading(false);
-      logState();
     }
   };
 
   const handleCheckSubscription = async () => {
-    console.log("handleCheckSubscription called with email:", email);
     setIsLoading(true);
     try {
       const response = await fetch(`/api/verify-subscription?email=${encodeURIComponent(email)}`);
       const data = await response.json();
-      console.log("Subscription verification response:", data);
       if (data.isSubscribed) {
         localStorage.setItem("userEmail", email);
         localStorage.setItem("subscriptionStatus", "active");
         setIsSubscribed(true);
         onSubscriptionChange(true);
-        console.log("Subscription verified and state updated");
       } else {
-        console.log("No active subscription found");
         localStorage.setItem("subscriptionStatus", "inactive");
         toast({
           description: t("No active subscription found for this email."),
@@ -128,7 +112,6 @@ export default function SubscriptionManager({
   };
 
   const handleUnsubscribe = async () => {
-    console.log("handleUnsubscribe called with email:", email);
     setIsLoading(true);
     try {
       const response = await fetch("/api/cancel-subscription", {
@@ -139,7 +122,6 @@ export default function SubscriptionManager({
         body: JSON.stringify({ email }),
       });
       const responseData = await response.json();
-      console.log("Cancel subscription response:", responseData);
       if (!response.ok) {
         throw new Error(`Failed to cancel subscription: ${responseData.error}`);
       }
@@ -148,7 +130,6 @@ export default function SubscriptionManager({
         localStorage.setItem("subscriptionStatus", "inactive");
         setIsSubscribed(false);
         onSubscriptionChange(false);
-        console.log("Subscription canceled and state updated");
       } else {
         console.error("Unexpected cancellation status:", responseData.subscription.status);
       }
@@ -158,6 +139,12 @@ export default function SubscriptionManager({
       setIsLoading(false);
     }
   };
+
+  if (isVerifying) {
+    return <div className="flex items-center justify-center h-full">
+      <Loader2 className="h-4 w-4 animate-spin" />
+    </div>
+  }
 
   return (
     <div>
