@@ -61,8 +61,6 @@ export default function Chat() {
   const { t } = useI18n();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const session_id = searchParams.get("session_id");
-  const canceled = searchParams.get("canceled");
   const conversationId = searchParams.get("id");
   const skeletonHeights = ["h-16", "h-24", "h-32", "h-40", "h-48"];
 
@@ -99,6 +97,7 @@ export default function Chat() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState<boolean>(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
 
   // Ref declarations
   const latestConversationIdRef = useRef<string | null>(null);
@@ -177,38 +176,50 @@ export default function Chat() {
 
   // Handle subscription status
   useEffect(() => {
-    if (session_id) {
-      // Handle successful subscription
-      localStorage.setItem("subscriptionStatus", "active");
-      localStorage.setItem("sessionId", session_id);
-      setIsSubscribed(true);
-      router.replace("/", undefined);
-    } else if (canceled) {
-      // Optionally, update the URL to remove the canceled parameter
-      router.replace("/", undefined);
-    } else {
-      // Check if there's a stored subscribed email
-      const storedSubscribedEmail = localStorage.getItem("subscribedEmail");
-      console.log("Stored subscribed email:", storedSubscribedEmail);
-      if (storedSubscribedEmail) {
-        // Verify subscription status
-        fetch(`/api/create-checkout-session?email=${encodeURIComponent(storedSubscribedEmail)}`)
-          .then(response => response.json())
-          .then(data => {
-            if (data.isSubscribed) {
-              setIsSubscribed(true);
-            } else {
-              // If not subscribed, clear the stored email
-              localStorage.removeItem("subscribedEmail");
-              localStorage.removeItem("subscriptionStatus");
-            }
-          })
-          .catch(error => {
-            console.error("Error verifying subscription:", error);
-          });
+    const storedEmail = localStorage.getItem("userEmail");
+    const storedSubscriptionStatus = localStorage.getItem("subscriptionStatus");
+    console.log("Initial local storage state:", { storedEmail, storedSubscriptionStatus });
+    
+    if (storedEmail) {
+      setUserEmail(storedEmail);
+      if (storedSubscriptionStatus === "active") {
+        setIsSubscribed(true);
+      } else {
+        verifySubscription(storedEmail);
       }
     }
-  }, [session_id, canceled, router]);
+  }, []);
+
+  const verifySubscription = useCallback(async (email: string) => {
+    try {
+      console.log("Verifying subscription for email:", email);
+      const response = await fetch(`/api/verify-subscription?email=${encodeURIComponent(email)}`);
+      const data = await response.json();
+      console.log("Subscription verification response:", data);
+      setIsSubscribed(data.isSubscribed);
+      console.log("Updated isSubscribed state:", data.isSubscribed);
+      
+      // Update local storage
+      localStorage.setItem("subscriptionStatus", data.isSubscribed ? "active" : "inactive");
+      console.log("Updated local storage subscriptionStatus:", data.isSubscribed ? "active" : "inactive");
+    } catch (error) {
+      console.error("Error verifying subscription:", error);
+    }
+  }, []);
+
+  // Add this effect to handle the success parameter
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const success = urlParams.get('success');
+    if (success === 'true') {
+      const storedEmail = localStorage.getItem("userEmail");
+      if (storedEmail) {
+        verifySubscription(storedEmail);
+      }
+      // Remove the success parameter from the URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [verifySubscription]);
 
   // Load conversations and documents from localStorage
   useEffect(() => {
@@ -429,11 +440,15 @@ export default function Chat() {
 
   // Increment message count
   const incrementMessageCount = useCallback(() => {
+    if (isSubscribed || userApiKey) {
+      // Don't increment if subscribed or using API key
+      return;
+    }
     setMessageCount((prevCount) => {
       if (prevCount !== null) {
         const newCount = prevCount + 1;
         localStorage.setItem("messageCount", newCount.toString());
-        if (newCount === 9 && !userApiKey && !isSubscribed) {
+        if (newCount === 9) {
           showToast(
             t("You have 1 message left before reaching the limit."),
             "destructive"
@@ -443,7 +458,7 @@ export default function Chat() {
       }
       return prevCount;
     });
-  }, [userApiKey, isSubscribed, showToast]);
+  }, [isSubscribed, userApiKey, showToast]);
 
   // Automatically scroll to bottom of chat
   const scrollToBottom = useCallback(() => {

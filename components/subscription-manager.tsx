@@ -1,7 +1,7 @@
 "use client";
 
 import { useI18n } from "@quetzallabs/i18n";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { loadStripe } from "@stripe/stripe-js";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
@@ -27,21 +27,43 @@ export default function SubscriptionManager({
 }: SubscriptionManagerProps) {
   const { t } = useI18n();
   const [isSubscribed, setIsSubscribed] = useState(initialIsSubscribed);
-  const [sessionId, setSessionId] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [isCheckingMode, setIsCheckingMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  const logState = useCallback(() => {
+    console.log("SubscriptionManager state:", {
+      isSubscribed,
+      email,
+      isCheckingMode,
+      isLoading,
+      localStorageSubscriptionStatus: localStorage.getItem("subscriptionStatus"),
+      localStorageUserEmail: localStorage.getItem("userEmail"),
+    });
+  }, [isSubscribed, email, isCheckingMode, isLoading]);
+
   useEffect(() => {
-    const storedSessionId = localStorage.getItem("sessionId");
     const subscriptionStatus = localStorage.getItem("subscriptionStatus");
+    const subscribedEmail = localStorage.getItem("userEmail");
     const newSubscriptionStatus = subscriptionStatus === "active";
+    
+    console.log("SubscriptionManager initial load:", {
+      subscriptionStatus,
+      subscribedEmail,
+      newSubscriptionStatus,
+    });
+
     setIsSubscribed(newSubscriptionStatus);
-    setSessionId(storedSessionId);
+    if (subscribedEmail) {
+      setEmail(subscribedEmail);
+    }
     onSubscriptionChange(newSubscriptionStatus);
-  }, [onSubscriptionChange]);
+
+    logState();
+  }, [onSubscriptionChange, logState]);
 
   const handleSubscribe = async () => {
+    console.log("handleSubscribe called with email:", email);
     setIsLoading(true);
     try {
       const response = await fetch("/api/create-checkout-session", {
@@ -52,41 +74,43 @@ export default function SubscriptionManager({
         body: JSON.stringify({ email }),
       });
       const { sessionId } = await response.json();
+      console.log("Received sessionId from create-checkout-session:", sessionId);
 
-      // Store the email before redirecting
-      localStorage.setItem("subscribedEmail", email);
+      localStorage.setItem("userEmail", email);
+      console.log("Stored userEmail in localStorage:", email);
 
       const stripe = await stripePromise;
+      console.log("Redirecting to Stripe checkout...");
       const { error } = await stripe!.redirectToCheckout({
         sessionId,
       });
       if (error) {
-        console.error("Error:", error);
-        // If there's an error, we should remove the stored email
-        localStorage.removeItem("subscribedEmail");
+        console.error("Stripe redirectToCheckout error:", error);
       }
     } catch (err) {
       console.error("Error creating checkout session:", err);
-      // If there's an error, we should remove the stored email
-      localStorage.removeItem("subscribedEmail");
     } finally {
       setIsLoading(false);
+      logState();
     }
   };
 
   const handleCheckSubscription = async () => {
+    console.log("handleCheckSubscription called with email:", email);
     setIsLoading(true);
     try {
-      const response = await fetch(
-        `/api/create-checkout-session?email=${encodeURIComponent(email)}`
-      );
+      const response = await fetch(`/api/verify-subscription?email=${encodeURIComponent(email)}`);
       const data = await response.json();
+      console.log("Subscription verification response:", data);
       if (data.isSubscribed) {
+        localStorage.setItem("userEmail", email);
         localStorage.setItem("subscriptionStatus", "active");
-        localStorage.setItem("subscribedEmail", email);
         setIsSubscribed(true);
         onSubscriptionChange(true);
+        console.log("Subscription verified and state updated");
       } else {
+        console.log("No active subscription found");
+        localStorage.setItem("subscriptionStatus", "inactive");
         toast({
           description: t("No active subscription found for this email."),
           variant: "destructive",
@@ -104,125 +128,107 @@ export default function SubscriptionManager({
   };
 
   const handleUnsubscribe = async () => {
-    if (!sessionId) {
-      console.error("No session ID found");
-      return;
-    }
+    console.log("handleUnsubscribe called with email:", email);
+    setIsLoading(true);
     try {
       const response = await fetch("/api/cancel-subscription", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          sessionId,
-        }),
+        body: JSON.stringify({ email }),
       });
       const responseData = await response.json();
+      console.log("Cancel subscription response:", responseData);
       if (!response.ok) {
-        console.error("Server response:", responseData);
-        throw new Error(
-          `Failed to cancel subscription: ${responseData.error}${
-            responseData.details ? ` - ${responseData.details}` : ""
-          }`
-        );
+        throw new Error(`Failed to cancel subscription: ${responseData.error}`);
       }
       if (responseData.subscription.status === "canceled") {
+        localStorage.removeItem("userEmail");
         localStorage.setItem("subscriptionStatus", "inactive");
-        localStorage.removeItem("sessionId");
-        localStorage.removeItem("subscribedEmail");
         setIsSubscribed(false);
-        setSessionId(null);
         onSubscriptionChange(false);
+        console.log("Subscription canceled and state updated");
       } else {
-        console.error(
-          "Unexpected cancellation status:",
-          responseData.subscription.status
-        );
+        console.error("Unexpected cancellation status:", responseData.subscription.status);
       }
     } catch (error) {
       console.error("Error canceling subscription:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <div>
-      {isSubscribed ? (
-        <p className="text-muted-foreground text-sm">
-          {t("You have unlimited access with your Pro subscription. You may ")}
-          <a
-            href="#"
-            className="text-[#3675F1] hover:text-[#2556E4] text-sm font-bold"
-            onClick={(e) => {
-              e.preventDefault();
+      <div className="flex items-center mb-2">
+        <Input
+          type="email"
+          placeholder={t("Enter your email")}
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="flex-grow"
+          disabled={isSubscribed}
+        />
+        <div className="w-2" />
+        <Button
+          className="w-28"
+          onClick={(e) => {
+            onActionClick(e);
+            if (isSubscribed) {
               handleUnsubscribe();
-            }}
-          >
-            {t("cancel your subscription")}
-          </a>{" "}
-          {t("at any time.")}
-        </p>
-      ) : (
-        <div>
-          <div className="flex items-center mb-2">
-            <Input
-              type="email"
-              placeholder={t("Enter your email")}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="flex-grow"
-            />
-            <div className="w-2" />
-            <Button
-              className="w-28" 
+            } else {
+              isCheckingMode ? handleCheckSubscription() : handleSubscribe();
+            }
+          }}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : isSubscribed ? (
+            t("Cancel")
+          ) : isCheckingMode ? (
+            t("Check")
+          ) : (
+            t("Upgrade")
+          )}
+        </Button>
+      </div>
+      <div className="text-muted-foreground text-sm">
+        {isSubscribed ? (
+          <p>
+            {t("You currently have unlimited access through your Pro subscription.")}
+          </p>
+        ) : isCheckingMode ? (
+          <p className="text-xs">
+            {t("Enter the email you used to subscribe. ")}
+            <a
+              href="#"
+              className="text-[#3675F1] hover:text-[#2556E4] font-bold"
               onClick={(e) => {
-                onActionClick(e);
-                isCheckingMode ? handleCheckSubscription() : handleSubscribe();
+                e.preventDefault();
+                setIsCheckingMode(false);
               }}
-              disabled={isLoading}
             >
-              {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : isCheckingMode ? (
-                t("Check")
-              ) : (
-                t("Upgrade")
-              )}
-            </Button>
-          </div>
-          <div className="text-muted-foreground text-sm">
-            {isCheckingMode ? (
-              <p className="text-muted-foreground text-xs">
-                {t("Enter the email you used to subscribe. ")}
-                <a
-                  href="#"
-                  className="text-[#3675F1] hover:text-[#2556E4] font-bold"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setIsCheckingMode(false);
-                  }}
-                >
-                  {t("Need a new subscription?")}
-                </a>
-              </p>
-            ) : (
-              <p className="text-muted-foreground text-xs">
-                {t("Enter an email to use for your subscription. ")}
-                <a
-                  href="#"
-                  className="text-[#3675F1] hover:text-[#2556E4] font-bold"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setIsCheckingMode(true);
-                  }}
-                >
-                  {t("Already have a subscription?")}
-                </a>
-              </p>
-            )}
-          </div>
-        </div>
-      )}
+              {t("Need a new subscription?")}
+            </a>
+          </p>
+        ) : (
+          <p className="text-xs">
+            {t("Enter an email to use for your subscription. ")}
+            <a
+              href="#"
+              className="text-[#3675F1] hover:text-[#2556E4] font-bold"
+              onClick={(e) => {
+                e.preventDefault();
+                setIsCheckingMode(true);
+              }}
+            >
+              {t("Already have a subscription?")}
+            </a>
+          </p>
+        )}
+      </div>
     </div>
   );
 }

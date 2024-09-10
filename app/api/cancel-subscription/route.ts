@@ -4,37 +4,34 @@ import Stripe from "stripe";
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 export async function POST(request: Request) {
-  const { sessionId } = await request.json();
-
-  if (!sessionId) {
-    return NextResponse.json({ error: "Missing sessionId" }, { status: 400 });
-  }
-
   try {
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    const { email } = await request.json();
 
-    if (!session.subscription) {
-      return NextResponse.json(
-        { error: "No subscription found for this session" },
-        { status: 400 }
-      );
+    // Find the customer by email
+    const customers = await stripe.customers.list({ email: email });
+    if (customers.data.length === 0) {
+      return NextResponse.json({ error: 'Customer not found' }, { status: 404 });
     }
 
-    const canceledSubscription = await stripe.subscriptions.cancel(
-      session.subscription as string
-    );
+    const customer = customers.data[0];
 
-    return NextResponse.json({
-      success: true,
-      subscription: canceledSubscription,
+    // Find active subscriptions for the customer
+    const subscriptions = await stripe.subscriptions.list({
+      customer: customer.id,
+      status: 'active',
     });
-  } catch (error) {
-    console.error("Error in cancel-subscription route:", error);
+
+    if (subscriptions.data.length === 0) {
+      return NextResponse.json({ error: 'No active subscription found' }, { status: 404 });
+    }
+
+    // Cancel the first active subscription
+    const subscription = await stripe.subscriptions.cancel(subscriptions.data[0].id);
+
+    return NextResponse.json({ subscription });
+  } catch (err: any) {
     return NextResponse.json(
-      {
-        error: "Error canceling subscription",
-        details: (error as Error).message,
-      },
+      { error: 'Error canceling subscription', details: err.message },
       { status: 500 }
     );
   }
