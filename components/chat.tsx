@@ -176,9 +176,10 @@ export default function Chat() {
   // Handle subscription status
   useEffect(() => {
     const storedEmail = localStorage.getItem("userEmail");
-    const storedSubscriptionStatus = localStorage.getItem("subscriptionStatus");
     if (storedEmail) {
       verifySubscription(storedEmail);
+    } else {
+      setIsSubscribed(false);
     }
   }, []);
 
