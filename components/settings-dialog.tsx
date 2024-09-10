@@ -22,6 +22,7 @@ import {
   TooltipTrigger,
 } from "./ui/tooltip";
 import SubscriptionManager from '@/components/subscription-manager';
+import { MouseEvent } from 'react';
 
 interface SettingsDialogProps {
   open: boolean;
@@ -79,6 +80,11 @@ export default function SettingsDialog({
     } else {
       onOpenChange(true);
     }
+  };
+
+  const handleSubscriptionAction = (e: MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
   };
 
   // Validate API key
@@ -188,6 +194,7 @@ export default function SettingsDialog({
               <SubscriptionManager
                 isSubscribed={isSubscribed}
                 onSubscriptionChange={onSubscriptionChange}
+                onActionClick={handleSubscriptionAction}
               />
             </div>
           )}

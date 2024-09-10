@@ -186,6 +186,27 @@ export default function Chat() {
     } else if (canceled) {
       // Optionally, update the URL to remove the canceled parameter
       router.replace("/", undefined);
+    } else {
+      // Check if there's a stored subscribed email
+      const storedSubscribedEmail = localStorage.getItem("subscribedEmail");
+      console.log("Stored subscribed email:", storedSubscribedEmail);
+      if (storedSubscribedEmail) {
+        // Verify subscription status
+        fetch(`/api/create-checkout-session?email=${encodeURIComponent(storedSubscribedEmail)}`)
+          .then(response => response.json())
+          .then(data => {
+            if (data.isSubscribed) {
+              setIsSubscribed(true);
+            } else {
+              // If not subscribed, clear the stored email
+              localStorage.removeItem("subscribedEmail");
+              localStorage.removeItem("subscriptionStatus");
+            }
+          })
+          .catch(error => {
+            console.error("Error verifying subscription:", error);
+          });
+      }
     }
   }, [session_id, canceled, router]);
 
