@@ -108,7 +108,7 @@ export default function SubscriptionManager({
     <div>
       {isSubscribed ? (
         <p className="text-muted-foreground text-sm">
-          {t("You have unlimited access with your Pro subscription. You may")}
+          {t("You have unlimited access with your Pro subscription. You may ")}
           <a
             href="#"
             className="text-[#3675F1] hover:text-[#2556E4] text-sm font-bold"
@@ -133,7 +133,7 @@ export default function SubscriptionManager({
           >
             {t("Upgrade to Pro")}
           </a>
-          {t("for access to unlimited messages and advanced features.")}
+          {t(" for access to unlimited messages and advanced features.")}
         </p>
       )}
     </div>

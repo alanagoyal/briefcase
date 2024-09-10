@@ -85,5 +85,7 @@
   "k83": "Upgrade to Pro",
   "k84": "for access to unlimited messages and advanced features.",
   "k85": "You have {remainingMessages} message{pluralize} remaining. To send more messages, please upgrade to Pro or add your OpenAI API key in settings.",
-  "k86": "You have {remainingMessages} message{pluralize} remaining. To send more messages, please upgrade to Pro or set your OpenAI API key in settings."
+  "k86": "You have {remainingMessages} message{pluralize} remaining. To send more messages, please upgrade to Pro or set your OpenAI API key in settings.",
+  "k87": "You have unlimited access with your Pro subscription. You may ",
+  "k88": " for access to unlimited messages and advanced features."
 }
