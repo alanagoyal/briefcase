@@ -21,8 +21,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "./ui/tooltip";
-import SubscriptionManager from '@/components/subscription-manager';
-import { MouseEvent } from 'react';
+import SubscriptionManager from "@/components/subscription-manager";
+import { MouseEvent } from "react";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -163,7 +163,9 @@ export default function SettingsDialog({
           <DialogTitle>{newUser ? t("Briefcase") : t("Settings")}</DialogTitle>
           <DialogDescription>
             {newUser
-              ? t("The AI legal assistant for fast-moving founders and investors")
+              ? t(
+                  "The AI legal assistant for fast-moving founders and investors"
+                )
               : t("Update your information below")}
           </DialogDescription>
         </DialogHeader>
@@ -190,7 +192,23 @@ export default function SettingsDialog({
           </div>
           {!newUser && (
             <div className="space-y-2">
-              <Label>{t("Subscription")}</Label>
+              <div className="flex items-center space-x-2">
+                <Label>{t("Subscription")}</Label>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Info className="h-4 w-4 text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent side="right" align="center">
+                      <p className="max-w-[300px]">
+                        {t(
+                          "Your subscription is linked to your email and can be accessed from any device for unlimited messages. Your message history is stored locally and will not be shared across sessions."
+                        )}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
               <SubscriptionManager
                 isSubscribed={isSubscribed}
                 onSubscriptionChange={onSubscriptionChange}
@@ -210,7 +228,7 @@ export default function SettingsDialog({
                     <TooltipContent side="right" align="center">
                       <p className="max-w-[300px]">
                         {t(
-                          "Briefcase has a limit of 10 messages per day. For unlimited access, please enter your OpenAI Key."
+                          "Your API key is stored locally on your device. It is only used to authenticate your requests to the OpenAI API."
                         )}
                       </p>
                     </TooltipContent>
@@ -228,7 +246,7 @@ export default function SettingsDialog({
               />
               <p className="text-muted-foreground text-xs">
                 {t(
-                  "Your API key will not be stored on our servers. It is only used to authenticate your requests to the OpenAI API."
+                  "Briefcase has a limit of 10 messages per day. For unlimited access, please enter your OpenAI Key."
                 )}
               </p>
             </div>
