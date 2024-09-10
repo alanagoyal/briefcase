@@ -87,13 +87,13 @@ export function SubscriptionManager({ onSubscriptionChange, isSubscribed: initia
       {isSubscribed ? (
         <p className="text-muted-foreground text-sm">
           {`You have unlimited access with your Pro subscription. You may `}
-          <a href="#" className="text-primary text-[#0070f3] text-sm font-bold" onClick={(e) => { e.preventDefault(); handleUnsubscribe(); }}>
+          <a href="#" className="text-[#3675F1] hover:text-[#2556E4] text-sm font-bold" onClick={(e) => { e.preventDefault(); handleUnsubscribe(); }}>
           cancel your subscription
         </a> {` at any time.`}
         </p>
       ) : (
         <p className="text-muted-foreground text-sm">
-          <a href="#" className="text-primary text-[#0070f3] text-sm font-bold" onClick={(e) => { e.preventDefault(); handleSubscribe(); }}>
+          <a href="#" className="text-[#3675F1] hover:text-[#2556E4] text-sm font-bold" onClick={(e) => { e.preventDefault(); handleSubscribe(); }}>
             Upgrade to Pro
           </a>
           {' for access to unlimited messages and advanced features.'}

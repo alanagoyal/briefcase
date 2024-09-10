@@ -182,7 +182,10 @@ export default function Chat() {
       localStorage.setItem("subscriptionStatus", "active");
       localStorage.setItem("sessionId", session_id);
       setIsSubscribed(true);
-      console.log("Subscription successful. Status: active, Session ID:", session_id);
+      console.log(
+        "Subscription successful. Status: active, Session ID:",
+        session_id
+      );
       toast({
         description: t(
           "Subscription successful! You now have unlimited access."
@@ -357,15 +360,17 @@ export default function Chat() {
     } else {
       setMessageCount(0);
     }
-    
+
     const storedApiKey = localStorage.getItem("openaiApiKey");
     if (storedApiKey) {
       setUserApiKey(storedApiKey);
     }
-    
+
     // Set isLimitReached based on the loaded values
     setIsLimitReached(
-      parseInt(storedCount || "0", 10) >= 10 && !storedApiKey && subscriptionStatus !== "active"
+      parseInt(storedCount || "0", 10) >= 10 &&
+        !storedApiKey &&
+        subscriptionStatus !== "active"
     );
   }, []);
 
@@ -375,14 +380,20 @@ export default function Chat() {
       localStorage.setItem("messageCount", messageCount.toString());
     }
     setIsLimitReached(
-      messageCount !== null && messageCount >= 10 && !userApiKey && !isSubscribed
+      messageCount !== null &&
+        messageCount >= 10 &&
+        !userApiKey &&
+        !isSubscribed
     );
   }, [messageCount, userApiKey, isSubscribed]);
 
   // Handle API key changes
   useEffect(() => {
     setIsLimitReached(
-      messageCount !== null && messageCount >= 10 && !userApiKey && !isSubscribed
+      messageCount !== null &&
+        messageCount >= 10 &&
+        !userApiKey &&
+        !isSubscribed
     );
   }, [userApiKey, messageCount, isSubscribed]);
 
@@ -1459,14 +1470,28 @@ export default function Chat() {
           </div>
         </div>
         {showBanner && (
-          <div className="text-sm text-muted-foreground px-4 py-2 w-full bg-muted flex items-center">
-            {t(
-              `You have {remainingMessages} message{pluralize} remaining. To send more messages, please upgrade to Pro or set your OpenAI API key in settings.`,
-              {
-                remainingMessages: remainingMessages,
-                pluralize: remainingMessages !== 1 ? "s" : "",
-              }
-            )}
+          <div className="text-sm text-muted-foreground px-4 py-2 w-full bg-muted">
+            <p className="inline">
+              {t(
+                `You have {remainingMessages} message{pluralize} remaining. To send more messages, please upgrade to Pro or set your OpenAI API key in`,
+                {
+                  remainingMessages: remainingMessages,
+                  pluralize: remainingMessages !== 1 ? "s" : "",
+                }
+              )}
+              {' '}
+              <a
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setIsSettingsOpen(true);
+                }}
+                className="font-bold hover:underline focus:outline-none"
+              >
+                {t("settings")}
+              </a>
+              .
+            </p>
           </div>
         )}
         <div className="p-4 border-t bg-background">
