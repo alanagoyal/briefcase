@@ -56,6 +56,8 @@ import { Skeleton } from "./ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useMobileDetect } from "./mobile-detector";
 import { Header } from "./header";
+import { useCloud } from "freestyle-sh";
+import type { UserData } from "../cloudstate/userData";
 
 export default function Chat() {
   const { t } = useI18n();
@@ -162,6 +164,8 @@ export default function Chat() {
     },
   });
 
+  const userData = useCloud<typeof UserData>("user-data");
+
   // useEffects
 
   // Update the sidebar state based on mobile detection
@@ -187,35 +191,53 @@ export default function Chat() {
 
   // Handle subscription status
   useEffect(() => {
-    const storedEmail = localStorage.getItem("userEmail");
-    if (storedEmail) {
-      verifySubscription(storedEmail);
-    } else {
-      setIsSubscribed(false);
-      localStorage.setItem("subscriptionStatus", "inactive");
-      setIsSubscriptionVerified(true);
-    }
+    const loadUserData = async () => {
+      console.log("Loading user data...");
+      try {
+        const count = await userData.getMessageCount();
+        console.log("Loaded message count:", count);
+        setMessageCount(count);
+
+        const apiKey = await userData.getApiKey();
+        console.log("Loaded API key:", apiKey ? "Present" : "Not set");
+        setUserApiKey(apiKey);
+
+        const email = await userData.getEmail();
+        console.log("Loaded email:", email);
+        if (email) {
+          console.log("Verifying subscription for email:", email);
+          verifySubscription(email);
+        } else {
+          console.log("No email found, setting isSubscribed to false");
+          setIsSubscribed(false);
+          setIsSubscriptionVerified(true);
+        }
+      } catch (error) {
+        console.error("Error loading user data:", error);
+      }
+    };
+
+    loadUserData();
   }, []);
 
   // Verify subscription
   const verifySubscription = useCallback(async (email: string) => {
+    console.log("Verifying subscription for email:", email);
     try {
       const response = await fetch(
         `/api/verify-subscription?email=${encodeURIComponent(email)}`
       );
       const data = await response.json();
+      console.log("Subscription verification result:", data);
       setIsSubscribed(data.isSubscribed);
-
-      // Update local storage
-      localStorage.setItem(
-        "subscriptionStatus",
-        data.isSubscribed ? "active" : "inactive"
-      );
+      await userData.setSubscriptionStatus(data.isSubscribed);
+      console.log("Updated subscription status in Cloudstate");
     } catch (error) {
       console.error("Error verifying subscription:", error);
       setIsSubscribed(false);
     } finally {
       setIsSubscriptionVerified(true);
+      console.log("Subscription verification process completed");
     }
   }, []);
 
@@ -444,25 +466,26 @@ export default function Chat() {
   }, [messageCount, userApiKey, isSubscribed]);
 
   // Increment message count
-  const incrementMessageCount = useCallback(() => {
+  const incrementMessageCount = useCallback(async () => {
+    console.log("Attempting to increment message count");
     if (isSubscribed || userApiKey) {
-      // Don't increment if subscribed or using API key
+      console.log("User is subscribed or using API key, not incrementing count");
       return;
     }
-    setMessageCount((prevCount) => {
-      if (prevCount !== null) {
-        const newCount = prevCount + 1;
-        localStorage.setItem("messageCount", newCount.toString());
-        if (newCount === 9) {
-          showToast(
-            t("You have 1 message left before reaching the limit."),
-            "destructive"
-          );
-        }
-        return newCount;
+    try {
+      const newCount = await userData.incrementMessageCount();
+      console.log("New message count:", newCount);
+      setMessageCount(newCount);
+      if (newCount === 9) {
+        console.log("User has 1 message left, showing toast");
+        showToast(
+          t("You have 1 message left before reaching the limit."),
+          "destructive"
+        );
       }
-      return prevCount;
-    });
+    } catch (error) {
+      console.error("Error incrementing message count:", error);
+    }
   }, [isSubscribed, userApiKey, showToast]);
 
   // Automatically scroll to bottom of chat
@@ -1639,24 +1662,39 @@ export default function Chat() {
             setIsSettingsOpen(false);
           }
         }}
-        onApiKeyChange={(apiKey) => {
+        onApiKeyChange={async (apiKey) => {
+          console.log("Updating API key");
           setUserApiKey(apiKey || null);
+          await userData.setApiKey(apiKey || null);
+          console.log("API key updated in Cloudstate");
           if (apiKey) {
-            localStorage.setItem("openaiApiKey", apiKey);
+            console.log("API key set, resetting isLimitReached");
+            setIsLimitReached(false);
           } else {
-            localStorage.removeItem("openaiApiKey");
-            if (messageCount !== null && messageCount >= 10 && !isSubscribed) {
+            console.log("No API key, checking message count");
+            const count = await userData.getMessageCount();
+            console.log("Current message count:", count);
+            if (count >= 10 && !isSubscribed) {
+              console.log("Limit reached, updating isLimitReached");
               setIsLimitReached(true);
             }
           }
         }}
         isSubscribed={isSubscribed}
-        onSubscriptionChange={(subscribed) => {
+        onSubscriptionChange={async (subscribed) => {
+          console.log("Updating subscription status:", subscribed);
           setIsSubscribed(subscribed);
+          await userData.setSubscriptionStatus(subscribed);
+          console.log("Subscription status updated in Cloudstate");
           if (subscribed) {
+            console.log("User subscribed, resetting isLimitReached");
             setIsLimitReached(false);
           } else {
-            if (messageCount !== null && messageCount >= 10) {
+            console.log("User not subscribed, checking message count");
+            const count = await userData.getMessageCount();
+            console.log("Current message count:", count);
+            if (count >= 10) {
+              console.log("Limit reached, updating isLimitReached");
               setIsLimitReached(true);
             }
           }
