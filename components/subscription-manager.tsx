@@ -159,7 +159,7 @@ export default function SubscriptionManager({
         />
         <div className="w-2" />
         <Button
-          className="w-28"
+          className="w-32"
           onClick={(e) => {
             onActionClick(e);
             if (isSubscribed) {
