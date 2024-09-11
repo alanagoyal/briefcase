@@ -109,6 +109,17 @@ export default function Chat() {
 
   const { isMobile, isLoading: isMobileLoading } = useMobileDetect();
 
+  // Calculate remaining messages
+  const remainingMessages =
+    messageCount !== null ? Math.max(10 - messageCount, 0) : null;
+
+  // Determine if the banner should be shown
+  const showBanner =
+    isSubscriptionVerified &&
+    !userApiKey &&
+    !isSubscribed &&
+    remainingMessages !== null;
+
   // useChat hook
   const {
     messages,
@@ -186,6 +197,7 @@ export default function Chat() {
     }
   }, []);
 
+  // Verify subscription
   const verifySubscription = useCallback(async (email: string) => {
     try {
       const response = await fetch(
@@ -207,7 +219,7 @@ export default function Chat() {
     }
   }, []);
 
-  // Add this effect to handle the success parameter
+  // Handle success parameter
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const success = urlParams.get("success");
@@ -309,7 +321,7 @@ export default function Chat() {
     }
   }, [documents]);
 
-  // Load user name and API key from localStorage
+  // Load userName and API key from localStorage
   useEffect(() => {
     const storedName = localStorage.getItem("userName");
     if (storedName) {
@@ -322,6 +334,29 @@ export default function Chat() {
       setUserApiKey(storedApiKey);
     }
   }, []);
+
+  // Load message feedback from localStorage
+  useEffect(() => {
+    const storedFeedback = localStorage.getItem("messageFeedback");
+    if (storedFeedback) {
+      const parsedFeedback = JSON.parse(storedFeedback);
+      setMessageFeedback(parsedFeedback);
+    }
+    const storedLastRequestId = localStorage.getItem("lastRequestId");
+    if (storedLastRequestId) {
+      latestRequestIdRef.current = storedLastRequestId;
+    }
+  }, []);
+
+  // Save message feedback to localStorage whenever it changes
+  useEffect(() => {
+    if (Object.keys(messageFeedback).length > 0) {
+      localStorage.setItem("messageFeedback", JSON.stringify(messageFeedback));
+    }
+    if (latestRequestIdRef.current) {
+      localStorage.setItem("lastRequestId", latestRequestIdRef.current);
+    }
+  }, [messageFeedback]);
 
   // Update URL when current conversation changes
   useEffect(() => {
@@ -363,49 +398,6 @@ export default function Chat() {
     }
   }, [focusTrigger]);
 
-  // Load message count and API key from localStorage
-  useEffect(() => {
-    const storedCount = localStorage.getItem("messageCount");
-    if (storedCount) {
-      setMessageCount(parseInt(storedCount, 10));
-    } else {
-      setMessageCount(0);
-    }
-
-    const storedApiKey = localStorage.getItem("openaiApiKey");
-    if (storedApiKey) {
-      setUserApiKey(storedApiKey);
-    }
-
-    // Set isLimitReached based on the loaded values
-    setIsLimitReached(
-      parseInt(storedCount || "0", 10) >= 10 && !storedApiKey && !isSubscribed
-    );
-  }, []);
-
-  // Save message count to localStorage whenever it changes
-  useEffect(() => {
-    if (messageCount !== null) {
-      localStorage.setItem("messageCount", messageCount.toString());
-    }
-    setIsLimitReached(
-      messageCount !== null &&
-        messageCount >= 10 &&
-        !userApiKey &&
-        !isSubscribed
-    );
-  }, [messageCount, userApiKey, isSubscribed]);
-
-  // Handle API key changes
-  useEffect(() => {
-    setIsLimitReached(
-      messageCount !== null &&
-        messageCount >= 10 &&
-        !userApiKey &&
-        !isSubscribed
-    );
-  }, [userApiKey, messageCount, isSubscribed]);
-
   // Show toast function
   const showToast = useCallback(
     (message: string, variant: "default" | "destructive") => {
@@ -419,17 +411,37 @@ export default function Chat() {
     []
   );
 
-  // Effect to show toast when limit is reached
+  // Load message count and API key from localStorage
   useEffect(() => {
-    if (isLimitReached && !userApiKey && !isSubscribed) {
-      showToast(
-        t(
-          "You've reached the message limit. Please upgrade to Pro or set your OpenAI API key for unlimited use."
-        ),
-        "destructive"
-      );
+    // Load message count from localStorage
+    const storedCount = localStorage.getItem("messageCount");
+    const initialCount = storedCount ? parseInt(storedCount, 10) : 0;
+    setMessageCount(initialCount);
+
+    // Load API key from localStorage
+    const storedApiKey = localStorage.getItem("openaiApiKey");
+    if (storedApiKey) {
+      setUserApiKey(storedApiKey);
     }
-  }, [isLimitReached, userApiKey, isSubscribed, showToast]);
+  }, []); // This effect runs only once on component mount
+
+  // Handle changes to messageCount, userApiKey, and isSubscribed
+  useEffect(() => {
+    // Update localStorage
+    if (messageCount !== null) {
+      localStorage.setItem("messageCount", messageCount.toString());
+    }
+
+    // Check if limit is reached
+    const shouldLimitReach =
+      messageCount !== null &&
+      messageCount >= 10 &&
+      !userApiKey &&
+      !isSubscribed;
+
+    // Update isLimitReached state
+    setIsLimitReached(shouldLimitReach);
+  }, [messageCount, userApiKey, isSubscribed]);
 
   // Increment message count
   const incrementMessageCount = useCallback(() => {
@@ -475,7 +487,14 @@ export default function Chat() {
     return () => observer.disconnect();
   }, [scrollToBottom]);
 
+  // Reset titleGenerationTriggeredRef when the conversation changes
+  useEffect(() => {
+    titleGenerationTriggeredRef.current = {};
+  }, [currentConversationId]);
+
   // Helper functions
+
+  // Start a new chat
   const startNewChat = () => {
     if (isLimitReached && !userApiKey && !isSubscribed) {
       showToast(
@@ -501,6 +520,84 @@ export default function Chat() {
       inputRef.current?.focus();
     }, 0);
   };
+
+  // Handle prompt click for new chat
+  const handlePromptClick = async (prompt: string) => {
+    if (isLimitReached && !userApiKey && !isSubscribed) {
+      showToast(
+        t(
+          "You've reached the message limit. Please upgrade to Pro or set your OpenAI API key for unlimited use."
+        ),
+        "destructive"
+      );
+      return;
+    }
+
+    // Create a new conversation if it doesn't exist
+    let currentId = currentConversationId || uuidv4();
+    latestConversationIdRef.current = currentId;
+
+    if (!currentConversationId) {
+      const newConversation: Conversation = {
+        id: currentId,
+        title: t("New Chat"),
+        messages: [],
+        createdAt: new Date(),
+      };
+      setConversations((prev) => [newConversation, ...prev]);
+      setCurrentConversationId(currentId);
+      router.push(`/?id=${currentId}`);
+    }
+
+    // Check if it's the SAFE agreement prompt
+    if (prompt === t("Summarize the terms of this SAFE agreement")) {
+      // Set the input value to the prompt
+      handleInputChange({
+        target: { value: prompt },
+      } as React.ChangeEvent<HTMLInputElement>);
+
+      // Focus on the file input
+      setTimeout(() => {
+        fileInputRef.current?.click();
+      }, 0);
+
+      return;
+    }
+
+    // Create a new user message and append it to the conversation
+    const userMessage: Message = {
+      id: uuidv4(),
+      role: "user",
+      content: prompt,
+    };
+    updateConversation(currentId, userMessage, latestRequestIdRef.current);
+    incrementMessageCount();
+    setIsLoading(true);
+
+    try {
+      await append(userMessage, {
+        options: {
+          body: {
+            documentContext: documentContext,
+            userApiKey: userApiKey,
+            seed: seed,
+          },
+        },
+      });
+    } catch (error) {
+      console.error("Error appending message:", error);
+      showToast(t("Failed to send message"), "destructive");
+    } finally {
+      setIsLoading(false);
+    }
+
+    // Focus the input immediately after setting the value
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 0);
+  };
+
+  // Send a message
   const handleSend = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!input.trim()) return;
@@ -542,6 +639,8 @@ export default function Chat() {
     setIsLoading(true);
     handleSubmit(e);
   };
+
+  // Generate a title for a conversation
   const generateTitle = useCallback(
     async (id: string, userMessage: string, assistantMessage: string) => {
       try {
@@ -579,6 +678,8 @@ export default function Chat() {
     },
     [setConversations]
   );
+
+  // Update a conversation
   const updateConversation = useCallback(
     (id: string, message: Message, currentRequestId: string | null) => {
       setConversations((prev) => {
@@ -707,6 +808,7 @@ export default function Chat() {
     return groups.filter((group) => group.conversations.length > 0);
   }, [conversations]);
 
+  // Delete a conversation
   const deleteConversation = useCallback(
     (id: string) => {
       setConversations((prev) => {
@@ -761,9 +863,9 @@ export default function Chat() {
     ]
   );
 
+  // Upload a file to a conversation
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      
       // Create a new conversation if it doesn't exist
       let currentId = currentConversationId || uuidv4();
       latestConversationIdRef.current = currentId;
@@ -780,6 +882,7 @@ export default function Chat() {
         router.push(`/?id=${currentId}`);
       }
 
+      // Upload file to conversation
       const file = e.target.files[0];
       try {
         const text = await readFileAsText(file);
@@ -821,6 +924,41 @@ export default function Chat() {
     }
   };
 
+  // Remove a document from a conversation
+  const removeDocument = (docId: string) => {
+    setDocuments((prevDocs) => prevDocs.filter((doc) => doc.id !== docId));
+    setPinnedDocuments((prevPinned) =>
+      prevPinned.filter((doc) => doc.id !== docId)
+    );
+    if (currentConversationId) {
+      setConversations((prevConvs) =>
+        prevConvs.map((conv) => {
+          if (conv.id === currentConversationId) {
+            const updatedDocs =
+              conv.documents?.filter((doc) => doc.id !== docId) || [];
+            const updatedContext = updatedDocs
+              .map((doc) => doc.content)
+              .join("\n\n");
+            return {
+              ...conv,
+              documents: updatedDocs,
+              documentContext: updatedContext,
+            };
+          }
+          return conv;
+        })
+      );
+
+      // Update the current document context
+      const updatedContext = pinnedDocuments
+        .filter((doc) => doc.id !== docId)
+        .map((doc) => doc.content)
+        .join("\n\n");
+      setDocumentContext(updatedContext);
+    }
+  };
+
+  // Get a quote from a message
   const handleGetQuote = (index: number) => {
     if (index > 0 && messages[index - 1].role === "user") {
       const question = messages[index - 1].content;
@@ -829,6 +967,7 @@ export default function Chat() {
     setIsQuoteDialogOpen(true);
   };
 
+  // Copy
   const handleCopy = (content: string) => {
     navigator.clipboard.writeText(content);
     toast({
@@ -836,6 +975,7 @@ export default function Chat() {
     });
   };
 
+  // Regenerate
   const handleRetry = useCallback(
     async (messageIndex: number) => {
       animateIcon("regenerate", messages[messageIndex].id);
@@ -907,6 +1047,8 @@ export default function Chat() {
       isSubscribed,
     ]
   );
+
+  // Submit feedback for a message
   const handleFeedback = useCallback(
     async (messageId: string, isPositive: boolean) => {
       const message = messages.find(
@@ -979,54 +1121,8 @@ export default function Chat() {
     },
     [messages, userName, toast, messageFeedback]
   );
-  const removeDocument = (docId: string) => {
-    setDocuments((prevDocs) => prevDocs.filter((doc) => doc.id !== docId));
-    setPinnedDocuments((prevPinned) =>
-      prevPinned.filter((doc) => doc.id !== docId)
-    );
-    if (currentConversationId) {
-      setConversations((prevConvs) =>
-        prevConvs.map((conv) => {
-          if (conv.id === currentConversationId) {
-            const updatedDocs =
-              conv.documents?.filter((doc) => doc.id !== docId) || [];
-            const updatedContext = updatedDocs
-              .map((doc) => doc.content)
-              .join("\n\n");
-            return {
-              ...conv,
-              documents: updatedDocs,
-              documentContext: updatedContext,
-            };
-          }
-          return conv;
-        })
-      );
 
-      // Update the current document context
-      const updatedContext = pinnedDocuments
-        .filter((doc) => doc.id !== docId)
-        .map((doc) => doc.content)
-        .join("\n\n");
-      setDocumentContext(updatedContext);
-    }
-  };
-
-  // Calculate remaining messages
-  const remainingMessages =
-    messageCount !== null ? Math.max(10 - messageCount, 0) : null;
-
-  // Determine if the banner should be shown
-  const showBanner =
-    isSubscriptionVerified &&
-    !userApiKey &&
-    !isSubscribed &&
-    remainingMessages !== null;
-
-  // Also reset titleGenerationTriggeredRef when the conversation changes
-  useEffect(() => {
-    titleGenerationTriggeredRef.current = {};
-  }, [currentConversationId]);
+  // Animate icons for message actions
   const animateIcon = (iconName: string, messageId: string) => {
     setAnimatedIcons((prev) => ({
       ...prev,
@@ -1039,105 +1135,6 @@ export default function Chat() {
       }));
     }, 500);
   };
-
-  // Handle prompt click for new chat
-  const handlePromptClick = async (prompt: string) => {
-    if (isLimitReached && !userApiKey && !isSubscribed) {
-      showToast(
-        t(
-          "You've reached the message limit. Please upgrade to Pro or set your OpenAI API key for unlimited use."
-        ),
-        "destructive"
-      );
-      return;
-    }
-
-    // Create a new conversation if it doesn't exist
-    let currentId = currentConversationId || uuidv4();
-    latestConversationIdRef.current = currentId;
-
-    if (!currentConversationId) {
-      const newConversation: Conversation = {
-        id: currentId,
-        title: t("New Chat"),
-        messages: [],
-        createdAt: new Date(),
-      };
-      setConversations((prev) => [newConversation, ...prev]);
-      setCurrentConversationId(currentId);
-      router.push(`/?id=${currentId}`);
-    }
-
-    // Check if it's the SAFE agreement prompt
-    if (prompt === t("Summarize the terms of this SAFE agreement")) {
-      // Set the input value to the prompt
-      handleInputChange({
-        target: { value: prompt },
-      } as React.ChangeEvent<HTMLInputElement>);
-
-      // Focus on the file input
-      setTimeout(() => {
-        fileInputRef.current?.click();
-      }, 0);
-
-      return;
-    }
-
-    // Create a new user message and append it to the conversation
-    const userMessage: Message = {
-      id: uuidv4(),
-      role: "user",
-      content: prompt,
-    };
-    updateConversation(currentId, userMessage, latestRequestIdRef.current);
-    incrementMessageCount();
-    setIsLoading(true);
-
-    try {
-      await append(userMessage, {
-        options: {
-          body: {
-            documentContext: documentContext,
-            userApiKey: userApiKey,
-            seed: seed,
-          },
-        },
-      });
-    } catch (error) {
-      console.error("Error appending message:", error);
-      showToast(t("Failed to send message"), "destructive");
-    } finally {
-      setIsLoading(false);
-    }
-
-    // Focus the input immediately after setting the value
-    setTimeout(() => {
-      inputRef.current?.focus();
-    }, 0);
-  };
-
-  // Load message feedback from localStorage
-  useEffect(() => {
-    const storedFeedback = localStorage.getItem("messageFeedback");
-    if (storedFeedback) {
-      const parsedFeedback = JSON.parse(storedFeedback);
-      setMessageFeedback(parsedFeedback);
-    }
-    const storedLastRequestId = localStorage.getItem("lastRequestId");
-    if (storedLastRequestId) {
-      latestRequestIdRef.current = storedLastRequestId;
-    }
-  }, []);
-
-  // Save message feedback to localStorage whenever it changes
-  useEffect(() => {
-    if (Object.keys(messageFeedback).length > 0) {
-      localStorage.setItem("messageFeedback", JSON.stringify(messageFeedback));
-    }
-    if (latestRequestIdRef.current) {
-      localStorage.setItem("lastRequestId", latestRequestIdRef.current);
-    }
-  }, [messageFeedback]);
 
   // Early return if still detecting mobile
   if (isMobileLoading) {
