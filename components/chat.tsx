@@ -762,7 +762,24 @@ export default function Chat() {
   );
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && currentConversationId) {
+    if (e.target.files) {
+      
+      // Create a new conversation if it doesn't exist
+      let currentId = currentConversationId || uuidv4();
+      latestConversationIdRef.current = currentId;
+
+      if (!currentConversationId) {
+        const newConversation: Conversation = {
+          id: currentId,
+          title: t("New Chat"),
+          messages: [],
+          createdAt: new Date(),
+        };
+        setConversations((prev) => [newConversation, ...prev]);
+        setCurrentConversationId(currentId);
+        router.push(`/?id=${currentId}`);
+      }
+
       const file = e.target.files[0];
       try {
         const text = await readFileAsText(file);
@@ -772,7 +789,7 @@ export default function Chat() {
           type: file.type,
           size: file.size,
           content: text,
-          conversationId: currentConversationId,
+          conversationId: currentId,
         };
         const newDocumentContext = (documentContext || "") + "\n\n" + text;
         setDocumentContext(newDocumentContext);
@@ -803,6 +820,7 @@ export default function Chat() {
       }
     }
   };
+
   const handleGetQuote = (index: number) => {
     if (index > 0 && messages[index - 1].role === "user") {
       const question = messages[index - 1].content;
@@ -810,12 +828,14 @@ export default function Chat() {
     }
     setIsQuoteDialogOpen(true);
   };
+
   const handleCopy = (content: string) => {
     navigator.clipboard.writeText(content);
     toast({
       description: t("Message copied to clipboard"),
     });
   };
+
   const handleRetry = useCallback(
     async (messageIndex: number) => {
       animateIcon("regenerate", messages[messageIndex].id);
