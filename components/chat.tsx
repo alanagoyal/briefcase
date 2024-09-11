@@ -1026,6 +1026,19 @@ export default function Chat() {
       return;
     }
 
+    // Check if it's the SAFE agreement prompt
+    if (prompt === t("Summarize the terms of this SAFE agreement")) {
+      // Set the input value to the prompt
+      handleInputChange({ target: { value: prompt } } as React.ChangeEvent<HTMLInputElement>);
+      
+      // Focus on the file input
+      setTimeout(() => {
+        fileInputRef.current?.click();
+      }, 0);
+      
+      return; // Exit the function early
+    }
+
     let currentId = currentConversationId || uuidv4();
     latestConversationIdRef.current = currentId;
 
