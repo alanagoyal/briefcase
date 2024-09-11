@@ -379,9 +379,7 @@ export default function Chat() {
 
     // Set isLimitReached based on the loaded values
     setIsLimitReached(
-      parseInt(storedCount || "0", 10) >= 10 &&
-        !storedApiKey &&
-        !isSubscribed
+      parseInt(storedCount || "0", 10) >= 10 && !storedApiKey && !isSubscribed
     );
   }, []);
 
@@ -999,7 +997,11 @@ export default function Chat() {
     messageCount !== null ? Math.max(10 - messageCount, 0) : null;
 
   // Determine if the banner should be shown
-  const showBanner = isSubscriptionVerified && !userApiKey && !isSubscribed && remainingMessages !== null;
+  const showBanner =
+    isSubscriptionVerified &&
+    !userApiKey &&
+    !isSubscribed &&
+    remainingMessages !== null;
 
   // Also reset titleGenerationTriggeredRef when the conversation changes
   useEffect(() => {
@@ -1030,27 +1032,14 @@ export default function Chat() {
       return;
     }
 
-    // Check if it's the SAFE agreement prompt
-    if (prompt === t("Summarize the terms of this SAFE agreement")) {
-      // Set the input value to the prompt
-      handleInputChange({ target: { value: prompt } } as React.ChangeEvent<HTMLInputElement>);
-      
-      // Focus on the file input
-      setTimeout(() => {
-        fileInputRef.current?.click();
-      }, 0);
-      
-      return; // Exit the function early
-    }
-
+    // Create a new conversation if it doesn't exist
     let currentId = currentConversationId || uuidv4();
     latestConversationIdRef.current = currentId;
 
     if (!currentConversationId) {
       const newConversation: Conversation = {
         id: currentId,
-        title:
-          prompt.trim().slice(0, 30) + (prompt.trim().length > 30 ? "..." : ""),
+        title: t("New Chat"),
         messages: [],
         createdAt: new Date(),
       };
@@ -1059,6 +1048,22 @@ export default function Chat() {
       router.push(`/?id=${currentId}`);
     }
 
+    // Check if it's the SAFE agreement prompt
+    if (prompt === t("Summarize the terms of this SAFE agreement")) {
+      // Set the input value to the prompt
+      handleInputChange({
+        target: { value: prompt },
+      } as React.ChangeEvent<HTMLInputElement>);
+
+      // Focus on the file input
+      setTimeout(() => {
+        fileInputRef.current?.click();
+      }, 0);
+
+      return;
+    }
+
+    // Create a new user message and append it to the conversation
     const userMessage: Message = {
       id: uuidv4(),
       role: "user",
