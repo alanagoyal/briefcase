@@ -175,9 +175,9 @@ export default function SubscriptionManager({
           ) : isSubscribed ? (
             t("Cancel")
           ) : isCheckingMode ? (
-            t("Check")
+            t("Verify")
           ) : (
-            t("Upgrade")
+            t("Subscribe")
           )}
         </Button>
       </div>

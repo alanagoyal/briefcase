@@ -16,7 +16,7 @@
     "@braintrust/vercel-ai-sdk": "^0.0.4",
     "@nanostores/query": "^0.3.3",
     "@nanostores/react": "^0.7.2",
-    "@quetzallabs/i18n": "^0.1.18",
+    "@quetzallabs/i18n": "^0.1.19",
     "@radix-ui/react-avatar": "^1.1.0",
     "@radix-ui/react-dialog": "^1.1.1",
     "@radix-ui/react-dropdown-menu": "^2.1.1",
