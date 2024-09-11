@@ -97,6 +97,7 @@ export default function Chat() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState<boolean>(false);
+  const [isSubscriptionVerified, setIsSubscriptionVerified] = useState(false);
 
   // Ref declarations
   const latestConversationIdRef = useRef<string | null>(null);
@@ -181,6 +182,7 @@ export default function Chat() {
     } else {
       setIsSubscribed(false);
       localStorage.setItem("subscriptionStatus", "inactive");
+      setIsSubscriptionVerified(true);
     }
   }, []);
 
@@ -197,9 +199,11 @@ export default function Chat() {
         "subscriptionStatus",
         data.isSubscribed ? "active" : "inactive"
       );
-
     } catch (error) {
       console.error("Error verifying subscription:", error);
+      setIsSubscribed(false);
+    } finally {
+      setIsSubscriptionVerified(true);
     }
   }, []);
 
@@ -995,7 +999,7 @@ export default function Chat() {
     messageCount !== null ? Math.max(10 - messageCount, 0) : null;
 
   // Determine if the banner should be shown
-  const showBanner = !userApiKey && !isSubscribed && remainingMessages !== null;
+  const showBanner = isSubscriptionVerified && !userApiKey && !isSubscribed && remainingMessages !== null;
 
   // Also reset titleGenerationTriggeredRef when the conversation changes
   useEffect(() => {
