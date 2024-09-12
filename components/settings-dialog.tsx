@@ -23,6 +23,15 @@ import {
 } from "./ui/tooltip";
 import SubscriptionManager from "@/components/subscription-manager";
 import { MouseEvent } from "react";
+import { Settings, Sliders } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import { useTheme } from "next-themes";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -42,12 +51,14 @@ export default function SettingsDialog({
   onSubscriptionChange,
 }: SettingsDialogProps) {
   const { t } = useI18n();
+  const { theme, setTheme } = useTheme();
   const [name, setName] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [initialApiKey, setInitialApiKey] = useState("");
   const [isClient, setIsClient] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [newUser, setNewUser] = useState(true);
+  const [activeTab, setActiveTab] = useState("general");
 
   useEffect(() => {
     setIsClient(true);
@@ -158,8 +169,8 @@ export default function SettingsDialog({
   }
   return (
     <Dialog open={open} onOpenChange={handleCloseAttempt}>
-      <DialogContent className="sm:max-w-xl" showCloseButton={!newUser}>
-        <DialogHeader>
+      <DialogContent className="sm:max-w-2xl p-0" showCloseButton={!newUser}>
+        <DialogHeader className="p-6 border-b">
           <DialogTitle>{newUser ? t("Briefcase") : t("Settings")}</DialogTitle>
           <DialogDescription>
             {newUser
@@ -169,106 +180,151 @@ export default function SettingsDialog({
               : t("Update your information below")}
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">{t("Name")}</Label>
-            <Input
-              id="name"
-              value={name}
-              onChange={(e) => {
-                setName(e.target.value);
-              }}
-              className="sm:text-sm text-base"
-              placeholder={t("Enter your name")}
-              required
-            />
-            {newUser && (
-              <p className="text-muted-foreground text-xs">
-                {t(
-                  "Your name will only be used for your avatar in the chat. It will not be stored anywhere."
-                )}
-              </p>
-            )}
-          </div>
-          {!newUser && (
-            <div className="space-y-2">
-              <div className="flex items-center space-x-2">
-                <Label>{t("Subscription")}</Label>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger>
-                      <Info className="h-4 w-4 text-muted-foreground" />
-                    </TooltipTrigger>
-                    <TooltipContent side="right" align="center">
-                      <p className="max-w-[300px]">
-                        {t(
-                          "Your subscription is linked to your email and can be accessed from any device for unlimited messages. Your message history is stored locally and will not be shared across sessions."
-                        )}
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-              <SubscriptionManager
-                isSubscribed={isSubscribed}
-                onSubscriptionChange={onSubscriptionChange}
-                onActionClick={handleSubscriptionAction}
-              />
-            </div>
-          )}
-          {!newUser && !isSubscribed && (
-            <div className="space-y-2">
-              <div className="flex items-center space-x-2">
-                <Label htmlFor="apiKey">{t("OpenAI API Key")}</Label>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger>
-                      <Info className="h-4 w-4 text-muted-foreground" />
-                    </TooltipTrigger>
-                    <TooltipContent side="right" align="center">
-                      <p className="max-w-[300px]">
-                        {t(
-                          "Your API key is stored locally on your device. It is only used to authenticate your requests to the OpenAI API."
-                        )}
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-              <Input
-                id="apiKey"
-                value={apiKey}
-                onChange={(e) => {
-                  setApiKey(e.target.value);
-                }}
-                type="password"
-                placeholder={t("Enter your OpenAI API Key")}
-              />
-              <p className="text-muted-foreground text-xs">
-                {t(
-                  "Briefcase has a limit of 10 messages per day. For unlimited access, please enter your OpenAI Key."
-                )}
-              </p>
-            </div>
-          )}
-          <DialogFooter>
-            <Button
-              type="submit"
-              className="bg-[#3675F1] hover:bg-[#2556E4] w-full"
-              disabled={isLoading}
-            >
-              {isLoading ? (
+        <div className="flex">
+          <nav className="w-1/4 p-4 space-y-2 text-sm">
+            {[
+              { icon: Settings, label: "General" },
+              { icon: Sliders, label: "Advanced" },
+            ].map(({ icon: Icon, label }) => (
+              <button
+                key={label}
+                className={`flex items-center space-x-2 w-full p-2 rounded-lg text-left ${
+                  activeTab === label.toLowerCase()
+                    ? "bg-muted"
+                    : "hover:bg-muted/50"
+                }`}
+                onClick={() => setActiveTab(label.toLowerCase())}
+              >
+                <Icon className="h-5 w-5" />
+                <span>{label}</span>
+              </button>
+            ))}
+          </nav>
+          <div className="w-3/4 px-6 pb-6">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {activeTab === "general" && (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <div className="space-y-2">
+                    <Label htmlFor="name">{t("Name")}</Label>
+                    <Input
+                      id="name"
+                      value={name}
+                      onChange={(e) => {
+                        setName(e.target.value);
+                      }}
+                      className="sm:text-sm text-base"
+                      placeholder={t("Enter your name")}
+                      required
+                    />
+                    {newUser && (
+                      <p className="text-muted-foreground text-xs">
+                        {t(
+                          "Your name will only be used for your avatar in the chat. It will not be stored anywhere."
+                        )}
+                      </p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="theme" className="text-sm font-medium">
+                      Theme
+                    </label>
+                    <Select
+                      value={theme}
+                      onValueChange={(value) => setTheme(value)}
+                    >
+                      <SelectTrigger id="theme" className="w-full">
+                        <SelectValue placeholder="Select theme" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="light">Light</SelectItem>
+                        <SelectItem value="dark">Dark</SelectItem>
+                        <SelectItem value="system">System</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="language" className="text-sm font-medium">
+                      Language
+                    </label>
+                    <Select defaultValue="auto">
+                      <SelectTrigger id="language" className="w-full">
+                        <SelectValue placeholder="Select language" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="auto">Auto-detect</SelectItem>
+                        <SelectItem value="en">English</SelectItem>
+                        <SelectItem value="fr">French</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </>
-              ) : newUser ? (
-                t("Start Chatting")
-              ) : (
-                t("Save Settings")
               )}
-            </Button>
-          </DialogFooter>
-        </form>
+              {activeTab === "advanced" && (
+                <>
+                  {!newUser && (
+                    <SubscriptionManager
+                      isSubscribed={isSubscribed}
+                      onSubscriptionChange={onSubscriptionChange}
+                      onActionClick={handleSubscriptionAction}
+                    />
+                  )}
+                  {!newUser && !isSubscribed && (
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Label htmlFor="apiKey">{t("OpenAI API Key")}</Label>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <Info className="h-4 w-4 text-muted-foreground" />
+                            </TooltipTrigger>
+                            <TooltipContent side="right" align="center">
+                              <p className="max-w-[300px]">
+                                {t(
+                                  "Your API key is not stored and is only used to authenticate your requests to the OpenAI API."
+                                )}
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                      <Input
+                        id="apiKey"
+                        value={apiKey}
+                        onChange={(e) => {
+                          setApiKey(e.target.value);
+                        }}
+                        type="password"
+                        placeholder={t("Enter your OpenAI API Key")}
+                      />
+                      <p className="text-muted-foreground text-xs">
+                        {t(
+                          "Briefcase has a limit of 10 messages per day. For unlimited access, please enter your OpenAI Key."
+                        )}
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
+              <DialogFooter>
+                <Button
+                  type="submit"
+                  className="bg-[#3675F1] hover:bg-[#2556E4] w-full"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    </>
+                  ) : newUser ? (
+                    t("Start Chatting")
+                  ) : (
+                    t("Save Settings")
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );

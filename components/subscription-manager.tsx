@@ -6,8 +6,16 @@ import { loadStripe } from "@stripe/stripe-js";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { toast } from "./ui/use-toast";
-import { MouseEvent } from 'react';
-import { Loader2 } from "lucide-react"; 
+import { MouseEvent } from "react";
+import { Info, Loader2 } from "lucide-react";
+import { Label } from "./ui/label";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./ui/tooltip";
+import { Skeleton } from "./ui/skeleton";
 
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
@@ -31,21 +39,29 @@ export default function SubscriptionManager({
   const [isLoading, setIsLoading] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
 
-  const verifySubscription = useCallback(async (email: string) => {
-    if (!email) return;
-    setIsVerifying(true);
-    try {
-      const response = await fetch(`/api/verify-subscription?email=${encodeURIComponent(email)}`);
-      const data = await response.json();
-      setIsSubscribed(data.isSubscribed);
-      onSubscriptionChange(data.isSubscribed);
-      localStorage.setItem("subscriptionStatus", data.isSubscribed ? "active" : "inactive");
-    } catch (error) {
-      console.error("Error verifying subscription:", error);
-    } finally {
-      setIsVerifying(false);
-    }
-  }, [onSubscriptionChange]);
+  const verifySubscription = useCallback(
+    async (email: string) => {
+      if (!email) return;
+      setIsVerifying(true);
+      try {
+        const response = await fetch(
+          `/api/verify-subscription?email=${encodeURIComponent(email)}`
+        );
+        const data = await response.json();
+        setIsSubscribed(data.isSubscribed);
+        onSubscriptionChange(data.isSubscribed);
+        localStorage.setItem(
+          "subscriptionStatus",
+          data.isSubscribed ? "active" : "inactive"
+        );
+      } catch (error) {
+        console.error("Error verifying subscription:", error);
+      } finally {
+        setIsVerifying(false);
+      }
+    },
+    [onSubscriptionChange]
+  );
 
   useEffect(() => {
     const storedEmail = localStorage.getItem("userEmail");
@@ -86,7 +102,9 @@ export default function SubscriptionManager({
   const handleCheckSubscription = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/verify-subscription?email=${encodeURIComponent(email)}`);
+      const response = await fetch(
+        `/api/verify-subscription?email=${encodeURIComponent(email)}`
+      );
       const data = await response.json();
       if (data.isSubscribed) {
         localStorage.setItem("userEmail", email);
@@ -131,7 +149,10 @@ export default function SubscriptionManager({
         setIsSubscribed(false);
         onSubscriptionChange(false);
       } else {
-        console.error("Unexpected cancellation status:", responseData.subscription.status);
+        console.error(
+          "Unexpected cancellation status:",
+          responseData.subscription.status
+        );
       }
     } catch (error) {
       console.error("Error canceling subscription:", error);
@@ -141,13 +162,32 @@ export default function SubscriptionManager({
   };
 
   if (isVerifying) {
-    return <div className="flex items-center justify-center h-full">
-      <Loader2 className="h-4 w-4 animate-spin" />
-    </div>
+    return (
+      <div className="flex flex-col items-center">
+        <Loader2 className="h-4 w-4 animate-spin" />
+      </div>
+    );
   }
 
   return (
-    <div>
+    <div className="flex flex-col space-y-2">
+      <div className="flex items-center space-x-2">
+        <Label>{t("Email")}</Label>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger>
+              <Info className="h-4 w-4 text-muted-foreground" />
+            </TooltipTrigger>
+            <TooltipContent side="right" align="center">
+              <p className="max-w-[300px]">
+                {t(
+                  "Your subscription is linked to this email and can be accessed from any device for unlimited messages."
+                )}
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
       <div className="flex items-center mb-2">
         <Input
           type="email"
@@ -184,7 +224,7 @@ export default function SubscriptionManager({
       <div className="text-muted-foreground text-sm">
         {isSubscribed ? (
           <p>
-            {t("You currently have unlimited access through your Pro subscription.")}
+            {t("You currently have unlimited access through your Pro Plan.")}
           </p>
         ) : isCheckingMode ? (
           <p className="text-xs">
