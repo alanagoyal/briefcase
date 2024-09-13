@@ -83,7 +83,7 @@ export default function Sidebar({
           <div className="space-y-4 p-2">
             {groupedConversations.map((group) => (
               <div key={group.title}>
-                <h2 className="text-sm font-semibold mb-2">{group.title}</h2>
+                <h2 className="text-sm font-semibold mb-2">{t(group.title)}</h2>
                 <div className="space-y-1">
                   {group.conversations.map((conv) => (
                     <div
