@@ -6,8 +6,15 @@ import { loadStripe } from "@stripe/stripe-js";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { toast } from "./ui/use-toast";
-import { MouseEvent } from 'react';
-import { Loader2 } from "lucide-react"; 
+import { MouseEvent } from "react";
+import { Info, Loader2 } from "lucide-react";
+import { Label } from "./ui/label";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./ui/tooltip";
 
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
@@ -31,21 +38,29 @@ export default function SubscriptionManager({
   const [isLoading, setIsLoading] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
 
-  const verifySubscription = useCallback(async (email: string) => {
-    if (!email) return;
-    setIsVerifying(true);
-    try {
-      const response = await fetch(`/api/verify-subscription?email=${encodeURIComponent(email)}`);
-      const data = await response.json();
-      setIsSubscribed(data.isSubscribed);
-      onSubscriptionChange(data.isSubscribed);
-      localStorage.setItem("subscriptionStatus", data.isSubscribed ? "active" : "inactive");
-    } catch (error) {
-      console.error("Error verifying subscription:", error);
-    } finally {
-      setIsVerifying(false);
-    }
-  }, [onSubscriptionChange]);
+  const verifySubscription = useCallback(
+    async (email: string) => {
+      if (!email) return;
+      setIsVerifying(true);
+      try {
+        const response = await fetch(
+          `/api/verify-subscription?email=${encodeURIComponent(email)}`
+        );
+        const data = await response.json();
+        setIsSubscribed(data.isSubscribed);
+        onSubscriptionChange(data.isSubscribed);
+        localStorage.setItem(
+          "subscriptionStatus",
+          data.isSubscribed ? "active" : "inactive"
+        );
+      } catch (error) {
+        console.error("Error verifying subscription:", error);
+      } finally {
+        setIsVerifying(false);
+      }
+    },
+    [onSubscriptionChange]
+  );
 
   useEffect(() => {
     const storedEmail = localStorage.getItem("userEmail");
@@ -86,7 +101,9 @@ export default function SubscriptionManager({
   const handleCheckSubscription = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/verify-subscription?email=${encodeURIComponent(email)}`);
+      const response = await fetch(
+        `/api/verify-subscription?email=${encodeURIComponent(email)}`
+      );
       const data = await response.json();
       if (data.isSubscribed) {
         localStorage.setItem("userEmail", email);
@@ -130,8 +147,12 @@ export default function SubscriptionManager({
         localStorage.setItem("subscriptionStatus", "inactive");
         setIsSubscribed(false);
         onSubscriptionChange(false);
+        setEmail("");
       } else {
-        console.error("Unexpected cancellation status:", responseData.subscription.status);
+        console.error(
+          "Unexpected cancellation status:",
+          responseData.subscription.status
+        );
       }
     } catch (error) {
       console.error("Error canceling subscription:", error);
@@ -141,13 +162,34 @@ export default function SubscriptionManager({
   };
 
   if (isVerifying) {
-    return <div className="flex items-center justify-center h-full">
-      <Loader2 className="h-4 w-4 animate-spin" />
-    </div>
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Loader2 className="h-4 w-4 animate-spin" />
+      </div>
+    );
   }
 
   return (
-    <div>
+    <div className="space-y-2">
+      <div className="flex items-center space-x-2">
+        <Label>{t("Email")}</Label>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger>
+              <Info className="h-4 w-4 text-muted-foreground" />
+            </TooltipTrigger>
+            <TooltipContent side="right" align="center">
+              <p className="max-w-[300px]">
+                {isSubscribed
+                  ? t("This is the email linked to your active subscription.")
+                  : isCheckingMode
+                  ? t("This is the email you used to set up your subscription.")
+                  : t("This is the email that will be used to manage your subscription.")}
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
       <div className="flex items-center mb-2">
         <Input
           type="email"
@@ -168,7 +210,7 @@ export default function SubscriptionManager({
               isCheckingMode ? handleCheckSubscription() : handleSubscribe();
             }
           }}
-          disabled={isLoading}
+          disabled={isLoading || (!isSubscribed && !email)}
         >
           {isLoading ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -177,18 +219,19 @@ export default function SubscriptionManager({
           ) : isCheckingMode ? (
             t("Verify")
           ) : (
-            t("Subscribe")
+            t("Upgrade")
           )}
         </Button>
       </div>
       <div className="text-muted-foreground text-sm">
         {isSubscribed ? (
           <p>
-            {t("You currently have unlimited access through your Pro subscription.")}
+            {t(
+              "You currently have unlimited access through your Pro subscription."
+            )}
           </p>
         ) : isCheckingMode ? (
           <p className="text-xs">
-            {t("Enter the email you used to subscribe. ")}
             <a
               href="#"
               className="text-[#3675F1] hover:text-[#2556E4] font-bold"
@@ -197,12 +240,11 @@ export default function SubscriptionManager({
                 setIsCheckingMode(false);
               }}
             >
-              {t("Need a new subscription?")}
+              {t("Don't have a subscription?")}
             </a>
           </p>
         ) : (
           <p className="text-xs">
-            {t("Enter an email to use for your subscription. ")}
             <a
               href="#"
               className="text-[#3675F1] hover:text-[#2556E4] font-bold"
