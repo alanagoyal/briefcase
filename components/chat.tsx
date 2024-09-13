@@ -1630,38 +1630,44 @@ export default function Chat() {
           />
         </DialogContent>
       </Dialog>
-      <SettingsDialog
-        open={isSettingsOpen}
-        onOpenChange={setIsSettingsOpen}
-        onNameChange={(name) => {
-          setUserName(name);
-          if (name && !localStorage.getItem("userName")) {
-            setIsSettingsOpen(false);
-          }
-        }}
-        onApiKeyChange={(apiKey) => {
-          setUserApiKey(apiKey || null);
-          if (apiKey) {
-            localStorage.setItem("openaiApiKey", apiKey);
-          } else {
-            localStorage.removeItem("openaiApiKey");
-            if (messageCount !== null && messageCount >= 10 && !isSubscribed) {
-              setIsLimitReached(true);
+      {isSubscriptionVerified && (
+        <SettingsDialog
+          open={isSettingsOpen}
+          onOpenChange={setIsSettingsOpen}
+          onNameChange={(name) => {
+            setUserName(name);
+            if (name && !localStorage.getItem("userName")) {
+              setIsSettingsOpen(false);
             }
-          }
-        }}
-        isSubscribed={isSubscribed}
-        onSubscriptionChange={(subscribed) => {
-          setIsSubscribed(subscribed);
-          if (subscribed) {
-            setIsLimitReached(false);
-          } else {
-            if (messageCount !== null && messageCount >= 10) {
-              setIsLimitReached(true);
+          }}
+          onApiKeyChange={(apiKey) => {
+            setUserApiKey(apiKey || null);
+            if (apiKey) {
+              localStorage.setItem("openaiApiKey", apiKey);
+            } else {
+              localStorage.removeItem("openaiApiKey");
+              if (
+                messageCount !== null &&
+                messageCount >= 10 &&
+                !isSubscribed
+              ) {
+                setIsLimitReached(true);
+              }
             }
-          }
-        }}
-      />
+          }}
+          isSubscribed={isSubscribed}
+          onSubscriptionChange={(subscribed) => {
+            setIsSubscribed(subscribed);
+            if (subscribed) {
+              setIsLimitReached(false);
+            } else {
+              if (messageCount !== null && messageCount >= 10) {
+                setIsLimitReached(true);
+              }
+            }
+          }}
+        />
+      )}
       <KeyboardShortcuts
         sortedConversations={groupedConversations.flatMap(
           (group) => group.conversations
