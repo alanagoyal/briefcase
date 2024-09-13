@@ -39,7 +39,9 @@ interface SettingsDialogProps {
   onApiKeyChange: (apiKey: string) => void;
   isSubscribed: boolean;
   onSubscriptionChange: (isSubscribed: boolean) => void;
+  initialTab?: string; 
 }
+
 export default function SettingsDialog({
   open,
   onOpenChange,
@@ -47,6 +49,7 @@ export default function SettingsDialog({
   onApiKeyChange,
   isSubscribed,
   onSubscriptionChange,
+  initialTab = "general",
 }: SettingsDialogProps) {
   const { t } = useI18n();
   const router = useRouter();
@@ -96,7 +99,8 @@ export default function SettingsDialog({
     if (storedLanguage) {
       setLanguage(storedLanguage);
     }
-  }, [open]);
+    setActiveTab(initialTab);
+  }, [open, initialTab]);
 
   const handleCloseAttempt = async (newOpen: boolean) => {
     if (!newOpen) {
@@ -306,7 +310,7 @@ export default function SettingsDialog({
                       {!isSubscribed && (
                         <div className="text-sm text-muted-foreground px-4 py-2 w-full bg-muted rounded-md">
                           {t(
-                            "Briefcase has a limit of 10 messages per user. To send more messages, please upgrade to Pro or set your OpenAI API key."
+                            "Briefcase has a limit of 10 messages per user. To send more messages, please upgrade to the Pro Plan or set your OpenAI API key."
                           )}
                         </div>
                       )}

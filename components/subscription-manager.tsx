@@ -172,7 +172,7 @@ export default function SubscriptionManager({
   return (
     <div className="space-y-2">
       <div className="flex items-center space-x-2">
-        <Label>{t("Subscription")}</Label>
+        <Label>{t("Email")}</Label>
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger>
@@ -180,9 +180,11 @@ export default function SubscriptionManager({
             </TooltipTrigger>
             <TooltipContent side="right" align="center">
               <p className="max-w-[300px]">
-                {t(
-                  "Your subscription is linked to this email and can be accessed from any device for unlimited messages."
-                )}
+                {isSubscribed
+                  ? t("This is the email linked to your active subscription.")
+                  : isCheckingMode
+                  ? t("This is the email you used to set up your subscription.")
+                  : t("This is the email that will be used to manage your subscription.")}
               </p>
             </TooltipContent>
           </Tooltip>
@@ -230,7 +232,6 @@ export default function SubscriptionManager({
           </p>
         ) : isCheckingMode ? (
           <p className="text-xs">
-            {t("Enter the email you used to subscribe. ")}
             <a
               href="#"
               className="text-[#3675F1] hover:text-[#2556E4] font-bold"
@@ -239,12 +240,11 @@ export default function SubscriptionManager({
                 setIsCheckingMode(false);
               }}
             >
-              {t("Need a new subscription?")}
+              {t("Don't have a subscription?")}
             </a>
           </p>
         ) : (
           <p className="text-xs">
-            {t("Enter an email to use for your subscription. ")}
             <a
               href="#"
               className="text-[#3675F1] hover:text-[#2556E4] font-bold"

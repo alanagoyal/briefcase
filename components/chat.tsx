@@ -76,6 +76,7 @@ export default function Chat() {
   const [focusTrigger, setFocusTrigger] = useState(0);
   const [userName, setUserName] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [settingsInitialTab, setSettingsInitialTab] = useState("general");
   const [userApiKey, setUserApiKey] = useState<string | null>(null);
   const [messageCount, setMessageCount] = useState<number | null>(null);
   const [isLimitReached, setIsLimitReached] = useState(false);
@@ -112,6 +113,12 @@ export default function Chat() {
   // Calculate remaining messages
   const remainingMessages =
     messageCount !== null ? Math.max(10 - messageCount, 0) : null;
+
+  // Open settings with tab
+  const openSettingsWithTab = (tab: string) => {
+    setSettingsInitialTab(tab);
+    setIsSettingsOpen(true);
+  };
 
   // Determine if the banner should be shown
   const showBanner =
@@ -492,14 +499,68 @@ export default function Chat() {
     titleGenerationTriggeredRef.current = {};
   }, [currentConversationId]);
 
-  // Helper functions
+  // Helper functions for settings dialog
+  const handleSettingsOpenChange = (open: boolean) => {
+    setIsSettingsOpen(open);
+    if (!open) {
+      setSettingsInitialTab("general");
+    }
+  };
+
+  const handleNameChange = (name: string) => {
+    setUserName(name);
+    if (name && !localStorage.getItem("userName")) {
+      setIsSettingsOpen(false);
+    }
+  };
+
+  const handleApiKeyChange = (apiKey: string | null) => {
+    setUserApiKey(apiKey);
+    if (apiKey) {
+      localStorage.setItem("openaiApiKey", apiKey);
+    } else {
+      localStorage.removeItem("openaiApiKey");
+      checkMessageLimit();
+    }
+  };
+
+  const handleSubscriptionChange = (subscribed: boolean) => {
+    setIsSubscribed(subscribed);
+    if (subscribed) {
+      setIsLimitReached(false);
+    } else {
+      checkMessageLimit();
+    }
+  };
+
+  const checkMessageLimit = () => {
+    if (messageCount !== null && messageCount >= 10 && !isSubscribed) {
+      setIsLimitReached(true);
+    }
+  };
+
+  // Helper function to handle conversation selection
+  const handleConversationSelect = useCallback(
+    (id: string) => {
+      setCurrentConversationId(id);
+      const conversation = conversations.find((conv) => conv.id === id);
+      if (conversation) {
+        setMessages(conversation.messages);
+        setFocusTrigger((prev) => prev + 1);
+      }
+      if (isMobile) {
+        closeSidebar();
+      }
+    },
+    [conversations, setMessages, isMobile, closeSidebar]
+  );
 
   // Start a new chat
   const startNewChat = () => {
     if (isLimitReached && !userApiKey && !isSubscribed) {
       showToast(
         t(
-          "You've reached the message limit. Please upgrade to Pro or set your OpenAI API key for unlimited use."
+          "You've reached the message limit. Please upgrade to the Pro Plan or set your OpenAI API key for unlimited use."
         ),
         "destructive"
       );
@@ -526,7 +587,7 @@ export default function Chat() {
     if (isLimitReached && !userApiKey && !isSubscribed) {
       showToast(
         t(
-          "You've reached the message limit. Please upgrade to Pro or set your OpenAI API key for unlimited use."
+          "You've reached the message limit. Please upgrade to the Pro Plan or set your OpenAI API key for unlimited use."
         ),
         "destructive"
       );
@@ -604,7 +665,7 @@ export default function Chat() {
     if (isLimitReached && !userApiKey && !isSubscribed) {
       showToast(
         t(
-          "You've reached the message limit. Please upgrade to Pro or set your OpenAI API key for unlimited use."
+          "You've reached the message limit. Please upgrade to the Pro Plan or set your OpenAI API key for unlimited use."
         ),
         "destructive"
       );
@@ -982,7 +1043,7 @@ export default function Chat() {
       if (isLimitReached && !userApiKey && !isSubscribed) {
         showToast(
           t(
-            "You've reached the message limit. Please upgrade to Pro or set your OpenAI API key for unlimited use."
+            "You've reached the message limit. Please upgrade to the Pro Plan or set your OpenAI API key for unlimited use."
           ),
           "destructive"
         );
@@ -1153,17 +1214,7 @@ export default function Chat() {
           <Sidebar
             groupedConversations={groupedConversations}
             currentConversationId={currentConversationId}
-            onConversationSelect={(id) => {
-              setCurrentConversationId(id);
-              const conversation = conversations.find((conv) => conv.id === id);
-              if (conversation) {
-                setMessages(conversation.messages);
-                setFocusTrigger((prev) => prev + 1);
-              }
-              if (isMobile) {
-                closeSidebar();
-              }
-            }}
+            onConversationSelect={handleConversationSelect}
             onConversationDelete={deleteConversation}
             onNewChat={handleNewChat}
             onToggleSidebar={toggleSidebar}
@@ -1523,17 +1574,17 @@ export default function Chat() {
           <div className="text-sm text-muted-foreground px-4 py-2 w-full bg-muted">
             <p className="inline">
               {t(
-                `You have {remainingMessages} message{pluralize} remaining. To send more messages, please upgrade to Pro or set your OpenAI API key in`,
+                `You have {remainingMessages} message{pluralize} remaining. To send more messages, please upgrade to the Pro Plan or set your OpenAI API key in `,
                 {
                   remainingMessages: remainingMessages,
                   pluralize: remainingMessages !== 1 ? "s" : "",
                 }
-              )}{" "}
+              )}
               <a
                 href="#"
                 onClick={(e) => {
                   e.preventDefault();
-                  setIsSettingsOpen(true);
+                  openSettingsWithTab("advanced");
                 }}
                 className="font-bold hover:underline focus:outline-none"
               >
@@ -1633,39 +1684,12 @@ export default function Chat() {
       {isSubscriptionVerified && (
         <SettingsDialog
           open={isSettingsOpen}
-          onOpenChange={setIsSettingsOpen}
-          onNameChange={(name) => {
-            setUserName(name);
-            if (name && !localStorage.getItem("userName")) {
-              setIsSettingsOpen(false);
-            }
-          }}
-          onApiKeyChange={(apiKey) => {
-            setUserApiKey(apiKey || null);
-            if (apiKey) {
-              localStorage.setItem("openaiApiKey", apiKey);
-            } else {
-              localStorage.removeItem("openaiApiKey");
-              if (
-                messageCount !== null &&
-                messageCount >= 10 &&
-                !isSubscribed
-              ) {
-                setIsLimitReached(true);
-              }
-            }
-          }}
+          onOpenChange={handleSettingsOpenChange}
+          onNameChange={handleNameChange}
+          onApiKeyChange={handleApiKeyChange}
           isSubscribed={isSubscribed}
-          onSubscriptionChange={(subscribed) => {
-            setIsSubscribed(subscribed);
-            if (subscribed) {
-              setIsLimitReached(false);
-            } else {
-              if (messageCount !== null && messageCount >= 10) {
-                setIsLimitReached(true);
-              }
-            }
-          }}
+          onSubscriptionChange={handleSubscriptionChange}
+          initialTab={settingsInitialTab}
         />
       )}
       <KeyboardShortcuts
@@ -1673,14 +1697,7 @@ export default function Chat() {
           (group) => group.conversations
         )}
         currentConversationId={currentConversationId}
-        onConversationSelect={(id) => {
-          setCurrentConversationId(id);
-          const conversation = conversations.find((conv) => conv.id === id);
-          if (conversation) {
-            setMessages(conversation.messages);
-            setFocusTrigger((prev) => prev + 1);
-          }
-        }}
+        onConversationSelect={handleConversationSelect}
         isSidebarOpen={isSidebarOpen}
         isCommandMenuOpen={isCommandMenuOpen}
       />
