@@ -147,6 +147,7 @@ export default function SubscriptionManager({
         localStorage.setItem("subscriptionStatus", "inactive");
         setIsSubscribed(false);
         onSubscriptionChange(false);
+        setEmail("");
       } else {
         console.error(
           "Unexpected cancellation status:",

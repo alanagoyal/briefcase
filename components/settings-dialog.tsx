@@ -59,24 +59,32 @@ export default function SettingsDialog({
   const [activeTab, setActiveTab] = useState("general");
   const [language, setLanguage] = useState("auto");
   const { theme, setTheme } = useTheme();
+
   const COOKIE_NAME = "NEXT_LOCALE";
   const setLocaleCookie = (locale: string) => {
     document.cookie = `${COOKIE_NAME}=${locale}; path=/; max-age=31536000; SameSite=Lax`;
   };
   const handleLanguageChange = (value: string) => {
     setLanguage(value);
+    localStorage.setItem("userLanguage", value);
     if (value === "fr") {
       setLocaleCookie("fr-FR");
       router.refresh();
     } else if (value === "en") {
-      setLocaleCookie("en");
+      setLocaleCookie("en-US");
+      router.refresh();
+    } else {
+      // For "auto", remove the cookie and use the default locale
+      document.cookie = `${COOKIE_NAME}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
       router.refresh();
     }
   };
+
   useEffect(() => {
     setIsClient(true);
     const storedName = localStorage.getItem("userName");
     const storedApiKey = localStorage.getItem("openaiApiKey");
+    const storedLanguage = localStorage.getItem("userLanguage");
     setNewUser(!storedName);
     if (storedName) {
       setName(storedName);
@@ -85,12 +93,43 @@ export default function SettingsDialog({
       setApiKey(storedApiKey);
       setInitialApiKey(storedApiKey);
     }
+    if (storedLanguage) {
+      setLanguage(storedLanguage);
+    }
   }, [open]);
-  const handleCloseAttempt = (newOpen: boolean) => {
+
+  const handleCloseAttempt = async (newOpen: boolean) => {
     if (!newOpen) {
       if (name.trim()) {
         localStorage.setItem("userName", name.trim());
         onNameChange(name.trim());
+
+        // Check if the API key has changed
+        if (apiKey !== initialApiKey) {
+          if (apiKey) {
+            setIsLoading(true);
+            const isValid = await validateApiKey(apiKey);
+            setIsLoading(false);
+            if (isValid) {
+              localStorage.setItem("openaiApiKey", apiKey);
+              onApiKeyChange(apiKey);
+              toast({
+                description: t("Settings saved successfully"),
+              });
+            } else {
+              toast({
+                description: t("Invalid API key. Please check and try again."),
+                variant: "destructive",
+              });
+              return; // Don't close the dialog if the API key is invalid
+            }
+          } else {
+            // API key is being removed
+            localStorage.removeItem("openaiApiKey");
+            onApiKeyChange("");
+          }
+        }
+
         onOpenChange(false);
       } else if (newUser) {
         toast({
@@ -131,50 +170,7 @@ export default function SettingsDialog({
       return false;
     }
   };
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (name.trim()) {
-      localStorage.setItem("userName", name);
-      setNewUser(false);
 
-      // Check if the API key has changed
-      if (apiKey !== initialApiKey) {
-        if (apiKey) {
-          setIsLoading(true);
-          const isValid = await validateApiKey(apiKey);
-          setIsLoading(false);
-          if (isValid) {
-            localStorage.setItem("openaiApiKey", apiKey);
-            onApiKeyChange(apiKey);
-            toast({
-              description: t("Settings saved successfully"),
-            });
-            onOpenChange(false);
-          } else {
-            toast({
-              description: t("Invalid API key. Please check and try again."),
-              variant: "destructive",
-            });
-            return; // Don't close the dialog if the API key is invalid
-          }
-        } else {
-          // API key is being removed
-          localStorage.removeItem("openaiApiKey");
-          onApiKeyChange("");
-        }
-      }
-      onNameChange(name);
-      toast({
-        description: t("Settings saved successfully"),
-      });
-      onOpenChange(false);
-    } else {
-      toast({
-        description: t("Please enter a name"),
-        variant: "destructive",
-      });
-    }
-  };
   if (!isClient) {
     return null;
   }
@@ -188,19 +184,19 @@ export default function SettingsDialog({
     icon: React.ElementType;
   }) => (
     <button
-      className={`w-full text-left px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 text-sm ${
+      className={`text-left px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 text-sm ${
         activeTab === value ? "bg-muted" : "hover:bg-muted/50"
-      }`}
+      } sm:w-full`}
       onClick={() => setActiveTab(value)}
     >
       <Icon className="h-4 w-4" />
-      <span>{t(label)}</span>
+      <span className="hidden sm:inline">{t(label)}</span>
     </button>
   );
   return (
     <Dialog open={open} onOpenChange={handleCloseAttempt}>
       <DialogContent
-        className={`sm:max-w-${newUser ? "xl" : "2xl"}`}
+        className={`${newUser ? "sm:max-w-xl" : "sm:max-w-2xl"}`}
         showCloseButton={!newUser}
       >
         <DialogHeader>
@@ -213,7 +209,7 @@ export default function SettingsDialog({
               : t("Update your information below")}
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-4">
           {newUser ? (
             // Existing new user form
             <div className="space-y-2">
@@ -234,7 +230,7 @@ export default function SettingsDialog({
             </div>
           ) : (
             // Side navigation for existing users
-            <div className="flex space-x-4 h-[275px]">
+            <div className="flex space-x-4 h-[265px]">
               {/* Set a fixed height */}
               <nav className="w-1/4 space-y-2">
                 <TabButton value="general" label={t("General")} icon={User} />
@@ -355,24 +351,25 @@ export default function SettingsDialog({
               </div>
             </div>
           )}
-          <DialogFooter>
-            <Button
-              type="submit"
-              className="bg-[#3675F1] hover:bg-[#2556E4] w-full"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                </>
-              ) : newUser ? (
-                t("Start Chatting")
-              ) : (
-                t("Save Settings")
-              )}
-            </Button>
-          </DialogFooter>
-        </form>
+          {newUser && (
+            <DialogFooter>
+              <Button
+                type="button"
+                className="bg-[#3675F1] hover:bg-[#2556E4] w-full"
+                onClick={() => handleCloseAttempt(false)}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  </>
+                ) : (
+                  t("Start Chatting")
+                )}
+              </Button>
+            </DialogFooter>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );

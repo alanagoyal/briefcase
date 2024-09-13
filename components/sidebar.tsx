@@ -57,7 +57,7 @@ export default function Sidebar({
         startNewChat={handleNewChat}
         isSidebarOpen={true}
       />
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto pl-2">
         {isLoading ? (
           // Skeleton loader
           <div className="flex flex-col h-full space-y-4 p-2">
@@ -130,8 +130,7 @@ export default function Sidebar({
           </div>
         )}
       </div>
-      <div className="p-4 flex flex-col space-y-1">
-        <ThemeToggle />
+      <div className="p-2 flex flex-col">
         <Button
           variant="ghost"
           className="justify-start"
