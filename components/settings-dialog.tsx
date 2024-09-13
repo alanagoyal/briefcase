@@ -14,7 +14,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "./ui/dialog";
-import { Info, Loader2, User, Settings, Sliders } from "lucide-react";
+import { Info, Loader2, User, Sliders } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -23,7 +23,6 @@ import {
 } from "./ui/tooltip";
 import SubscriptionManager from "@/components/subscription-manager";
 import { MouseEvent } from "react";
-import { cn } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -31,8 +30,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { useTheme } from "next-themes"; // Add this import
-
+import { useTheme } from "next-themes";
+import { useRouter } from "next/navigation";
 interface SettingsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -41,7 +40,6 @@ interface SettingsDialogProps {
   isSubscribed: boolean;
   onSubscriptionChange: (isSubscribed: boolean) => void;
 }
-
 export default function SettingsDialog({
   open,
   onOpenChange,
@@ -51,6 +49,7 @@ export default function SettingsDialog({
   onSubscriptionChange,
 }: SettingsDialogProps) {
   const { t } = useI18n();
+  const router = useRouter();
   const [name, setName] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [initialApiKey, setInitialApiKey] = useState("");
@@ -58,8 +57,22 @@ export default function SettingsDialog({
   const [isLoading, setIsLoading] = useState(false);
   const [newUser, setNewUser] = useState(true);
   const [activeTab, setActiveTab] = useState("general");
-  const { theme, setTheme } = useTheme(); // Add this line
-
+  const [language, setLanguage] = useState("auto");
+  const { theme, setTheme } = useTheme();
+  const COOKIE_NAME = "NEXT_LOCALE";
+  const setLocaleCookie = (locale: string) => {
+    document.cookie = `${COOKIE_NAME}=${locale}; path=/; max-age=31536000; SameSite=Lax`;
+  };
+  const handleLanguageChange = (value: string) => {
+    setLanguage(value);
+    if (value === "fr") {
+      setLocaleCookie("fr-FR");
+      router.refresh();
+    } else if (value === "en") {
+      setLocaleCookie("en");
+      router.refresh();
+    }
+  };
   useEffect(() => {
     setIsClient(true);
     const storedName = localStorage.getItem("userName");
@@ -73,7 +86,6 @@ export default function SettingsDialog({
       setInitialApiKey(storedApiKey);
     }
   }, [open]);
-
   const handleCloseAttempt = (newOpen: boolean) => {
     if (!newOpen) {
       if (name.trim()) {
@@ -92,7 +104,6 @@ export default function SettingsDialog({
       onOpenChange(true);
     }
   };
-
   const handleSubscriptionAction = (e: MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
@@ -167,7 +178,6 @@ export default function SettingsDialog({
   if (!isClient) {
     return null;
   }
-
   const TabButton = ({
     value,
     label,
@@ -178,20 +188,21 @@ export default function SettingsDialog({
     icon: React.ElementType;
   }) => (
     <button
-      className={cn(
-        "w-full text-left px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 text-sm",
+      className={`w-full text-left px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 text-sm ${
         activeTab === value ? "bg-muted" : "hover:bg-muted/50"
-      )}
+      }`}
       onClick={() => setActiveTab(value)}
     >
       <Icon className="h-4 w-4" />
       <span>{t(label)}</span>
     </button>
   );
-
   return (
     <Dialog open={open} onOpenChange={handleCloseAttempt}>
-      <DialogContent className="sm:max-w-2xl" showCloseButton={!newUser}>
+      <DialogContent
+        className={`sm:max-w-${newUser ? "xl" : "2xl"}`}
+        showCloseButton={!newUser}
+      >
         <DialogHeader>
           <DialogTitle>{newUser ? t("Briefcase") : t("Settings")}</DialogTitle>
           <DialogDescription>
@@ -223,13 +234,17 @@ export default function SettingsDialog({
             </div>
           ) : (
             // Side navigation for existing users
-            <div className="flex space-x-4 h-[300px]">
+            <div className="flex space-x-4 h-[275px]">
               {/* Set a fixed height */}
-              <nav className="w-1/3 space-y-2">
-                <TabButton value="general" label="General" icon={User} />
-                <TabButton value="advanced" label="Advanced" icon={Sliders} />
+              <nav className="w-1/4 space-y-2">
+                <TabButton value="general" label={t("General")} icon={User} />
+                <TabButton
+                  value="advanced"
+                  label={t("Advanced")}
+                  icon={Sliders}
+                />
               </nav>
-              <div className="w-2/3 overflow-y-auto px-2">
+              <div className="w-3/4 overflow-y-auto px-2">
                 {/* Add overflow-y-auto */}
                 <div className="space-y-4">
                   {activeTab === "general" && (
@@ -247,19 +262,44 @@ export default function SettingsDialog({
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="theme" className="text-sm font-medium">
-                          Theme
+                          {t("Theme")}
                         </Label>
                         <Select
                           value={theme}
                           onValueChange={(value) => setTheme(value)}
                         >
                           <SelectTrigger id="theme" className="w-full">
-                            <SelectValue placeholder="Select theme" />
+                            <SelectValue placeholder={t("Select theme")} />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="light">Light</SelectItem>
-                            <SelectItem value="dark">Dark</SelectItem>
-                            <SelectItem value="system">System</SelectItem>
+                            <SelectItem value="light">{t("Light")}</SelectItem>
+                            <SelectItem value="dark">{t("Dark")}</SelectItem>
+                            <SelectItem value="system">
+                              {t("System")}
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="language"
+                          className="text-sm font-medium"
+                        >
+                          {t("Language")}
+                        </Label>
+                        <Select
+                          value={language}
+                          onValueChange={handleLanguageChange}
+                        >
+                          <SelectTrigger id="language" className="w-full">
+                            <SelectValue placeholder={t("Select language")} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="auto">
+                              {t("Auto-detect")}
+                            </SelectItem>
+                            <SelectItem value="en">{t("English")}</SelectItem>
+                            <SelectItem value="fr">{t("French")}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -270,7 +310,7 @@ export default function SettingsDialog({
                       {!isSubscribed && (
                         <div className="text-sm text-muted-foreground px-4 py-2 w-full bg-muted rounded-md">
                           {t(
-                            "Briefcase has a limit of 10 messages per user. To send unlimited messages, please upgrade to a Pro Plan or enter your own OpenAI API Key."
+                            "Briefcase has a limit of 10 messages per user. To send more messages, please upgrade to Pro or set your OpenAI API key."
                           )}
                         </div>
                       )}
