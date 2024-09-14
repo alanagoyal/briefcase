@@ -351,7 +351,7 @@ export default function SettingsDialog({
                           {t("Briefcase has a limit of 10 messages per user. To send more messages, please upgrade to the Pro Plan or set your OpenAI API key.")}
                         </div>
                       )}
-                      {!isSubscribed && !isApiKeyValidated && (
+                      {!isApiKeyValidated && (
                         <SubscriptionManager
                           isSubscribed={isSubscribed}
                           onSubscriptionChange={onSubscriptionChange}
