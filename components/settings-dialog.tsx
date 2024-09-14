@@ -307,18 +307,20 @@ export default function SettingsDialog({
                   )}
                   {activeTab === "advanced" && (
                     <>
-                      {!isSubscribed && (
+                      {!isSubscribed && !apiKey && (
                         <div className="text-sm text-muted-foreground px-4 py-2 w-full bg-muted rounded-md">
                           {t(
                             "Briefcase has a limit of 10 messages per user. To send more messages, please upgrade to the Pro Plan or set your OpenAI API key."
                           )}
                         </div>
                       )}
-                      <SubscriptionManager
-                        isSubscribed={isSubscribed}
-                        onSubscriptionChange={onSubscriptionChange}
-                        onActionClick={handleSubscriptionAction}
-                      />
+                      {!isSubscribed && !apiKey && (
+                        <SubscriptionManager
+                          isSubscribed={isSubscribed}
+                          onSubscriptionChange={onSubscriptionChange}
+                          onActionClick={handleSubscriptionAction}
+                        />
+                      )}
                       {!isSubscribed && (
                         <div className="space-y-2">
                           <div className="flex items-center space-x-2">
