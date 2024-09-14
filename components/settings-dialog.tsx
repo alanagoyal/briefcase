@@ -1,7 +1,7 @@
 "use client";
 
 import { useI18n } from "@quetzallabs/i18n";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { Label } from "./ui/label";
@@ -62,6 +62,7 @@ export default function SettingsDialog({
   const [activeTab, setActiveTab] = useState("general");
   const [language, setLanguage] = useState("auto");
   const { theme, setTheme } = useTheme();
+  const [isApiKeyValidated, setIsApiKeyValidated] = useState(false);
 
   const COOKIE_NAME = "NEXT_LOCALE";
   const setLocaleCookie = (locale: string) => {
@@ -95,6 +96,7 @@ export default function SettingsDialog({
     if (storedApiKey) {
       setApiKey(storedApiKey);
       setInitialApiKey(storedApiKey);
+      setIsApiKeyValidated(true);
     }
     if (storedLanguage) {
       setLanguage(storedLanguage);
@@ -174,6 +176,35 @@ export default function SettingsDialog({
       return false;
     }
   };
+
+  const handleApiKeyValidation = useCallback(async () => {
+    setIsLoading(true);
+    const isValid = await validateApiKey(apiKey);
+    setIsLoading(false);
+    if (isValid) {
+      localStorage.setItem("openaiApiKey", apiKey);
+      onApiKeyChange(apiKey);
+      setIsApiKeyValidated(true);
+      toast({
+        description: t("API key applied successfully"),
+      });
+    } else {
+      toast({
+        description: t("Invalid API key. Please check and try again."),
+        variant: "destructive",
+      });
+    }
+  }, [apiKey, onApiKeyChange, t]);
+
+  const handleApiKeyRemoval = useCallback(() => {
+    localStorage.removeItem("openaiApiKey");
+    onApiKeyChange("");
+    setApiKey("");
+    setIsApiKeyValidated(false);
+    toast({
+      description: t("API key removed successfully"),
+    });
+  }, [onApiKeyChange, t]);
 
   if (!isClient) {
     return null;
@@ -307,14 +338,20 @@ export default function SettingsDialog({
                   )}
                   {activeTab === "advanced" && (
                     <>
-                      {!isSubscribed && !apiKey && (
+                      {isSubscribed ? (
                         <div className="text-sm text-muted-foreground px-4 py-2 w-full bg-muted rounded-md">
-                          {t(
-                            "Briefcase has a limit of 10 messages per user. To send more messages, please upgrade to the Pro Plan or set your OpenAI API key."
-                          )}
+                          {t("You currently have unlimited messages with your Pro Plan. You can cancel at anytime below.")}
+                        </div>
+                      ) : isApiKeyValidated ? (
+                        <div className="text-sm text-muted-foreground px-4 py-2 w-full bg-muted rounded-md">
+                          {t("You currently have unlimited messages with your OpenAI API key. You can remove it at any time below.")}
+                        </div>
+                      ) : (
+                        <div className="text-sm text-muted-foreground px-4 py-2 w-full bg-muted rounded-md">
+                          {t("Briefcase has a limit of 10 messages per user. To send more messages, please upgrade to the Pro Plan or set your OpenAI API key.")}
                         </div>
                       )}
-                      {!isSubscribed && !apiKey && (
+                      {!isSubscribed && !isApiKeyValidated && (
                         <SubscriptionManager
                           isSubscribed={isSubscribed}
                           onSubscriptionChange={onSubscriptionChange}
@@ -342,13 +379,44 @@ export default function SettingsDialog({
                               </Tooltip>
                             </TooltipProvider>
                           </div>
-                          <Input
-                            id="apiKey"
-                            value={apiKey}
-                            onChange={(e) => setApiKey(e.target.value)}
-                            type="password"
-                            placeholder={t("Enter your OpenAI API Key")}
-                          />
+                          {isApiKeyValidated ? (
+                            <div className="flex items-center space-x-2">
+                              <Input
+                                type="password"
+                                value="••••••••••••••••••••••••••••••••"
+                                disabled
+                                className="flex-grow"
+                              />
+                              <Button
+                                className="w-32"
+                                onClick={handleApiKeyRemoval}
+                              >
+                                {t("Remove")}
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center space-x-2">
+                              <Input
+                                id="apiKey"
+                                value={apiKey}
+                                onChange={(e) => setApiKey(e.target.value)}
+                                type="password"
+                                placeholder={t("Enter your OpenAI API Key")}
+                                className="flex-grow"
+                              />
+                              <Button
+                                className="w-32"
+                                onClick={handleApiKeyValidation}
+                                disabled={isLoading || !apiKey}
+                              >
+                                {isLoading ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  t("Apply")
+                                )}
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       )}
                     </>
