@@ -184,7 +184,9 @@ export default function SubscriptionManager({
                   ? t("This is the email linked to your active subscription.")
                   : isCheckingMode
                   ? t("This is the email you used to set up your subscription.")
-                  : t("This is the email that will be used to manage your subscription.")}
+                  : t(
+                      "This is the email that will be used to manage your subscription."
+                    )}
               </p>
             </TooltipContent>
           </Tooltip>
@@ -225,11 +227,7 @@ export default function SubscriptionManager({
       </div>
       <div className="text-muted-foreground text-sm">
         {isSubscribed ? (
-          <p>
-            {t(
-              "You currently have unlimited access through your Pro subscription."
-            )}
-          </p>
+          <></>
         ) : isCheckingMode ? (
           <p className="text-xs">
             <a
