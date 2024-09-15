@@ -110,6 +110,11 @@ export default function Chat() {
 
   const { isMobile, isLoading: isMobileLoading } = useMobileDetect();
 
+  // Add this constant near the top of the file, after imports
+  const MESSAGE_LIMIT_REACHED = t(
+    "You've reached the message limit. Please upgrade to the Pro Plan or set your OpenAI API key for unlimited use."
+  );
+
   // Calculate remaining messages
   const remainingMessages =
     messageCount !== null ? Math.max(10 - messageCount, 0) : null;
@@ -465,6 +470,8 @@ export default function Chat() {
             t("You have 1 message left before reaching the limit."),
             "destructive"
           );
+        } else if (newCount === 10) {
+          showToast(MESSAGE_LIMIT_REACHED, "destructive");
         }
         return newCount;
       }
@@ -558,12 +565,7 @@ export default function Chat() {
   // Start a new chat
   const startNewChat = () => {
     if (isLimitReached && !userApiKey && !isSubscribed) {
-      showToast(
-        t(
-          "You've reached the message limit. Please upgrade to the Pro Plan or set your OpenAI API key for unlimited use."
-        ),
-        "destructive"
-      );
+      showToast(MESSAGE_LIMIT_REACHED, "destructive");
       return;
     }
     const newId = uuidv4();
@@ -585,12 +587,7 @@ export default function Chat() {
   // Handle prompt click for new chat
   const handlePromptClick = async (prompt: string) => {
     if (isLimitReached && !userApiKey && !isSubscribed) {
-      showToast(
-        t(
-          "You've reached the message limit. Please upgrade to the Pro Plan or set your OpenAI API key for unlimited use."
-        ),
-        "destructive"
-      );
+      showToast(MESSAGE_LIMIT_REACHED, "destructive");
       return;
     }
 
@@ -663,12 +660,7 @@ export default function Chat() {
     e.preventDefault();
     if (!input.trim()) return;
     if (isLimitReached && !userApiKey && !isSubscribed) {
-      showToast(
-        t(
-          "You've reached the message limit. Please upgrade to the Pro Plan or set your OpenAI API key for unlimited use."
-        ),
-        "destructive"
-      );
+      showToast(MESSAGE_LIMIT_REACHED, "destructive");
       return;
     }
 
@@ -1041,12 +1033,7 @@ export default function Chat() {
     async (messageIndex: number) => {
       animateIcon("regenerate", messages[messageIndex].id);
       if (isLimitReached && !userApiKey && !isSubscribed) {
-        showToast(
-          t(
-            "You've reached the message limit. Please upgrade to the Pro Plan or set your OpenAI API key for unlimited use."
-          ),
-          "destructive"
-        );
+        showToast(MESSAGE_LIMIT_REACHED, "destructive");
         return;
       }
       if (messageIndex < 1 || messageIndex >= messages.length) {
