@@ -1309,7 +1309,7 @@ export default function Chat() {
                   </h2>
                   <p className="text-muted-foreground mb-4 w-3/4 text-center mx-auto">
                     {t(
-                      "Ask basic legal questions, summarize documents, and get a quote for more complex legal inquiries"
+                      "Ask any legal question, summarize documents, and request quotes for more complex inqueries"
                     )}
                   </p>
                   <div className="flex flex-col md:grid md:grid-cols-2 gap-2 mb-8">
