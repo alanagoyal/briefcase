@@ -56,6 +56,7 @@ import { Skeleton } from "./ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useMobileDetect } from "./mobile-detector";
 import { Header } from "./header";
+import { useDropzone } from "react-dropzone";
 
 export default function Chat() {
   const { t } = useI18n();
@@ -99,6 +100,7 @@ export default function Chat() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState<boolean>(false);
   const [isSubscriptionVerified, setIsSubscriptionVerified] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Ref declarations
   const latestConversationIdRef = useRef<string | null>(null);
@@ -917,63 +919,98 @@ export default function Chat() {
   );
 
   // Upload a file to a conversation
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = useCallback(
+    async (files: File[]) => {
+      if (files && files.length > 0) {
+        // Create a new conversation if it doesn't exist
+        let currentId = currentConversationId || uuidv4();
+        latestConversationIdRef.current = currentId;
+
+        if (!currentConversationId) {
+          const newConversation: Conversation = {
+            id: currentId,
+            title: t("New Chat"),
+            messages: [],
+            createdAt: new Date(),
+          };
+          setConversations((prev) => [newConversation, ...prev]);
+          setCurrentConversationId(currentId);
+          router.push(`/?id=${currentId}`);
+        }
+
+        // Upload file to conversation
+        const file = files[0];
+        try {
+          const text = await readFileAsText(file);
+          const newDocument: Document = {
+            id: uuidv4(),
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            content: text,
+            conversationId: currentId,
+          };
+          const newDocumentContext = (documentContext || "") + "\n\n" + text;
+          setDocumentContext(newDocumentContext);
+          setConversations((prev) =>
+            prev.map((conv) =>
+              conv.id === currentConversationId
+                ? {
+                    ...conv,
+                    documentContext: newDocumentContext,
+                    documents: [...(conv.documents || []), newDocument],
+                  }
+                : conv
+            )
+          );
+          setDocuments((prev) => [...prev, newDocument]);
+          setPinnedDocuments((prev) => [...prev, newDocument]);
+
+          // Focus on the chat input after file upload
+          setTimeout(() => {
+            inputRef.current?.focus();
+          }, 0);
+        } catch (error) {
+          console.error("Error reading file:", error);
+          toast({
+            description: t("Error uploading document. Please try again."),
+            variant: "destructive",
+          });
+        }
+      }
+    },
+    [
+      currentConversationId,
+      documentContext,
+      router,
+      setConversations,
+      setDocuments,
+      setPinnedDocuments,
+      t,
+    ]
+  );
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop: handleFileUpload,
+    noClick: true,
+    noKeyboard: true,
+    accept: {
+      "application/pdf": [".pdf"],
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+        [".docx"],
+      "text/plain": [".txt"],
+      "text/markdown": [".md"],
+    },
+  });
+
+  useEffect(() => {
+    setIsDragging(isDragActive);
+  }, [isDragActive]);
+
+  // Modify the file input onChange handler
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      // Create a new conversation if it doesn't exist
-      let currentId = currentConversationId || uuidv4();
-      latestConversationIdRef.current = currentId;
-
-      if (!currentConversationId) {
-        const newConversation: Conversation = {
-          id: currentId,
-          title: t("New Chat"),
-          messages: [],
-          createdAt: new Date(),
-        };
-        setConversations((prev) => [newConversation, ...prev]);
-        setCurrentConversationId(currentId);
-        router.push(`/?id=${currentId}`);
-      }
-
-      // Upload file to conversation
-      const file = e.target.files[0];
-      try {
-        const text = await readFileAsText(file);
-        const newDocument: Document = {
-          id: uuidv4(),
-          name: file.name,
-          type: file.type,
-          size: file.size,
-          content: text,
-          conversationId: currentId,
-        };
-        const newDocumentContext = (documentContext || "") + "\n\n" + text;
-        setDocumentContext(newDocumentContext);
-        setConversations((prev) =>
-          prev.map((conv) =>
-            conv.id === currentConversationId
-              ? {
-                  ...conv,
-                  documentContext: newDocumentContext,
-                  documents: [...(conv.documents || []), newDocument],
-                }
-              : conv
-          )
-        );
-        setDocuments((prev) => [...prev, newDocument]);
-        setPinnedDocuments((prev) => [...prev, newDocument]);
-
-        // Focus on the chat input after file upload
-        setTimeout(() => {
-          inputRef.current?.focus();
-        }, 0);
-      } catch (error) {
-        console.error("Error reading file:", error);
-        toast({
-          description: t("Error uploading document. Please try again."),
-          variant: "destructive",
-        });
-      }
+      handleFileUpload(Array.from(e.target.files));
     }
   };
 
@@ -1581,70 +1618,90 @@ export default function Chat() {
             </p>
           </div>
         )}
-        <div className="p-4 border-t bg-background">
-          <form onSubmit={handleSend} className="flex flex-col space-y-2">
-            <div className="flex items-center space-x-2">
-              <Input
-                placeholder={t("Type your message...")}
-                value={input}
-                onChange={handleInputChange}
-                className="flex-1 sm:text-sm text-base"
-                ref={inputRef}
-                autoFocus
-                disabled={isLimitReached && !userApiKey && !isSubscribed}
-                aria-hidden="false"
-              />
-              <input
-                type="file"
-                ref={fileInputRef}
-                className="hidden"
-                onChange={handleFileUpload}
-                accept=".pdf,.docx,.txt,.md"
-              />
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="outline"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <Paperclip className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" align="end">
-                    <p>{t("Attach document")}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type="submit"
-                      size="icon"
-                      className="bg-[#3675F1] hover:bg-[#2556E4]"
-                      disabled={
-                        isLoading ||
-                        (isLimitReached && !userApiKey && !isSubscribed) ||
-                        !input.trim()
-                      }
-                    >
-                      <Send className="h-4 w-4 text-white" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" align="end">
-                    <p>{t("Send message")}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-          </form>
-          <div className="mt-2 text-xs text-muted-foreground text-center">
-            {t(
-              "Briefcase can make mistakes. Please check important info with a lawyer."
+        <div
+          {...getRootProps()}
+          className={cn(
+            "p-4 border-t bg-background relative",
+            isDragActive && "bg-muted",
+            "before:content-['']",
+            "before:absolute before:inset-[2px]",
+            "before:border-2 before:border-dashed before:border-black",
+            "before:opacity-0 before:transition-opacity",
+            isDragActive && "before:opacity-100"
+          )}
+        >
+          <div
+            className={cn(
+              "relative z-10",
+              isDragActive && "pointer-events-none"
             )}
+          >
+            <form onSubmit={handleSend} className="flex flex-col space-y-2">
+              <div className="flex items-center space-x-2 relative">
+                <Input
+                  placeholder={t("Type your message...")}
+                  value={input}
+                  onChange={handleInputChange}
+                  className="flex-1 sm:text-sm text-base"
+                  ref={inputRef}
+                  autoFocus
+                  disabled={isLimitReached && !userApiKey && !isSubscribed}
+                  aria-hidden="false"
+                />
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  onChange={handleFileInputChange}
+                  accept=".pdf,.docx,.txt,.md"
+                />
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="outline"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <Paperclip className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" align="end">
+                      <p>{t("Attach document")}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="submit"
+                        size="icon"
+                        className="bg-[#3675F1] hover:bg-[#2556E4]"
+                        disabled={
+                          isLoading ||
+                          (isLimitReached && !userApiKey && !isSubscribed) ||
+                          !input.trim()
+                        }
+                      >
+                        <Send className="h-4 w-4 text-white" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" align="end">
+                      <p>{t("Send message")}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+            </form>
+
+            {/* Disclaimer text */}
+            <div className="mt-2 text-xs text-muted-foreground text-center">
+              {t(
+                "Briefcase can make mistakes. Please check important info with a lawyer."
+              )}
+            </div>
           </div>
         </div>
       </div>
