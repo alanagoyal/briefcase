@@ -1261,14 +1261,11 @@ export default function Chat() {
             isSidebarOpen={isSidebarOpen}
           />
         )}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {pinnedDocuments.length > 0 ? (
-            <div className="sticky top-0 z-10">
-              <div
-                className={`bg-muted p-2 m-2 flex flex-col space-y-2 rounded-md ${
-                  messages.length === 0 ? "mb-4" : ""
-                }`}
-              >
+        <div className="flex-1 flex flex-col overflow-hidden relative">
+          {/* Pinned documents section */}
+          <div className="sticky top-0 z-10 max-h-[40vh] overflow-y-auto bg-background">
+            {pinnedDocuments.length > 0 && (
+              <div className="bg-muted p-2 m-2 flex flex-col space-y-2 rounded-md">
                 <div className="flex items-center text-center space-x-2">
                   <span className="text-sm font-medium">
                     {t("Pinned Documents")}
@@ -1307,13 +1304,13 @@ export default function Chat() {
                   ))}
                 </div>
               </div>
-            </div>
-          ) : messages.length > 0 ? null : (
-            <div className="h-[122px] w-full sticky top-0 z-10" />
-          )}
-          <div className="flex-1 overflow-y-auto p-4" ref={scrollAreaRef}>
+            )}
+          </div>
+
+          {/* Main content area */}
+          <div className="flex-1 overflow-y-auto p-2" ref={scrollAreaRef}>
             {isLoadingSidebar ? (
-              <div className="flex flex-col h-screen bg-background p-4 space-y-6 overflow-y-auto">
+              <div className="flex flex-col h-screen bg-background space-y-6 overflow-y-auto">
                 {[...Array(10)].map((_, index) => {
                   const heightClass =
                     skeletonHeights[index % skeletonHeights.length];
@@ -1343,8 +1340,8 @@ export default function Chat() {
                 })}
               </div>
             ) : messages.length === 0 || conversations.length === 0 ? (
-              <div className="flex-1 flex items-center justify-center h-full w-full sm:mt-[80px] md:mt-[120px]">
-                <div className="text-center max-w-3xl mx-auto">
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="text-center max-w-3xl mx-auto pointer-events-auto">
                   <h2 className="text-2xl font-semibold mb-2">
                     {t("Welcome to Briefcase")}
                   </h2>
@@ -1414,7 +1411,7 @@ export default function Chat() {
                 </div>
               </div>
             ) : (
-              <div className="flex-1 p-4">
+              <div className="flex-1">
                 {messages.map(
                   (message, index) =>
                     message && (
