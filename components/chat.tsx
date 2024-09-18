@@ -1625,7 +1625,7 @@ export default function Chat() {
             isDragActive && "bg-muted",
             "before:content-['']",
             "before:absolute before:inset-[2px]",
-            "before:border-2 before:border-dashed before:border-black",
+            "before:border-2 before:border-dashed before:border-black before:rounded-md",
             "before:opacity-0 before:transition-opacity",
             isDragActive && "before:opacity-100"
           )}
