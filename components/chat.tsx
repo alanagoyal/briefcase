@@ -1225,7 +1225,7 @@ export default function Chat() {
           />
         )}
         <div className="flex-1 flex flex-col overflow-hidden">
-          {pinnedDocuments.length > 0 && (
+          {pinnedDocuments.length > 0 ? (
             <div
               className={`bg-muted p-2 m-2 flex flex-col space-y-2 rounded-md sticky top-0 z-10 ${
                 messages.length === 0 ? "mb-4" : ""
@@ -1269,7 +1269,7 @@ export default function Chat() {
                 ))}
               </div>
             </div>
-          )}
+          ) : messages.length > 0 ? null : <div className="h-[122px] w-full" />}
           <div className="flex-1 overflow-y-auto p-4" ref={scrollAreaRef}>
             {isLoadingSidebar ? (
               <div className="flex flex-col h-screen bg-background p-4 space-y-6 overflow-y-auto">
@@ -1302,7 +1302,7 @@ export default function Chat() {
                 })}
               </div>
             ) : messages.length === 0 || conversations.length === 0 ? (
-              <div className="flex-1 flex items-center justify-center h-full w-full">
+              <div className="flex-1 flex items-center justify-center h-full w-full sm:-mt-[80px] md:-mt-[120px]">
                 <div className="text-center max-w-3xl mx-auto">
                   <h2 className="text-2xl font-semibold mb-2">
                     {t("Welcome to Briefcase")}
