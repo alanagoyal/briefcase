@@ -922,6 +922,22 @@ export default function Chat() {
   const handleFileUpload = useCallback(
     async (files: File[]) => {
       if (files && files.length > 0) {
+        const file = files[0];
+        const supportedTypes = [
+          "application/pdf",
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          "text/plain",
+          "text/markdown",
+        ];
+
+        if (!supportedTypes.includes(file.type)) {
+          toast({
+            description: t("Error uploading document. Please try again with a PDF, DOCX, TXT, or MD file."),
+            variant: "destructive",
+          });
+          return;
+        }
+
         // Create a new conversation if it doesn't exist
         let currentId = currentConversationId || uuidv4();
         latestConversationIdRef.current = currentId;
@@ -939,7 +955,6 @@ export default function Chat() {
         }
 
         // Upload file to conversation
-        const file = files[0];
         try {
           const text = await readFileAsText(file);
           const newDocument: Document = {
@@ -966,6 +981,11 @@ export default function Chat() {
           setDocuments((prev) => [...prev, newDocument]);
           setPinnedDocuments((prev) => [...prev, newDocument]);
 
+          // Show success toast
+          toast({
+            description: t("File uploaded"),
+          });
+
           // Focus on the chat input after file upload
           setTimeout(() => {
             inputRef.current?.focus();
@@ -977,7 +997,7 @@ export default function Chat() {
             variant: "destructive",
           });
         }
-      }
+      } 
     },
     [
       currentConversationId,
@@ -994,13 +1014,8 @@ export default function Chat() {
     onDrop: handleFileUpload,
     noClick: true,
     noKeyboard: true,
-    accept: {
-      "application/pdf": [".pdf"],
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-        [".docx"],
-      "text/plain": [".txt"],
-      "text/markdown": [".md"],
-    },
+    accept: undefined, 
+    multiple: false,
   });
 
   useEffect(() => {
@@ -1061,7 +1076,7 @@ export default function Chat() {
   const handleCopy = (content: string) => {
     navigator.clipboard.writeText(content);
     toast({
-      description: t("Message copied to clipboard"),
+      description: t("Copied to clipboard"),
     });
   };
 
