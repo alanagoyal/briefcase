@@ -1346,7 +1346,7 @@ export default function Chat() {
           </div>
 
           {/* Main content area */}
-          <div className="flex-1 overflow-y-auto p-2" ref={scrollAreaRef}>
+          <div className="flex-1 overflow-y-auto p-4" ref={scrollAreaRef}>
             {isLoadingSidebar ? (
               <div className="flex flex-col h-screen bg-background space-y-6 overflow-y-auto">
                 {[...Array(10)].map((_, index) => {
