@@ -509,6 +509,27 @@ export default function Chat() {
   }, [currentConversationId]);
 
   // Helper functions for settings dialog
+  const handleDeleteAllConversations = useCallback(() => {
+    // Clear conversations from state
+    setConversations([]);
+    // Clear messages from the current conversation
+    setMessages([]);
+    // Clear current conversation ID
+    setCurrentConversationId(null);
+    // Clear conversations from localStorage
+    localStorage.removeItem("conversations");
+    // Optionally, clear documents if you want to remove all uploaded documents as well
+    setDocuments([]);
+    setPinnedDocuments([]);
+    localStorage.removeItem("documents");
+    // Close the settings dialog
+    setIsSettingsOpen(false);
+    // Show a toast notification
+    toast({
+      description: t("All conversations have been deleted"),
+    });
+  }, [setMessages, t]);
+
   const handleSettingsOpenChange = (open: boolean) => {
     setIsSettingsOpen(open);
     if (!open) {
@@ -932,7 +953,9 @@ export default function Chat() {
 
         if (!supportedTypes.includes(file.type)) {
           toast({
-            description: t("Error uploading document. Please try again with a PDF, DOCX, TXT, or MD file."),
+            description: t(
+              "Error uploading document. Please try again with a PDF, DOCX, TXT, or MD file."
+            ),
             variant: "destructive",
           });
           return;
@@ -997,7 +1020,7 @@ export default function Chat() {
             variant: "destructive",
           });
         }
-      } 
+      }
     },
     [
       currentConversationId,
@@ -1014,7 +1037,7 @@ export default function Chat() {
     onDrop: handleFileUpload,
     noClick: true,
     noKeyboard: true,
-    accept: undefined, 
+    accept: undefined,
     multiple: false,
   });
 
@@ -1748,6 +1771,7 @@ export default function Chat() {
           isSubscribed={isSubscribed}
           onSubscriptionChange={handleSubscriptionChange}
           initialTab={settingsInitialTab}
+          onDeleteAllConversations={handleDeleteAllConversations}
         />
       )}
       <KeyboardShortcuts

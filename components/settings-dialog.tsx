@@ -32,6 +32,18 @@ import {
 } from "./ui/select";
 import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "./ui/alert-dialog";
+
 interface SettingsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -39,7 +51,8 @@ interface SettingsDialogProps {
   onApiKeyChange: (apiKey: string) => void;
   isSubscribed: boolean;
   onSubscriptionChange: (isSubscribed: boolean) => void;
-  initialTab?: string; 
+  initialTab?: string;
+  onDeleteAllConversations: () => void;
 }
 
 export default function SettingsDialog({
@@ -50,6 +63,7 @@ export default function SettingsDialog({
   isSubscribed,
   onSubscriptionChange,
   initialTab = "general",
+  onDeleteAllConversations,
 }: SettingsDialogProps) {
   const { t } = useI18n();
   const router = useRouter();
@@ -340,15 +354,21 @@ export default function SettingsDialog({
                     <>
                       {isSubscribed ? (
                         <div className="text-sm text-muted-foreground px-4 py-2 w-full bg-muted rounded-md">
-                          {t("You currently have unlimited messages with your Pro Plan. You can cancel at anytime below.")}
+                          {t(
+                            "You currently have unlimited messages with your Pro Plan. You can cancel at anytime below."
+                          )}
                         </div>
                       ) : isApiKeyValidated ? (
                         <div className="text-sm text-muted-foreground px-4 py-2 w-full bg-muted rounded-md">
-                          {t("You currently have unlimited messages with your OpenAI API key. You can remove it at any time below.")}
+                          {t(
+                            "You currently have unlimited messages with your OpenAI API key. You can remove it at any time below."
+                          )}
                         </div>
                       ) : (
                         <div className="text-sm text-muted-foreground px-4 py-2 w-full bg-muted rounded-md">
-                          {t("Briefcase has a limit of 10 messages per user. To send more messages, please upgrade to the Pro Plan or set your OpenAI API key.")}
+                          {t(
+                            "Briefcase has a limit of 10 messages per user. To send more messages, please upgrade to the Pro Plan or set your OpenAI API key."
+                          )}
                         </div>
                       )}
                       {!isApiKeyValidated && (
@@ -388,7 +408,7 @@ export default function SettingsDialog({
                                 className="flex-grow"
                               />
                               <Button
-                                className="w-32"
+                                className="w-[100px] flex-shrink-0"
                                 onClick={handleApiKeyRemoval}
                               >
                                 {t("Remove")}
@@ -405,7 +425,7 @@ export default function SettingsDialog({
                                 className="flex-grow"
                               />
                               <Button
-                                className="w-32"
+                                className="w-[100px] flex-shrink-0"
                                 onClick={handleApiKeyValidation}
                                 disabled={isLoading || !apiKey}
                               >
@@ -420,6 +440,46 @@ export default function SettingsDialog({
                         </div>
                       )}
                     </>
+                  )}
+                  {!newUser && (
+                    <div className="flex flex-col space-y-2">
+                      <Label>{t("Conversation History")}</Label>
+                      <div className="flex items-center space-x-2">
+                        <p className="text-sm text-muted-foreground flex-grow pr-4">
+                          {t(
+                            "Delete all conversations and messages. This action cannot be undone."
+                          )}
+                        </p>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="destructive" className="w-[100px] flex-shrink-0">
+                              {t("Delete")}
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>
+                                {t("Are you sure?")}
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                {t(
+                                  "This action cannot be undone. This will permanently delete all your conversations and messages."
+                                )}
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel className="w-[100px] flex-shrink-0">{t("Cancel")}</AlertDialogCancel>
+                              <AlertDialogAction
+                                className="w-[100px] flex-shrink-0"
+                                onClick={onDeleteAllConversations}
+                              >
+                                {t("Delete")}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>
