@@ -1388,7 +1388,7 @@ export default function Chat() {
                       "Ask any legal question, summarize documents, and request quotes for more complex inqueries"
                     )}
                   </p>
-                  <div className="flex flex-col md:grid md:grid-cols-2 gap-2 mb-8">
+                  <div className="flex flex-col md:grid md:grid-cols-2 gap-2 mb-8 p-2">
                     <Badge
                       variant="outline"
                       className="bg-muted text-foreground hover:bg-[#3675F1] hover:text-white px-3 py-1 text-xs cursor-pointer flex items-center justify-between"
