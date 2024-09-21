@@ -439,47 +439,47 @@ export default function SettingsDialog({
                           )}
                         </div>
                       )}
+                      {!newUser && (
+                        <div className="flex flex-col space-y-2">
+                          <Label>{t("Conversation History")}</Label>
+                          <div className="flex items-center space-x-2">
+                            <p className="text-sm text-muted-foreground flex-grow pr-4">
+                              {t(
+                                "Delete all conversations and messages. This action cannot be undone."
+                              )}
+                            </p>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="destructive" className="w-[100px] flex-shrink-0">
+                                  {t("Delete")}
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>
+                                    {t("Are you sure?")}
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    {t(
+                                      "This will permanently delete all of your conversations and messages. This action cannot be undone."
+                                    )}
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel className="w-[100px] flex-shrink-0">{t("Cancel")}</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    className="w-[100px] flex-shrink-0"
+                                    onClick={onDeleteAllConversations}
+                                  >
+                                    {t("Delete")}
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </div>
+                      )}
                     </>
-                  )}
-                  {!newUser && (
-                    <div className="flex flex-col space-y-2">
-                      <Label>{t("Conversation History")}</Label>
-                      <div className="flex items-center space-x-2">
-                        <p className="text-sm text-muted-foreground flex-grow pr-4">
-                          {t(
-                            "Delete all conversations and messages. This action cannot be undone."
-                          )}
-                        </p>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="destructive" className="w-[100px] flex-shrink-0">
-                              {t("Delete")}
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>
-                                {t("Are you sure?")}
-                              </AlertDialogTitle>
-                              <AlertDialogDescription>
-                                {t(
-                                  "This action cannot be undone. This will permanently delete all your conversations and messages."
-                                )}
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel className="w-[100px] flex-shrink-0">{t("Cancel")}</AlertDialogCancel>
-                              <AlertDialogAction
-                                className="w-[100px] flex-shrink-0"
-                                onClick={onDeleteAllConversations}
-                              >
-                                {t("Delete")}
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    </div>
                   )}
                 </div>
               </div>
