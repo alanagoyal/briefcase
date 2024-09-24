@@ -457,7 +457,7 @@ export default function SettingsDialog({
                               <AlertDialogContent>
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>
-                                    {t("Are you sure?")}
+                                    {t("Delete Conversations")}
                                   </AlertDialogTitle>
                                   <AlertDialogDescription>
                                     {t(
