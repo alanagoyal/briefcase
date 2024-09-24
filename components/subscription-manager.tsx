@@ -24,16 +24,18 @@ interface SubscriptionManagerProps {
   onSubscriptionChange: (isSubscribed: boolean) => void;
   isSubscribed: boolean;
   onActionClick: (e: MouseEvent<HTMLButtonElement>) => void;
+  onEmailChange: (email: string) => void; // Add this new prop
 }
 
 export default function SubscriptionManager({
   onSubscriptionChange,
   isSubscribed: initialIsSubscribed,
   onActionClick,
+  onEmailChange, // Add this new prop
 }: SubscriptionManagerProps) {
   const { t } = useI18n();
   const [isSubscribed, setIsSubscribed] = useState(initialIsSubscribed);
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState("");  // Initialize with an empty string instead of null
   const [isCheckingMode, setIsCheckingMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
@@ -49,10 +51,6 @@ export default function SubscriptionManager({
         const data = await response.json();
         setIsSubscribed(data.isSubscribed);
         onSubscriptionChange(data.isSubscribed);
-        localStorage.setItem(
-          "subscriptionStatus",
-          data.isSubscribed ? "active" : "inactive"
-        );
       } catch (error) {
         console.error("Error verifying subscription:", error);
       } finally {
@@ -63,11 +61,24 @@ export default function SubscriptionManager({
   );
 
   useEffect(() => {
-    const storedEmail = localStorage.getItem("userEmail");
-    if (storedEmail) {
-      setEmail(storedEmail);
-      verifySubscription(storedEmail);
-    }
+    const fetchUserInfo = async () => {
+      try {
+        const response = await fetch('/api/getUserInfo');
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Fetched user info in subscription manager:', data);
+          if (data.userEmail && data.userEmail !== "null") {
+            setEmail(data.userEmail);
+            verifySubscription(data.userEmail);
+          } else {
+            setEmail("");  // Set to empty string if no email is found or if it's "null"
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user info:', error);
+      }
+    };
+    fetchUserInfo();
   }, [verifySubscription]);
 
   const handleSubscribe = async () => {
@@ -82,7 +93,7 @@ export default function SubscriptionManager({
       });
       const { sessionId } = await response.json();
 
-      localStorage.setItem("userEmail", email);
+      onEmailChange(email); // Update email in parent component
 
       const stripe = await stripePromise;
       const { error } = await stripe!.redirectToCheckout({
@@ -106,12 +117,10 @@ export default function SubscriptionManager({
       );
       const data = await response.json();
       if (data.isSubscribed) {
-        localStorage.setItem("userEmail", email);
-        localStorage.setItem("subscriptionStatus", "active");
+        onEmailChange(email); // Update email in parent component
         setIsSubscribed(true);
         onSubscriptionChange(true);
       } else {
-        localStorage.setItem("subscriptionStatus", "inactive");
         toast({
           description: t("No active subscription found for this email."),
           variant: "destructive",
@@ -143,8 +152,7 @@ export default function SubscriptionManager({
         throw new Error(`Failed to cancel subscription: ${responseData.error}`);
       }
       if (responseData.subscription.status === "canceled") {
-        localStorage.removeItem("userEmail");
-        localStorage.setItem("subscriptionStatus", "inactive");
+        onEmailChange(''); // Clear email in parent component
         setIsSubscribed(false);
         onSubscriptionChange(false);
         setEmail("");

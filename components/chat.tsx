@@ -76,9 +76,10 @@ export default function Chat() {
   const [pinnedDocuments, setPinnedDocuments] = useState<Document[]>([]);
   const [focusTrigger, setFocusTrigger] = useState(0);
   const [userName, setUserName] = useState<string | null>(null);
+  const [userApiKey, setUserApiKey] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [settingsInitialTab, setSettingsInitialTab] = useState("general");
-  const [userApiKey, setUserApiKey] = useState<string | null>(null);
   const [messageCount, setMessageCount] = useState<number | null>(null);
   const [isLimitReached, setIsLimitReached] = useState(false);
   const [isStreamStarted, setIsStreamStarted] = useState(false);
@@ -217,15 +218,15 @@ export default function Chat() {
       const response = await fetch(
         `/api/verify-subscription?email=${encodeURIComponent(email)}`
       );
-      const data = await response.json();
-      setIsSubscribed(data.isSubscribed);
+        const data = await response.json();
+        setIsSubscribed(data.isSubscribed);
 
       // Update local storage
       localStorage.setItem(
         "subscriptionStatus",
         data.isSubscribed ? "active" : "inactive"
       );
-    } catch (error) {
+      } catch (error) {
       console.error("Error verifying subscription:", error);
       setIsSubscribed(false);
     } finally {
@@ -337,16 +338,26 @@ export default function Chat() {
 
   // Load userName and API key from localStorage
   useEffect(() => {
-    const storedName = localStorage.getItem("userName");
-    if (storedName) {
-      setUserName(storedName);
-    } else {
-      setIsSettingsOpen(true);
-    }
-    const storedApiKey = localStorage.getItem("openaiApiKey");
-    if (storedApiKey) {
-      setUserApiKey(storedApiKey);
-    }
+    const loadUserInfo = async () => {
+      try {
+        const response = await fetch('/api/get-user-info');
+        if (response.ok) {
+          const data = await response.json();
+          setUserName(data.userName || null);
+          setUserApiKey(data.openaiApiKey || null);
+          setUserEmail(data.userEmail || null);
+          if (!data.userName) {
+            setIsSettingsOpen(true);
+          }
+        } else {
+          console.error('Failed to load user info');
+        }
+      } catch (error) {
+        console.error('Error loading user info:', error);
+      }
+    };
+
+    loadUserInfo();
   }, []);
 
   // Load message feedback from localStorage
@@ -537,20 +548,69 @@ export default function Chat() {
     }
   };
 
-  const handleNameChange = (name: string) => {
+  const handleNameChange = async (name: string) => {
+    try {
+      const response = await fetch('/api/set-user-info', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userName: name, openaiApiKey: userApiKey, userEmail }),
+      });
+      if (response.ok) {
     setUserName(name);
-    if (name && !localStorage.getItem("userName")) {
-      setIsSettingsOpen(false);
+        if (name && !userName) {
+          setIsSettingsOpen(false);
+        }
+      } else {
+        console.error('Failed to update user name');
+      }
+    } catch (error) {
+      console.error('Error updating user name:', error);
     }
   };
 
-  const handleApiKeyChange = (apiKey: string | null) => {
-    setUserApiKey(apiKey);
-    if (apiKey) {
-      localStorage.setItem("openaiApiKey", apiKey);
-    } else {
-      localStorage.removeItem("openaiApiKey");
-      checkMessageLimit();
+  const handleApiKeyChange = async (apiKey: string | null) => {
+    try {
+      const response = await fetch('/api/set-user-info', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userName, openaiApiKey: apiKey, userEmail }),
+      });
+      if (response.ok) {
+        setUserApiKey(apiKey);
+        if (apiKey) {
+          // Update state or perform any necessary actions
+        } else {
+          checkMessageLimit();
+        }
+      } else {
+        console.error('Failed to update API key');
+      }
+    } catch (error) {
+      console.error('Error updating API key:', error);
+    }
+  };
+
+  const handleEmailChange = async (email: string) => {
+    try {
+      const response = await fetch('/api/set-user-info', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userName, openaiApiKey: userApiKey, userEmail: email }),
+      });
+      if (response.ok) {
+        setUserEmail(email);
+        verifySubscription(email);
+      } else {
+        console.error('Failed to update user email');
+      }
+    } catch (error) {
+      console.error('Error updating user email:', error);
     }
   };
 
@@ -981,7 +1041,7 @@ export default function Chat() {
         try {
           const text = await readFileAsText(file);
           const newDocument: Document = {
-            id: uuidv4(),
+          id: uuidv4(),
             name: file.name,
             type: file.type,
             size: file.size,
@@ -1010,9 +1070,9 @@ export default function Chat() {
           });
 
           // Focus on the chat input after file upload
-          setTimeout(() => {
-            inputRef.current?.focus();
-          }, 0);
+        setTimeout(() => {
+          inputRef.current?.focus();
+        }, 0);
         } catch (error) {
           console.error("Error reading file:", error);
           toast({
@@ -1273,15 +1333,15 @@ export default function Chat() {
             isSidebarOpen ? "" : "hidden"
           }`}
         >
-          <Sidebar
+      <Sidebar
             groupedConversations={groupedConversations}
-            currentConversationId={currentConversationId}
+        currentConversationId={currentConversationId}
             onConversationSelect={handleConversationSelect}
             onConversationDelete={deleteConversation}
             onNewChat={handleNewChat}
-            onToggleSidebar={toggleSidebar}
+        onToggleSidebar={toggleSidebar}
             onOpenSettings={() => setIsSettingsOpen(true)}
-            isLoading={isLoadingSidebar}
+        isLoading={isLoadingSidebar}
             isMobile={isMobile}
             closeSidebar={closeSidebar}
           />
@@ -1293,10 +1353,10 @@ export default function Chat() {
         }`}
       >
         {(isMobile || !isSidebarOpen) && (
-          <Header
+        <Header
             toggleSidebar={toggleSidebar}
             startNewChat={handleNewChat}
-            isSidebarOpen={isSidebarOpen}
+          isSidebarOpen={isSidebarOpen}
           />
         )}
         <div className="flex-1 flex flex-col overflow-hidden relative">
@@ -1465,8 +1525,8 @@ export default function Chat() {
                           <Avatar className="h-8 w-8 mr-2 flex-shrink-0 mt-1">
                             <AvatarFallback className="bg-[#3675F1]">
                               <Briefcase className="h-5 w-5 text-white" />
-                            </AvatarFallback>
-                          </Avatar>
+                  </AvatarFallback>
+                </Avatar>
                         )}
                         <div
                           className={`max-w-[80%] ${
@@ -1481,22 +1541,22 @@ export default function Chat() {
                             {message.role === "user" ? (
                               <p>{message.content}</p>
                             ) : (
-                              <ReactMarkdown
+                  <ReactMarkdown
                                 rehypePlugins={[
                                   rehypeRaw,
                                   rehypeSanitize,
                                   rehypeHighlight,
                                 ]}
                                 className="markdown-content"
-                              >
-                                {message.content}
-                              </ReactMarkdown>
+                  >
+                    {message.content}
+                  </ReactMarkdown>
                             )}
-                          </div>
+                </div>
                           {message.role === "assistant" && !isStreamStarted && (
                             <div className="mt-2 flex items-center space-x-2">
-                              <TooltipProvider>
-                                <Tooltip>
+                    <TooltipProvider>
+                      <Tooltip>
                                   <TooltipTrigger asChild>
                                     <Button
                                       variant="ghost"
@@ -1557,8 +1617,8 @@ export default function Chat() {
                                         animateIcon("thumbsUp", message.id);
                                       }}
                                     >
-                                      <ThumbsUp
-                                        className={cn(
+                          <ThumbsUp
+                            className={cn(
                                           "h-4 w-4",
                                           messageFeedback[message.id]
                                             ?.feedbackType === "thumbsUp"
@@ -1569,14 +1629,14 @@ export default function Chat() {
                                         )}
                                       />
                                     </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
+                        </TooltipTrigger>
+                        <TooltipContent>
                                     <p>{t("Good response")}</p>
-                                  </TooltipContent>
-                                </Tooltip>
+                        </TooltipContent>
+                      </Tooltip>
                               </TooltipProvider>
                               <TooltipProvider>
-                                <Tooltip>
+                      <Tooltip>
                                   <TooltipTrigger asChild>
                                     <Button
                                       variant="ghost"
@@ -1586,8 +1646,8 @@ export default function Chat() {
                                         animateIcon("thumbsDown", message.id);
                                       }}
                                     >
-                                      <ThumbsDown
-                                        className={cn(
+                          <ThumbsDown
+                            className={cn(
                                           "h-4 w-4",
                                           messageFeedback[message.id]
                                             ?.feedbackType === "thumbsDown"
@@ -1598,12 +1658,12 @@ export default function Chat() {
                                         )}
                                       />
                                     </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
+                        </TooltipTrigger>
+                        <TooltipContent>
                                     <p>{t("Bad response")}</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                               <Button
                                 className="hover:bg-[#2556E4] hover:text-white"
                                 size="sm"
@@ -1611,9 +1671,9 @@ export default function Chat() {
                               >
                                 {t("Get Quote")}
                               </Button>
-                            </div>
-                          )}
-                        </div>
+                  </div>
+                )}
+              </div>
                         {message.role === "user" && (
                           <Avatar className="h-8 w-8 ml-2 flex-shrink-0 mt-1 order-2">
                             <AvatarFallback className="bg-gradient-to-br from-[#8EC5FC] via-[#3675f1] to-[#2556e4] text-white font-[Avenir] font-bold">
@@ -1621,15 +1681,15 @@ export default function Chat() {
                             </AvatarFallback>
                           </Avatar>
                         )}
-                      </div>
+            </div>
                     )
                 )}
-              </div>
-            )}
+            </div>
+          )}
             {isLoading && !isStreamStarted && (
               <div className="flex justify-center p-4">
                 <AnimatedBriefcase />
-              </div>
+        </div>
             )}
           </div>
         </div>
@@ -1646,7 +1706,7 @@ export default function Chat() {
               <a
                 href="#"
                 onClick={(e) => {
-                  e.preventDefault();
+              e.preventDefault();
                   openSettingsWithTab("advanced");
                 }}
                 className="font-bold hover:underline focus:outline-none"
@@ -1677,12 +1737,12 @@ export default function Chat() {
           >
             <form onSubmit={handleSend} className="flex flex-col space-y-2">
               <div className="flex items-center space-x-2 relative">
-                <Input
+              <Input
                   placeholder={t("Type your message...")}
                   value={input}
                   onChange={handleInputChange}
                   className="flex-1 sm:text-sm text-base"
-                  ref={inputRef}
+                ref={inputRef}
                   autoFocus
                   disabled={isLimitReached && !userApiKey && !isSubscribed}
                   aria-hidden="false"
@@ -1704,7 +1764,7 @@ export default function Chat() {
                         onClick={() => fileInputRef.current?.click()}
                       >
                         <Paperclip className="h-4 w-4" />
-                      </Button>
+              </Button>
                     </TooltipTrigger>
                     <TooltipContent side="top" align="end">
                       <p>{t("Attach document")}</p>
@@ -1732,14 +1792,14 @@ export default function Chat() {
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
-              </div>
-            </form>
+            </div>
+          </form>
             <div className="mt-2 text-xs text-muted-foreground text-center">
               {t(
                 "Briefcase can make mistakes. Please check important info with a lawyer."
               )}
-            </div>
-          </div>
+        </div>
+      </div>
         </div>
       </div>
       <Dialog open={isQuoteDialogOpen} onOpenChange={setIsQuoteDialogOpen}>
@@ -1768,6 +1828,7 @@ export default function Chat() {
           onOpenChange={handleSettingsOpenChange}
           onNameChange={handleNameChange}
           onApiKeyChange={handleApiKeyChange}
+          onEmailChange={handleEmailChange}
           isSubscribed={isSubscribed}
           onSubscriptionChange={handleSubscriptionChange}
           initialTab={settingsInitialTab}

@@ -53,6 +53,7 @@ interface SettingsDialogProps {
   onSubscriptionChange: (isSubscribed: boolean) => void;
   initialTab?: string;
   onDeleteAllConversations: () => void;
+  onEmailChange: (email: string) => void; // Add this new prop
 }
 
 export default function SettingsDialog({
@@ -64,6 +65,7 @@ export default function SettingsDialog({
   onSubscriptionChange,
   initialTab = "general",
   onDeleteAllConversations,
+  onEmailChange, // Add this new prop
 }: SettingsDialogProps) {
   const { t } = useI18n();
   const router = useRouter();
@@ -100,28 +102,30 @@ export default function SettingsDialog({
 
   useEffect(() => {
     setIsClient(true);
-    const storedName = localStorage.getItem("userName");
-    const storedApiKey = localStorage.getItem("openaiApiKey");
-    const storedLanguage = localStorage.getItem("userLanguage");
-    setNewUser(!storedName);
-    if (storedName) {
-      setName(storedName);
-    }
-    if (storedApiKey) {
-      setApiKey(storedApiKey);
-      setInitialApiKey(storedApiKey);
-      setIsApiKeyValidated(true);
-    }
-    if (storedLanguage) {
-      setLanguage(storedLanguage);
-    }
+    const fetchUserInfo = async () => {
+      try {
+        const response = await fetch('/api/get-user-info');
+        if (response.ok) {
+          const data = await response.json();
+          setName(data.userName || '');
+          setApiKey(data.openaiApiKey || '');
+          setInitialApiKey(data.openaiApiKey || '');
+          setIsApiKeyValidated(!!data.openaiApiKey);
+          setNewUser(!data.userName);
+        } else {
+          console.error('Failed to load user info');
+        }
+      } catch (error) {
+        console.error('Error loading user info:', error);
+      }
+    };
+    fetchUserInfo();
     setActiveTab(initialTab);
   }, [open, initialTab]);
 
   const handleCloseAttempt = async (newOpen: boolean) => {
     if (!newOpen) {
       if (name.trim()) {
-        localStorage.setItem("userName", name.trim());
         onNameChange(name.trim());
 
         // Check if the API key has changed
@@ -131,7 +135,6 @@ export default function SettingsDialog({
             const isValid = await validateApiKey(apiKey);
             setIsLoading(false);
             if (isValid) {
-              localStorage.setItem("openaiApiKey", apiKey);
               onApiKeyChange(apiKey);
               toast({
                 description: t("Settings saved successfully"),
@@ -145,7 +148,6 @@ export default function SettingsDialog({
             }
           } else {
             // API key is being removed
-            localStorage.removeItem("openaiApiKey");
             onApiKeyChange("");
           }
         }
@@ -196,7 +198,6 @@ export default function SettingsDialog({
     const isValid = await validateApiKey(apiKey);
     setIsLoading(false);
     if (isValid) {
-      localStorage.setItem("openaiApiKey", apiKey);
       onApiKeyChange(apiKey);
       setIsApiKeyValidated(true);
       toast({
@@ -211,7 +212,6 @@ export default function SettingsDialog({
   }, [apiKey, onApiKeyChange, t]);
 
   const handleApiKeyRemoval = useCallback(() => {
-    localStorage.removeItem("openaiApiKey");
     onApiKeyChange("");
     setApiKey("");
     setIsApiKeyValidated(false);
@@ -376,6 +376,7 @@ export default function SettingsDialog({
                           isSubscribed={isSubscribed}
                           onSubscriptionChange={onSubscriptionChange}
                           onActionClick={handleSubscriptionAction}
+                          onEmailChange={onEmailChange} // Add this prop
                         />
                       )}
                       {!isSubscribed && (
