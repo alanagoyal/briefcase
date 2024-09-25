@@ -1301,7 +1301,7 @@ export default function Chat() {
         )}
         <div className="flex-1 flex flex-col overflow-hidden relative">
           {/* Pinned documents section */}
-          <div className="sticky top-0 z-10 max-h-[40vh] overflow-y-auto bg-background">
+          <div className="sticky top-0 z-10 overflow-y-auto bg-background">
             {pinnedDocuments.length > 0 && (
               <div className="bg-muted p-2 m-2 flex flex-col space-y-2 rounded-md">
                 <div className="flex items-center text-center space-x-2">
