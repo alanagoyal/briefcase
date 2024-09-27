@@ -1751,7 +1751,7 @@ export default function Chat() {
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>{t("View our policies")}</p>
+                    <p>{t("Terms & Policies")}</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
