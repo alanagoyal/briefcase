@@ -33,7 +33,7 @@ export default function TermsAndPolicies() {
               <li>Use for Entertainment and Educational Purposes: Briefcase is provided for entertainment and educational purposes only.</li>
               <li>Limitation of Liability: Briefcase and its developers shall not be held liable for any damages arising from your use of the information provided.</li>
               <li>User Responsibilities: You are responsible for verifying any information provided by Briefcase before acting on it.</li>
-              <li>No Warranties: Briefcase is provided "as is" without any warranties of any kind.</li>
+              <li>No Warranties: Briefcase is provided &quot;as is&quot; without any warranties of any kind.</li>
               <li>Modification of Terms: We reserve the right to modify these Terms of Service at any time.</li>
             </ol>
           </div>
