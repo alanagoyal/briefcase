@@ -7,7 +7,7 @@ export default function TermsAndPolicies() {
   return (
     <div className="min-h-screen p-8">
       <Link href="/" className="inline-block mb-8">
-        <Button variant="ghost" className="p-0">
+        <Button variant="ghost-no-hover" className="p-0">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back
         </Button>
