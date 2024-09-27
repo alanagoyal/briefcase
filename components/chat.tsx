@@ -3,7 +3,7 @@
 import { useI18n } from "@quetzallabs/i18n";
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { FileText, Briefcase, Trash2, ArrowUpRight } from "lucide-react";
+import { FileText, Briefcase, Trash2, ArrowUpRight, Info } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -1734,10 +1734,27 @@ export default function Chat() {
                 </TooltipProvider>
               </div>
             </form>
-            <div className="mt-2 text-xs text-muted-foreground text-center">
+            <div className="mt-2 text-xs text-muted-foreground text-center flex items-center justify-center">
               {t(
                 "Briefcase can make mistakes. Please check important info with a lawyer."
               )}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost-no-hover"
+                      size="sm"
+                      className="p-0 ml-1"
+                      onClick={() => router.push('/policies')}
+                    >
+                      <Info className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{t("View our policies")}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </div>
         </div>
