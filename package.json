@@ -2,13 +2,16 @@
   "name": "freestyle-next-template",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "24.x"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build && sh freestyle/freestyleify.sh",
     "start": "next start",
     "lint": "next lint",
-    "prebuild": "npx quetzal-process-translations",
-    "predev": "npx quetzal-process-translations"
+    "prebuild": "quetzal-process-translations",
+    "predev": "quetzal-process-translations"
   },
   "dependencies": {
     "@actionbase/web-action-sdk": "^0.1.5",
