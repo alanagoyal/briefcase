@@ -6,7 +6,7 @@ const withNextIntl = createNextIntlPlugin();
 const nextConfig = {
   basePath: "/briefcase",
   async redirects() {
-    return [{ source: "/", destination: "/briefcase", basePath: false, permanent: false }];
+    return [{ source: "/", destination: "https://basecase.vc/briefcase", basePath: false, permanent: false }];
   },
   output: "standalone",
   cleanDistDir: true,

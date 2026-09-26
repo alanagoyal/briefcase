@@ -41,7 +41,7 @@ npx freestyle dev
 ```
 
 ### Deployment
-Briefcase is deployed on [Vercel](https://vercel.com)
+Briefcase is deployed on Vercel and served at [basecase.vc/briefcase](https://basecase.vc/briefcase).
 
 ## License
 Licensed under the [MIT License](https://github.com/alanagoyal/briefcase/blob/main/LICENSE.md)
