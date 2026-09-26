@@ -171,7 +171,7 @@ export default function SettingsDialog({
   // Validate API key
   const validateApiKey = async (apiKey: string): Promise<boolean> => {
     try {
-      const response = await fetch("/api/validate-api-key", {
+      const response = await fetch("/briefcase/api/validate-api-key", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

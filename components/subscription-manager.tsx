@@ -44,7 +44,7 @@ export default function SubscriptionManager({
       setIsVerifying(true);
       try {
         const response = await fetch(
-          `/api/verify-subscription?email=${encodeURIComponent(email)}`
+          `/briefcase/api/verify-subscription?email=${encodeURIComponent(email)}`
         );
         const data = await response.json();
         setIsSubscribed(data.isSubscribed);
@@ -73,7 +73,7 @@ export default function SubscriptionManager({
   const handleSubscribe = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch("/api/create-checkout-session", {
+      const response = await fetch("/briefcase/api/create-checkout-session", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -102,7 +102,7 @@ export default function SubscriptionManager({
     setIsLoading(true);
     try {
       const response = await fetch(
-        `/api/verify-subscription?email=${encodeURIComponent(email)}`
+        `/briefcase/api/verify-subscription?email=${encodeURIComponent(email)}`
       );
       const data = await response.json();
       if (data.isSubscribed) {
@@ -131,7 +131,7 @@ export default function SubscriptionManager({
   const handleUnsubscribe = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch("/api/cancel-subscription", {
+      const response = await fetch("/briefcase/api/cancel-subscription", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

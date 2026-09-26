@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { siteConfig } from '@/config/site';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
@@ -16,8 +17,8 @@ export async function POST(request: Request) {
         },
       ],
       mode: 'subscription',
-      success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/?success=true`,
-      cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/?canceled=true`,
+      success_url: `${siteConfig.url}?success=true`,
+      cancel_url: `${siteConfig.url}?canceled=true`,
       customer_email: email,
     });
 

@@ -144,7 +144,7 @@ export default function Chat() {
     setMessages,
     append,
   } = useChat({
-    api: "/api/chat",
+    api: "/briefcase/api/chat",
     id: currentConversationId || undefined,
     initialMessages:
       conversations.find((c) => c.id === currentConversationId)?.messages || [],
@@ -215,7 +215,7 @@ export default function Chat() {
   const verifySubscription = useCallback(async (email: string) => {
     try {
       const response = await fetch(
-        `/api/verify-subscription?email=${encodeURIComponent(email)}`
+        `/briefcase/api/verify-subscription?email=${encodeURIComponent(email)}`
       );
       const data = await response.json();
       setIsSubscribed(data.isSubscribed);
@@ -720,7 +720,7 @@ export default function Chat() {
   const generateTitle = useCallback(
     async (id: string, userMessage: string, assistantMessage: string) => {
       try {
-        const response = await fetch("/api/generate-title", {
+        const response = await fetch("/briefcase/api/generate-title", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -1218,7 +1218,7 @@ export default function Chat() {
           }),
         });
         try {
-          const response = await fetch("/api/feedback", {
+          const response = await fetch("/briefcase/api/feedback", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",

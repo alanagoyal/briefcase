@@ -33,7 +33,7 @@ export default function FeeCalculator({
       setIsLoading(true);
       setShowResults(false);
       try {
-        const response = await fetch("/api/calculate-fees", {
+        const response = await fetch("/briefcase/api/calculate-fees", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
